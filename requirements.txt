@@ -1,0 +1,12 @@
+torch
+torchvision
+torch-optimizer
+tensorboard
+numpy
+einops
+tqdm
+pandas
+prettytable
+matplotlib
+scikit-learn
+# Add other dependencies as needed, e.g., for specific dataset loading or augmentations
