@@ -158,8 +158,9 @@ class ModelNet40PerceiverDataModule:
     def preprocess_batch(self, batch):
         """
         Preprocess a batch of data.
-        This method isn't needed when using the ModelNet40PerceiverWrapper,
-        but is included for consistency with other data modules.
+        This method handles PyTorch Geometric's batching which concatenates 
+        point clouds into a single tensor. We need to split it back into 
+        proper batch format.
         
         Args:
             batch: PyG Data object
@@ -167,16 +168,27 @@ class ModelNet40PerceiverDataModule:
         Returns:
             Dictionary containing processed inputs and labels
         """
-        # The wrapper dataset already processes the point clouds
-        # We just need to format the batch as expected by the model
-        inputs = batch.pos_with_encoding
+        # PyTorch Geometric batches point clouds by concatenating them
+        # We need to split them back into [batch_size, num_points, features]
+        
+        # Get batch information
+        batch_size = batch.y.shape[0]
+        total_points = batch.pos_with_encoding.shape[0]
+        feature_dim = batch.pos_with_encoding.shape[1]
+        num_points_per_sample = total_points // batch_size
+        
+        # Reshape from [total_points, features] to [batch_size, num_points, features]
+        inputs = batch.pos_with_encoding.view(batch_size, num_points_per_sample, feature_dim)
         labels = batch.y
+        
+        # Also reshape original points for visualization
+        original_points = batch.pos.view(batch_size, num_points_per_sample, 3)
         
         # Return dictionary with processed batch
         return {
             'inputs': inputs,
             'labels': labels,
-            'original_points': batch.pos  # Keep original for visualization
+            'original_points': original_points
         }
 
 
@@ -204,8 +216,9 @@ class ModelNet40PerceiverWrapper(Dataset):
         # Apply augmentation to points
         points = self.augmentation(data.pos)
         
-        # Compute positional encodings
-        pos_enc = self.pos_encoding(points)
+        # Compute positional encodings without gradients to avoid collation issues
+        with torch.no_grad():
+            pos_enc = self.pos_encoding(points).detach()
         
         # Concatenate point coordinates and positional encoding
         data.pos_with_encoding = torch.cat([points, pos_enc], dim=-1)

@@ -39,6 +39,12 @@ class MultiHeadAttention(nn.Module):
     def forward(self, x_q, x_kv=None, mask=None):
         kv_input = x_kv if x_kv is not None else x_q
 
+        # Ensure inputs have the correct shape [batch, seq_len, dim]
+        if x_q.dim() == 2:
+            raise ValueError(f"Query input must be 3D [batch, seq_len, dim], got shape {x_q.shape}")
+        if kv_input.dim() == 2:
+            raise ValueError(f"Key-Value input must be 3D [batch, seq_len, dim], got shape {kv_input.shape}")
+
         q = self.to_q(x_q)
         kv = self.to_kv(kv_input).chunk(2, dim=-1)
         k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=self.num_heads), kv)
