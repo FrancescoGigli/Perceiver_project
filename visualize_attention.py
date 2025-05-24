@@ -1,302 +1,545 @@
-# visualize_attention.py
+# Enhanced visualization of attention maps with comprehensive analysis
 
 import os
 import re
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 from PIL import Image
+import matplotlib.patches as patches
+from matplotlib.gridspec import GridSpec
+import argparse
+from pathlib import Path
+import warnings
+warnings.filterwarnings('ignore')
 
-def overlay_attention_map(attn_weights, img_np, output_path, title):
-    """
-    Plot original | attention heatmap | overlay and save to disk.
-    """
-    # Handle different types of attention weights
-    if isinstance(attn_weights, list):
-        # Try to convert nested list structure to tensor
+class AttentionVisualizer:
+    def __init__(self, colormap='jet', alpha=0.6, figsize=(15, 5)):
+        """
+        Enhanced attention visualizer with comprehensive analysis features.
+        
+        Args:
+            colormap: Colormap for attention heatmaps
+            alpha: Blending factor for overlays
+            figsize: Default figure size
+        """
+        self.colormap = colormap
+        self.alpha = alpha
+        self.figsize = figsize
+        self.available_colormaps = ['jet', 'viridis', 'plasma', 'inferno', 'hot', 'cool', 'seismic']
+        
+        # Set matplotlib style
+        plt.style.use('seaborn-v0_8' if 'seaborn-v0_8' in plt.style.available else 'default')
+    
+    def create_comprehensive_attention_analysis(self, attn_weights, img_tensor, title="Attention", save_path=None):
+        """
+        Create comprehensive attention analysis with multiple views and statistics.
+        """
+        # Process inputs
+        attn_processed = self._process_attention_weights(attn_weights)
+        img_processed = self._process_image_tensor(img_tensor)
+        
+        if attn_processed is None or img_processed is None:
+            print(f"❌ Failed to process inputs for {title}")
+            return None
+        
+        H, W = img_processed.shape[:2]
+        attn_map = self._create_attention_map(attn_processed, H, W)
+        
+        if attn_map is None:
+            print(f"❌ Failed to create attention map for {title}")
+            return None
+        
+        # Create comprehensive visualization
+        fig = plt.figure(figsize=(20, 14))
+        gs = GridSpec(3, 4, figure=fig, height_ratios=[2, 2, 1.5], width_ratios=[1, 1, 1, 1])
+        
+        # Row 1: Main visualizations
+        self._plot_original_image(fig.add_subplot(gs[0, 0]), img_processed)
+        self._plot_attention_heatmap(fig.add_subplot(gs[0, 1]), attn_map)
+        self._plot_attention_overlay(fig.add_subplot(gs[0, 2]), img_processed, attn_map)
+        self._plot_attention_statistics(fig.add_subplot(gs[0, 3]), attn_map)
+        
+        # Row 2: Analysis views
+        self._plot_attention_distribution(fig.add_subplot(gs[1, 0]), attn_map)
+        self._plot_attention_peaks(fig.add_subplot(gs[1, 1]), attn_map, img_processed)
+        self._plot_spatial_analysis(fig.add_subplot(gs[1, 2]), attn_map)
+        self._plot_attention_entropy(fig.add_subplot(gs[1, 3]), attn_map)
+        
+        # Row 3: Colormap comparisons
+        self._plot_colormap_comparison(fig, gs[2, :], img_processed, attn_map)
+        
+        plt.suptitle(f'Comprehensive Attention Analysis - {title}', fontsize=16, fontweight='bold')
+        plt.tight_layout()
+        
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white')
+            print(f"✔ Enhanced visualization saved: {save_path}")
+            plt.close()
+        
+        return fig
+    
+    def create_evolution_visualization(self, attention_maps_by_epoch, img_tensor, save_path=None):
+        """Create visualization showing attention evolution across epochs."""
+        if not attention_maps_by_epoch:
+            print("❌ No attention maps provided for evolution visualization")
+            return None
+        
+        img_processed = self._process_image_tensor(img_tensor)
+        if img_processed is None:
+            print("❌ Failed to process image tensor")
+            return None
+        
+        epochs = sorted(attention_maps_by_epoch.keys())
+        n_epochs = len(epochs)
+        
+        fig, axes = plt.subplots(3, n_epochs, figsize=(4*n_epochs, 12))
+        if n_epochs == 1:
+            axes = axes.reshape(3, 1)
+        
+        for i, epoch in enumerate(epochs):
+            attn_map = attention_maps_by_epoch[epoch]
+            
+            # Row 1: Attention heatmaps
+            im1 = axes[0, i].imshow(attn_map, cmap=self.colormap)
+            axes[0, i].set_title(f'Epoch {epoch}', fontweight='bold')
+            axes[0, i].axis('off')
+            plt.colorbar(im1, ax=axes[0, i], fraction=0.046, pad=0.04)
+            
+            # Row 2: Overlays
+            cmap = plt.get_cmap(self.colormap)
+            colored = cmap(attn_map)[:,:,:3]
+            overlay = (1-self.alpha)*img_processed + self.alpha*colored
+            overlay = np.clip(overlay, 0, 1)
+            axes[1, i].imshow(overlay)
+            axes[1, i].set_title(f'Overlay E{epoch}', fontweight='bold')
+            axes[1, i].axis('off')
+            
+            # Row 3: Statistics
+            self._plot_epoch_statistics(axes[2, i], attn_map, epoch)
+        
+        plt.suptitle('Attention Evolution Across Training Epochs', fontsize=16, fontweight='bold')
+        plt.tight_layout()
+        
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white')
+            print(f"✔ Evolution visualization saved: {save_path}")
+            plt.close()
+        
+        return fig
+    
+    def _plot_original_image(self, ax, img):
+        """Plot original image."""
+        ax.imshow(img)
+        ax.set_title('Original Image', fontsize=12, fontweight='bold')
+        ax.axis('off')
+    
+    def _plot_attention_heatmap(self, ax, attn_map):
+        """Plot attention heatmap."""
+        im = ax.imshow(attn_map, cmap=self.colormap)
+        ax.set_title(f'Attention Map ({self.colormap})', fontsize=12, fontweight='bold')
+        ax.axis('off')
+        plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    
+    def _plot_attention_overlay(self, ax, img, attn_map):
+        """Plot attention overlay on original image."""
+        cmap = plt.get_cmap(self.colormap)
+        colored = cmap(attn_map)[:,:,:3]
+        overlay = (1-self.alpha)*img + self.alpha*colored
+        overlay = np.clip(overlay, 0, 1)
+        ax.imshow(overlay)
+        ax.set_title('Attention Overlay', fontsize=12, fontweight='bold')
+        ax.axis('off')
+    
+    def _plot_attention_statistics(self, ax, attn_map):
+        """Plot attention statistics."""
+        stats = {
+            'Mean': np.mean(attn_map),
+            'Std': np.std(attn_map),
+            'Min': np.min(attn_map),
+            'Max': np.max(attn_map),
+            'Entropy': self._calculate_entropy(attn_map),
+            'Sparsity': np.sum(attn_map < 0.1) / attn_map.size,
+            'Peak Ratio': np.sum(attn_map > np.percentile(attn_map, 95)) / attn_map.size
+        }
+        
+        ax.axis('off')
+        y_pos = 0.95
+        ax.text(0.05, y_pos, 'Attention Statistics:', fontsize=12, fontweight='bold', transform=ax.transAxes)
+        
+        for key, value in stats.items():
+            y_pos -= 0.12
+            ax.text(0.05, y_pos, f'{key}: {value:.4f}', fontsize=10, transform=ax.transAxes)
+    
+    def _plot_attention_distribution(self, ax, attn_map):
+        """Plot attention value distribution."""
+        flat_attn = attn_map.flatten()
+        
+        # Histogram
+        ax.hist(flat_attn, bins=50, alpha=0.7, color='skyblue', edgecolor='black', density=True)
+        
+        # Statistics lines
+        mean_val = np.mean(flat_attn)
+        median_val = np.median(flat_attn)
+        ax.axvline(mean_val, color='red', linestyle='--', linewidth=2, label=f'Mean: {mean_val:.3f}')
+        ax.axvline(median_val, color='green', linestyle='--', linewidth=2, label=f'Median: {median_val:.3f}')
+        
+        # Percentiles
+        p95 = np.percentile(flat_attn, 95)
+        ax.axvline(p95, color='orange', linestyle=':', linewidth=2, label=f'95th: {p95:.3f}')
+        
+        ax.set_xlabel('Attention Value')
+        ax.set_ylabel('Density')
+        ax.set_title('Attention Distribution', fontweight='bold')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+    
+    def _plot_attention_peaks(self, ax, attn_map, img):
+        """Plot attention peaks on the original image."""
+        ax.imshow(img)
+        
+        # Find top attention regions
+        threshold = np.percentile(attn_map, 95)
+        peak_coords = np.where(attn_map >= threshold)
+        
+        # Plot peak regions with varying sizes based on attention strength
+        for y, x in zip(peak_coords[0], peak_coords[1]):
+            attention_strength = attn_map[y, x]
+            radius = 2 + 4 * (attention_strength / np.max(attn_map))
+            circle = patches.Circle((x, y), radius=radius, linewidth=2, 
+                                  edgecolor='red', facecolor='none', alpha=0.8)
+            ax.add_patch(circle)
+        
+        ax.set_title(f'Top 5% Attention Peaks ({len(peak_coords[0])} points)', fontweight='bold')
+        ax.axis('off')
+    
+    def _plot_spatial_analysis(self, ax, attn_map):
+        """Plot spatial analysis of attention."""
+        # Row and column means
+        row_means = np.mean(attn_map, axis=1)
+        col_means = np.mean(attn_map, axis=0)
+        
+        # Create subplot
+        ax.clear()
+        ax2 = ax.twinx()
+        
+        # Plot row means
+        x_rows = np.arange(len(row_means))
+        line1 = ax.plot(x_rows, row_means, 'b-', linewidth=2, label='Row Means')
+        ax.set_xlabel('Spatial Position')
+        ax.set_ylabel('Row-wise Mean Attention', color='b')
+        ax.tick_params(axis='y', labelcolor='b')
+        
+        # Plot column means (normalized to same scale)
+        x_cols = np.linspace(0, len(row_means)-1, len(col_means))
+        line2 = ax2.plot(x_cols, col_means, 'r-', linewidth=2, label='Column Means')
+        ax2.set_ylabel('Column-wise Mean Attention', color='r')
+        ax2.tick_params(axis='y', labelcolor='r')
+        
+        ax.set_title('Spatial Attention Analysis', fontweight='bold')
+        ax.grid(True, alpha=0.3)
+    
+    def _plot_attention_entropy(self, ax, attn_map):
+        """Plot attention entropy analysis."""
+        # Calculate entropy per row
+        row_entropy = []
+        for i in range(attn_map.shape[0]):
+            row = attn_map[i, :]
+            row_entropy.append(self._calculate_entropy(row))
+        
+        ax.plot(row_entropy, 'g-', linewidth=2, marker='o', markersize=4)
+        ax.set_xlabel('Row Index')
+        ax.set_ylabel('Entropy')
+        ax.set_title('Attention Entropy per Row', fontweight='bold')
+        ax.grid(True, alpha=0.3)
+        
+        # Add mean entropy line
+        mean_entropy = np.mean(row_entropy)
+        ax.axhline(mean_entropy, color='red', linestyle='--', 
+                  label=f'Mean: {mean_entropy:.3f}')
+        ax.legend()
+    
+    def _plot_colormap_comparison(self, fig, gs, img, attn_map):
+        """Plot comparison of different colormaps."""
+        cmaps_to_show = self.available_colormaps[:4]
+        
+        for i, cmap_name in enumerate(cmaps_to_show):
+            ax = fig.add_subplot(gs[i])
+            cmap_obj = plt.get_cmap(cmap_name)
+            colored = cmap_obj(attn_map)[:,:,:3]
+            overlay = (1-self.alpha)*img + self.alpha*colored
+            overlay = np.clip(overlay, 0, 1)
+            ax.imshow(overlay)
+            ax.set_title(f'{cmap_name.title()}', fontsize=10, fontweight='bold')
+            ax.axis('off')
+    
+    def _plot_epoch_statistics(self, ax, attn_map, epoch):
+        """Plot statistics for a specific epoch."""
+        stats = [
+            np.mean(attn_map),
+            np.std(attn_map),
+            self._calculate_entropy(attn_map),
+            np.sum(attn_map > np.percentile(attn_map, 95)) / attn_map.size
+        ]
+        labels = ['Mean', 'Std', 'Entropy', 'Peak Ratio']
+        
+        bars = ax.bar(labels, stats, color=['blue', 'green', 'orange', 'red'], alpha=0.7)
+        ax.set_title(f'E{epoch} Stats', fontweight='bold')
+        ax.set_ylabel('Value')
+        
+        # Add value labels on bars
+        for bar, value in zip(bars, stats):
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2., height + 0.01,
+                   f'{value:.3f}', ha='center', va='bottom', fontsize=8)
+        
+        plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
+    
+    def _calculate_entropy(self, data):
+        """Calculate entropy of data array."""
+        # Normalize to probabilities
+        data_flat = data.flatten()
+        data_norm = data_flat / (np.sum(data_flat) + 1e-8)
+        # Calculate entropy
+        return -np.sum(data_norm * np.log(data_norm + 1e-8))
+    
+    def _process_attention_weights(self, attn_weights):
+        """Process attention weights to handle various formats."""
         try:
-            attn_weights = torch.tensor(attn_weights)
-        except ValueError:
-            # If direct conversion fails, try to process the structure
-            print(f"Complex attention structure detected, attempting to process...")
-            # Recursively find the first tensor in the nested structure
-            def find_first_tensor(data):
-                if isinstance(data, torch.Tensor):
-                    return data
-                elif isinstance(data, list) and len(data) > 0:
-                    for item in data:
-                        result = find_first_tensor(item)
-                        if result is not None:
-                            return result
+            if isinstance(attn_weights, list):
+                attn_weights = self._find_first_tensor(attn_weights)
+                if attn_weights is None:
+                    return None
+            
+            if not isinstance(attn_weights, torch.Tensor):
                 return None
             
-            tensor_found = find_first_tensor(attn_weights)
-            if tensor_found is not None:
-                attn_weights = tensor_found
-                print(f"Found tensor with shape: {attn_weights.shape}")
-            else:
-                print(f"Warning: Could not find a tensor in the attention weights")
-                return
-    
-    # Print some debug info
-    print(f"Attention weights type: {type(attn_weights)}")
-    print(f"Attention weights shape: {attn_weights.shape if hasattr(attn_weights, 'shape') else 'unknown'}")
-    
-    # Check if tensor has the expected dimensions
-    if not hasattr(attn_weights, 'shape') or len(attn_weights.shape) < 3:
-        print(f"Warning: Attention weights don't have the expected dimensions")
-        if hasattr(attn_weights, 'shape') and len(attn_weights.shape) == 2:
-            # If 2D, add a dimension to make it 3D for processing
-            attn_weights = attn_weights.unsqueeze(0)
-        else:
-            return
-    
-    # Handle various dimension arrangements safely
-    try:
-        # First, ensure we're working with tensor on CPU
-        attn_weights = attn_weights.cpu()
-        
-        # Try to average over dimensions that exist
-        if len(attn_weights.shape) >= 3:
-            # For shape [batch, heads, seq_len, seq_len] or similar
-            attn_mean = attn_weights.mean(dim=1)
-            if len(attn_mean.shape) >= 3:
-                attn_mean = attn_mean.mean(dim=1)
-            if len(attn_mean.shape) >= 2 and attn_mean.shape[0] == 1:
-                attn_mean = attn_mean.squeeze(0)
-        else:
-            # Fallback for unusual shapes
-            attn_mean = attn_weights
-        
-        attn_mean = attn_mean.numpy()
-    except Exception as e:
-        print(f"Error processing attention weights: {e}")
-        return
-    H, W, _ = img_np.shape
-    src_len = H * W
-
-    # Print debug info about sizes
-    print(f"Image shape: {img_np.shape}, Attention mean shape/size: {attn_mean.shape if hasattr(attn_mean, 'shape') else 'scalar'}, Size: {attn_mean.size}")
-    
-    # Handle different attention map shapes/sizes
-    try:
-        # Check if 1D or flattened attention
-        if isinstance(attn_mean, np.ndarray) and attn_mean.ndim == 1 and attn_mean.size == src_len:
-            # Perfect match, just reshape
-            attn_map = attn_mean.reshape(H, W)
-        
-        # Check if it's already 2D with correct dimensions
-        elif isinstance(attn_mean, np.ndarray) and attn_mean.ndim == 2 and attn_mean.shape == (H, W):
-            # Already in the right shape
-            attn_map = attn_mean
+            attn_weights = attn_weights.cpu()
             
-        # Otherwise, resize the attention map to match image dimensions
-        else:
-            if isinstance(attn_mean, np.ndarray) and attn_mean.ndim >= 2:
-                # If multi-dimensional, flatten to 2D first by taking the first slice if needed
-                if attn_mean.ndim > 2:
-                    print(f"Reducing dimensions from {attn_mean.ndim}D to 2D")
-                    if attn_mean.shape[0] == 1:  # If batch dimension is 1
-                        attn_mean = attn_mean[0]
+            # Handle various dimensions
+            while len(attn_weights.shape) > 2:
+                if attn_weights.shape[0] == 1:
+                    attn_weights = attn_weights.squeeze(0)
+                else:
+                    attn_weights = attn_weights.mean(dim=0)
+            
+            return attn_weights.numpy()
+        
+        except Exception as e:
+            print(f"❌ Error processing attention weights: {e}")
+            return None
+    
+    def _process_image_tensor(self, img_tensor):
+        """Process image tensor to numpy array."""
+        try:
+            if isinstance(img_tensor, list):
+                img_tensor = self._find_first_tensor(img_tensor)
+                if img_tensor is None:
+                    return None
+            
+            if not isinstance(img_tensor, torch.Tensor):
+                return None
+            
+            img_tensor = img_tensor.cpu()
+            
+            # Handle batch dimension
+            if len(img_tensor.shape) == 4 and img_tensor.shape[0] == 1:
+                img_tensor = img_tensor.squeeze(0)
+            
+            # Handle different formats
+            if len(img_tensor.shape) == 3:
+                # Assume [C, H, W] format
+                img_np = img_tensor.permute(1, 2, 0).numpy()
+            elif len(img_tensor.shape) == 2:
+                # Grayscale image
+                img_np = img_tensor.numpy()
+                img_np = np.stack([img_np] * 3, axis=-1)  # Convert to RGB
+            else:
+                return None
+            
+            # Normalize to [0, 1]
+            if img_np.max() > 1.0 or img_np.min() < 0.0:
+                img_np = (img_np - img_np.min()) / (img_np.max() - img_np.min() + 1e-8)
+            
+            return img_np
+        
+        except Exception as e:
+            print(f"❌ Error processing image tensor: {e}")
+            return None
+    
+    def _find_first_tensor(self, data, max_depth=5, current_depth=0):
+        """Recursively find the first tensor in nested structure."""
+        if current_depth > max_depth:
+            return None
+        
+        if isinstance(data, torch.Tensor):
+            return data
+        elif isinstance(data, (list, tuple)) and len(data) > 0:
+            for item in data:
+                result = self._find_first_tensor(item, max_depth, current_depth + 1)
+                if result is not None:
+                    return result
+        return None
+    
+    def _create_attention_map(self, attn_processed, H, W):
+        """Create attention map matching image dimensions."""
+        try:
+            if attn_processed.ndim == 1:
+                # For 1D attention, try to reshape or resize
+                if attn_processed.size == H * W:
+                    return attn_processed.reshape(H, W)
+                else:
+                    # Resize using interpolation
+                    side = int(np.sqrt(attn_processed.size))
+                    if side * side == attn_processed.size:
+                        temp_map = attn_processed.reshape(side, side)
                     else:
-                        # Take the mean across the first dimension
-                        attn_mean = attn_mean.mean(axis=0)
-                
-                # Convert to image and resize
-                norm_attn = (attn_mean - attn_mean.min()) / (attn_mean.max() - attn_mean.min() + 1e-8)
-                heatmap = Image.fromarray((norm_attn * 255).astype(np.uint8))
-                heatmap = heatmap.resize((W, H), Image.BICUBIC)
-                attn_map = np.array(heatmap) / 255.0
+                        # Pad or truncate to nearest square
+                        target_size = side * side
+                        if attn_processed.size > target_size:
+                            temp_map = attn_processed[:target_size].reshape(side, side)
+                        else:
+                            padded = np.pad(attn_processed, (0, target_size - attn_processed.size))
+                            temp_map = padded.reshape(side, side)
+                    
+                    # Resize to target dimensions
+                    norm_map = (temp_map - temp_map.min()) / (temp_map.max() - temp_map.min() + 1e-8)
+                    resized = Image.fromarray((norm_map * 255).astype(np.uint8))
+                    resized = resized.resize((W, H), Image.BICUBIC)
+                    return np.array(resized) / 255.0
             
-            elif isinstance(attn_mean, np.ndarray) and attn_mean.ndim == 1:
-                # For 1D array with wrong size, reshape to square and then resize
-                side = int(np.sqrt(attn_mean.size))
-                reshaped = attn_mean[:side*side].reshape(side, side)
-                norm_attn = (reshaped - reshaped.min()) / (reshaped.max() - reshaped.min() + 1e-8)
-                heatmap = Image.fromarray((norm_attn * 255).astype(np.uint8))
-                heatmap = heatmap.resize((W, H), Image.BICUBIC)
-                attn_map = np.array(heatmap) / 255.0
+            elif attn_processed.ndim == 2:
+                if attn_processed.shape == (H, W):
+                    return attn_processed
+                else:
+                    # Resize 2D attention map
+                    norm_map = (attn_processed - attn_processed.min()) / (attn_processed.max() - attn_processed.min() + 1e-8)
+                    resized = Image.fromarray((norm_map * 255).astype(np.uint8))
+                    resized = resized.resize((W, H), Image.BICUBIC)
+                    return np.array(resized) / 255.0
             
-            else:
-                # Last resort: create a dummy attention map
-                print("Warning: Could not process attention map properly, using uniform map")
-                attn_map = np.ones((H, W)) * 0.5
-    
-    except Exception as e:
-        print(f"Error processing attention map for visualization: {e}")
-        # Create a dummy attention map
-        attn_map = np.ones((H, W)) * 0.5
-
-    # build overlay
-    cmap = plt.get_cmap('jet')
-    colored = cmap(attn_map)[:,:,:3]
-    overlay = (1-0.5)*img_np + 0.5*colored
-    overlay = np.clip(overlay,0,1)
-
-    # plot side-by-side
-    fig, axs = plt.subplots(1,3,figsize=(12,4))
-    axs[0].imshow(img_np);           axs[0].axis('off'); axs[0].set_title('Original')
-    axs[1].imshow(attn_map,cmap='jet'); axs[1].axis('off'); axs[1].set_title('Attention')
-    axs[2].imshow(overlay);           axs[2].axis('off'); axs[2].set_title(title)
-    plt.tight_layout()
-    plt.savefig(output_path, bbox_inches='tight')
-    plt.close()
-    print(f"✔ Saved: {output_path}")
+            return None
+        
+        except Exception as e:
+            print(f"❌ Error creating attention map: {e}")
+            return None
 
 def find_attention_dirs(root_logs):
-    """
-    Walk root_logs and yield every path named 'attention_maps'.
-    """
+    """Walk root_logs and yield every path named 'attention_maps'."""
     for dirpath, dirnames, _ in os.walk(root_logs):
-        if os.path.basename(dirpath)=='attention_maps':
+        if os.path.basename(dirpath) == 'attention_maps':
             yield dirpath
 
 def main():
-    # 1) autodetect logs dir
-    candidates = ['logs', os.path.join('perceiver_project','logs')]
+    parser = argparse.ArgumentParser(description="Enhanced attention visualization with comprehensive analysis")
+    parser.add_argument('--logs_dir', type=str, default='logs', 
+                       help='Root logs directory')
+    parser.add_argument('--colormap', type=str, default='jet',
+                       choices=['jet', 'viridis', 'plasma', 'inferno', 'hot', 'cool', 'seismic'],
+                       help='Colormap for attention visualization')
+    parser.add_argument('--alpha', type=float, default=0.6,
+                       help='Alpha blending factor for overlays (0.0-1.0)')
+    parser.add_argument('--create_evolution', action='store_true',
+                       help='Create evolution visualization across epochs')
+    parser.add_argument('--epochs', nargs='+', type=int, default=None,
+                       help='Specific epochs to process (default: all)')
+    args = parser.parse_args()
+    
+    # Initialize visualizer
+    visualizer = AttentionVisualizer(colormap=args.colormap, alpha=args.alpha)
+    
+    # Find logs directory
+    candidates = [args.logs_dir, os.path.join('perceiver_project', args.logs_dir)]
+    root_logs = None
     for c in candidates:
         if os.path.isdir(c):
             root_logs = c
             break
-    else:
-        print("❌ Cannot find a 'logs/' directory. Checked:", candidates)
+    
+    if root_logs is None:
+        print(f"❌ Cannot find logs directory. Checked: {candidates}")
         return
-
-    print(f"Using logs directory: {root_logs}")
-
-    # 2) scan all attention_maps/
-    any_dir=False
+    
+    print(f"📂 Using logs directory: {root_logs}")
+    
+    # Process all attention_maps directories
+    any_dir = False
     for attn_dir in find_attention_dirs(root_logs):
-        any_dir=True
-        print("\n▶ Found attention_maps/ at:", attn_dir)
+        any_dir = True
+        print(f"\n▶ Processing: {attn_dir}")
+        
         files = os.listdir(attn_dir)
-        # detect epochs via cross_attn
         pat = re.compile(r'epoch_(\d+)_cross_attn_weights\.pt')
-        epochs = sorted(int(m.group(1)) for f in files if (m:=pat.match(f)))
+        epochs = sorted(int(m.group(1)) for f in files if (m := pat.match(f)))
+        
         if not epochs:
-            print("  ⚠️ No 'epoch_<N>_cross_attn_weights.pt' here, skipping.")
+            print("  ⚠️ No cross-attention files found, skipping.")
             continue
-        print("  Epochs:", epochs)
-
-        for e in epochs:
-            print(f"  • Epoch {e}")
-            cross_f = f'epoch_{e}_cross_attn_weights.pt'
-            orig_f  = f'epoch_{e}_original_image_tensor.pt'
-            cross_p = os.path.join(attn_dir,cross_f)
-            orig_p  = os.path.join(attn_dir,orig_f)
-
-            if not os.path.isfile(cross_p):
-                print(f"    ❌ Missing {cross_f}, skip")
+        
+        # Filter epochs if specified
+        if args.epochs:
+            epochs = [e for e in epochs if e in args.epochs]
+            if not epochs:
+                print(f"  ⚠️ None of the specified epochs {args.epochs} found, skipping.")
                 continue
-            if not os.path.isfile(orig_p):
-                print(f"    ❌ Missing {orig_f}, skip")
-                continue
-
-            try:
-                # Load attention weights - don't use weights_only as it might change the structure
-                try:
-                    attn = torch.load(cross_p)  # [1, heads, tgt_len, src_len]
-                    print(f"    Loaded attention weights: {type(attn)}")
-                except Exception as e:
-                    print(f"    ⚠️ Error loading attention weights: {e}")
-                    continue
-                
-                # Load image tensor
-                try:
-                    img_t = torch.load(orig_p)  # [3, H, W]
-                except Exception as e:
-                    print(f"    ⚠️ Error loading image tensor: {e}")
-                    continue
-                
-                # Print debug info
-                print(f"    Image tensor type: {type(img_t)}")
-                if isinstance(img_t, torch.Tensor):
-                    print(f"    Image tensor shape: {img_t.shape}")
-                elif isinstance(img_t, list):
-                    print(f"    Image tensor is a list of length {len(img_t)}")
-                    if len(img_t) > 0:
-                        print(f"    First element type: {type(img_t[0])}")
-                
-                # Ensure img_t is a tensor with the right format
-                try:
-                    if not isinstance(img_t, torch.Tensor):
-                        # Handle list structure
-                        if isinstance(img_t, list) and len(img_t) > 0:
-                            # Recursive function to find the first tensor or convertible array
-                            def find_first_convertible(data, depth=0, max_depth=5):
-                                if depth > max_depth:  # Prevent infinite recursion
-                                    return None
-                                
-                                if isinstance(data, torch.Tensor):
-                                    return data
-                                elif isinstance(data, (list, tuple)) and len(data) > 0:
-                                    for item in data:
-                                        result = find_first_convertible(item, depth+1, max_depth)
-                                        if result is not None:
-                                            return result
-                                elif isinstance(data, (np.ndarray, list)) and len(data) > 0:
-                                    try:
-                                        return torch.tensor(data)
-                                    except:
-                                        pass
-                                return None
-                            
-                            tensor_found = find_first_convertible(img_t)
-                            if tensor_found is not None:
-                                img_t = tensor_found
-                                print(f"    Found convertible tensor with shape: {img_t.shape}")
-                            else:
-                                try:
-                                    # Fallback: try converting the first element
-                                    img_t = torch.tensor(img_t[0] if isinstance(img_t[0], (list, tuple)) and len(img_t[0]) > 0 else img_t)
-                                    print(f"    Converted to tensor with shape: {img_t.shape}")
-                                except:
-                                    print(f"    ⚠️ Could not convert to tensor, skipping")
-                                    continue
-                        else:
-                            print(f"    ⚠️ Unexpected image tensor format, skipping")
-                            continue
-                    
-                    # Ensure tensor is on CPU
-                    img_t = img_t.cpu()
-                    
-                    # Handle different tensor dimensions
-                    if len(img_t.shape) == 4 and img_t.shape[0] == 1:  # [1, C, H, W]
-                        img_t = img_t.squeeze(0)
-                    
-                    if len(img_t.shape) != 3:
-                        print(f"    ⚠️ Unexpected tensor shape: {img_t.shape}, expected [C, H, W]")
-                        if len(img_t.shape) == 2:  # [H, W]
-                            # Convert grayscale to RGB
-                            img_t = img_t.unsqueeze(0).repeat(3, 1, 1)
-                        else:
-                            print(f"    Cannot convert tensor to image format, skipping")
-                            continue
-                    
-                    # Now convert to numpy array with channels last format
-                    img_np = img_t.permute(1,2,0).cpu().numpy()
-                    
-                    # Normalize if needed
-                    if img_np.max() > 1.0 or img_np.min() < 0.0:
-                        img_np = (img_np - img_np.min()) / (img_np.max() - img_np.min() + 1e-8)
-                
-                except Exception as ex:
-                    print(f"    ⚠️ Error processing image tensor: {ex}")
-                    continue
-                
-                out_png = os.path.join(attn_dir, f'epoch_{e}_cross_overlay.png')
-                overlay_attention_map(attn, img_np, out_png, title=f'E{e} Cross-Attn')
+        
+        print(f"  📊 Found epochs: {epochs}")
+        
+        # For evolution visualization, collect attention maps
+        attention_evolution = {} if args.create_evolution else None
+        
+        for epoch in epochs:
+            cross_file = f'epoch_{epoch}_cross_attn_weights.pt'
+            orig_file = f'epoch_{epoch}_original_image_tensor.pt'
+            cross_path = os.path.join(attn_dir, cross_file)
+            orig_path = os.path.join(attn_dir, orig_file)
             
-            except Exception as ex:
-                print(f"    ⚠️ Error processing epoch {e}: {ex}")
-                import traceback
-                print(f"    Traceback: {traceback.format_exc()}")
+            if not (os.path.isfile(cross_path) and os.path.isfile(orig_path)):
+                print(f"  ❌ Missing files for epoch {epoch}, skipping")
                 continue
-
+            
+            try:
+                # Load data
+                attn_weights = torch.load(cross_path, map_location='cpu')
+                img_tensor = torch.load(orig_path, map_location='cpu')
+                
+                # Create comprehensive visualization
+                save_path = os.path.join(attn_dir, f'comprehensive_epoch_{epoch}_analysis.png')
+                fig = visualizer.create_comprehensive_attention_analysis(
+                    attn_weights, img_tensor, 
+                    title=f'Epoch {epoch}', save_path=save_path
+                )
+                
+                # Collect for evolution if requested
+                if args.create_evolution and fig is not None:
+                    attn_processed = visualizer._process_attention_weights(attn_weights)
+                    img_processed = visualizer._process_image_tensor(img_tensor)
+                    if attn_processed is not None and img_processed is not None:
+                        H, W = img_processed.shape[:2]
+                        attn_map = visualizer._create_attention_map(attn_processed, H, W)
+                        if attn_map is not None:
+                            attention_evolution[epoch] = attn_map
+            
+            except Exception as e:
+                print(f"  ❌ Error processing epoch {epoch}: {e}")
+                continue
+        
+        # Create evolution visualization
+        if args.create_evolution and attention_evolution:
+            evolution_path = os.path.join(attn_dir, 'attention_evolution_analysis.png')
+            fig = visualizer.create_evolution_visualization(
+                attention_evolution, img_tensor, save_path=evolution_path
+            )
+    
     if not any_dir:
-        print("❌ No attention_maps/ directories found under", root_logs)
+        print(f"❌ No attention_maps directories found under {root_logs}")
     else:
-        print("\n✅ Done.")
+        print("\n✅ Enhanced attention visualization complete!")
+        print("📋 Generated files:")
+        print("   • comprehensive_epoch_X_analysis.png - Detailed analysis per epoch")
+        if args.create_evolution:
+            print("   • attention_evolution_analysis.png - Evolution across epochs")
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()
