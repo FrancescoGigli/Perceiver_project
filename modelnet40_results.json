@@ -1,0 +1,92 @@
+[
+  {
+    "experiment": "modelnet40_baseline_paper",
+    "directory": "logs\\modelnet40_baseline_paper",
+    "input_dim": 67,
+    "total_parameters": 5931182,
+    "training_start": "2025-09-17 09:13:22",
+    "epochs": 200,
+    "batch_size": 128,
+    "learning_rate": 0.001,
+    "val/final_best_loss_final": 0.5941346287727356,
+    "val/final_best_loss_max": 0.5941346287727356,
+    "val/final_best_loss_min": 0.5941346287727356,
+    "val/final_best_loss_values": [
+      0.5941346287727356
+    ],
+    "val/final_best_loss_steps": [
+      200
+    ],
+    "val/final_best_accuracy_final": 0.841572105884552,
+    "val/final_best_accuracy_max": 0.841572105884552,
+    "val/final_best_accuracy_min": 0.841572105884552,
+    "val/final_best_accuracy_values": [
+      0.841572105884552
+    ],
+    "val/final_best_accuracy_steps": [
+      200
+    ],
+    "best_accuracy": 0.841572105884552,
+    "best_accuracy_source": "val/final_best_accuracy_final"
+  },
+  {
+    "experiment": "modelnet40_with_rotation_paper",
+    "directory": "logs\\modelnet40_with_rotation_paper",
+    "input_dim": 67,
+    "total_parameters": 5931182,
+    "training_start": "2025-09-18 04:24:51",
+    "epochs": 200,
+    "batch_size": 128,
+    "learning_rate": 0.001,
+    "val/final_best_loss_final": 0.5912717580795288,
+    "val/final_best_loss_max": 0.5912717580795288,
+    "val/final_best_loss_min": 0.5912717580795288,
+    "val/final_best_loss_values": [
+      0.5912717580795288
+    ],
+    "val/final_best_loss_steps": [
+      200
+    ],
+    "val/final_best_accuracy_final": 0.8306320905685425,
+    "val/final_best_accuracy_max": 0.8306320905685425,
+    "val/final_best_accuracy_min": 0.8306320905685425,
+    "val/final_best_accuracy_values": [
+      0.8306320905685425
+    ],
+    "val/final_best_accuracy_steps": [
+      200
+    ],
+    "best_accuracy": 0.8306320905685425,
+    "best_accuracy_source": "val/final_best_accuracy_final"
+  },
+  {
+    "experiment": "modelnet40_with_translation_paper",
+    "directory": "logs\\modelnet40_with_translation_paper",
+    "input_dim": 67,
+    "total_parameters": 5931182,
+    "training_start": "2025-09-17 20:52:18",
+    "epochs": 200,
+    "batch_size": 128,
+    "learning_rate": 0.001,
+    "val/final_best_loss_final": 0.6056613922119141,
+    "val/final_best_loss_max": 0.6056613922119141,
+    "val/final_best_loss_min": 0.6056613922119141,
+    "val/final_best_loss_values": [
+      0.6056613922119141
+    ],
+    "val/final_best_loss_steps": [
+      200
+    ],
+    "val/final_best_accuracy_final": 0.8290113210678101,
+    "val/final_best_accuracy_max": 0.8290113210678101,
+    "val/final_best_accuracy_min": 0.8290113210678101,
+    "val/final_best_accuracy_values": [
+      0.8290113210678101
+    ],
+    "val/final_best_accuracy_steps": [
+      200
+    ],
+    "best_accuracy": 0.8290113210678101,
+    "best_accuracy_source": "val/final_best_accuracy_final"
+  }
+]

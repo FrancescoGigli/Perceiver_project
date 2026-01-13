@@ -55,7 +55,8 @@ def main(args):
             max_frequencies=args.cifar10_max_freq,
             circular_pos_encoding=True,
             randaugment_num_ops=2,
-            randaugment_magnitude=9
+            randaugment_magnitude=9,
+            use_positional_encoding=not args.no_positional_encoding
         )
         num_classes = 10
         args.batch_size = args.batch_size_cifar10
@@ -85,7 +86,10 @@ def main(args):
         # Calculate patch size and other parameters
         patch_size = data_module.patch_size
         patch_dim = patch_size * patch_size * 3  # RGB patch
-        input_dim = patch_dim + data_module.fourier_dim  # patch + positional encoding
+        if data_module.use_positional_encoding:
+            input_dim = patch_dim + data_module.fourier_dim  # patch + positional encoding
+        else:
+            input_dim = patch_dim  # Only RGB patches, no positional encoding
     elif args.dataset == 'modelnet40':
         # For ModelNet40, input dimension is 3 (coordinates) + fourier_dim
         input_dim = 3 + data_module.fourier_dim

@@ -64,11 +64,58 @@ def scale_point_cloud(points, scale_min=0.8, scale_max=1.2):
     scale = torch.rand(1) * (scale_max - scale_min) + scale_min
     return points * scale
 
+def translate_point_cloud(points, translate_range=0.02):
+    """
+    Apply random translation to point cloud.
+    Args:
+        points (torch.Tensor): Point cloud of shape (num_points, 3).
+        translate_range (float): Translation range [-translate_range, +translate_range].
+    Returns:
+        torch.Tensor: Translated point cloud.
+    """
+    translation = (torch.rand(3) - 0.5) * 2 * translate_range  # Range [-translate_range, +translate_range]
+    return points + translation
+
+def rotate_point_cloud(points):
+    """
+    Apply random rotation to point cloud around a random axis.
+    Args:
+        points (torch.Tensor): Point cloud of shape (num_points, 3).
+    Returns:
+        torch.Tensor: Rotated point cloud.
+    """
+    # Random rotation angle
+    angle = torch.rand(1) * 2 * 3.14159  # Random angle [0, 2π]
+    
+    # Random rotation axis (normalized)
+    axis = torch.randn(3)
+    axis = axis / torch.norm(axis)
+    
+    # Rodrigues' rotation formula
+    cos_angle = torch.cos(angle)
+    sin_angle = torch.sin(angle)
+    
+    # Cross product matrix for the axis
+    K = torch.tensor([[0, -axis[2], axis[1]],
+                      [axis[2], 0, -axis[0]], 
+                      [-axis[1], axis[0], 0]])
+    
+    # Rotation matrix using Rodrigues' formula
+    R = torch.eye(3) + sin_angle * K + (1 - cos_angle) * torch.matmul(K, K)
+    
+    # Apply rotation
+    return torch.matmul(points, R.T)
+
 class ModelNet40Augmentation:
-    def __init__(self, augment=True, scale_min=0.8, scale_max=1.2):
+    def __init__(self, augment=True, scale_min=0.8, scale_max=1.2, 
+                 use_translation=False, translate_range=0.02,
+                 use_rotation=False):
         self.augment = augment
         self.scale_min = scale_min
         self.scale_max = scale_max
+        self.use_translation = use_translation
+        self.translate_range = translate_range
+        self.use_rotation = use_rotation
 
     def __call__(self, points):
         """
@@ -81,7 +128,16 @@ class ModelNet40Augmentation:
             points = torch.from_numpy(points).float()
 
         if self.augment:
+            # Apply scaling (always applied when augment=True)
             points = scale_point_cloud(points, self.scale_min, self.scale_max)
+            
+            # Apply translation if enabled
+            if self.use_translation:
+                points = translate_point_cloud(points, self.translate_range)
+            
+            # Apply rotation if enabled
+            if self.use_rotation:
+                points = rotate_point_cloud(points)
         
         points = normalize_point_cloud(points) # Always normalize
         return points

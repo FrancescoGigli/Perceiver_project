@@ -32,6 +32,7 @@ def get_base_config():
     parser.add_argument('--attention_save_interval', type=int, default=10, help='Interval (in epochs) for automatically saving attention maps')
     parser.add_argument('--no_weight_sharing', action='store_true', help='Disable weight sharing in latent transformer blocks')
     parser.add_argument('--output_pooling', type=str, default='mean', choices=['mean', 'cls'], help='Method to pool latents for classification: mean or cls (CLS token)')
+    parser.add_argument('--no_positional_encoding', action='store_true', help='Disable positional encoding, use only RGB patches')
 
     # Training configurations
     parser.add_argument('--optimizer', type=str, default='lamb', choices=['lamb', 'adam', 'sgd'], help='Optimizer to use')

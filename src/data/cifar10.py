@@ -23,7 +23,8 @@ class CIFAR10PerceiverDataModule:
                  num_frequency_bands=6,
                  randaugment_num_ops=2,
                  randaugment_magnitude=9,
-                 flatten_patches=True):
+                 flatten_patches=True,
+                 use_positional_encoding=True):
         """
         DataModule for CIFAR-10 dataset with positional encoding and patch embedding.
         
@@ -55,12 +56,16 @@ class CIFAR10PerceiverDataModule:
         self.fourier_dim = fourier_dim
         self.max_frequencies = max_frequencies
         self.num_frequency_bands = num_frequency_bands
+        self.use_positional_encoding = use_positional_encoding
     
         # Calculate number of patches
         self.num_patches = (self.image_size // self.patch_size) ** 2
         
-        # Setup positional encoding
-        self._setup_pos_encoding()
+        # Setup positional encoding only if enabled
+        if self.use_positional_encoding:
+            self._setup_pos_encoding()
+        else:
+            self.patch_pos_encodings = None
         
         # Create transforms based on parameters
         self.train_transform = get_cifar10_train_transforms(
@@ -212,12 +217,19 @@ class CIFAR10PerceiverDataModule:
         # Convert images to patches
         patches = self._to_patches(images)
         
-        # Add positional encoding
-        patches_with_pos = self._add_pos_encoding(patches)
+        # Add positional encoding only if enabled
+        if self.use_positional_encoding:
+            processed_patches = self._add_pos_encoding(patches)
+        else:
+            # For RGB-only mode, just flatten patches if needed
+            if not self.flatten_patches:
+                processed_patches = patches.reshape(patches.size(0), -1, self.patch_size * self.patch_size * 3)
+            else:
+                processed_patches = patches
         
         # Return dictionary with processed batch
         return {
-            'inputs': patches_with_pos,
+            'inputs': processed_patches,
             'labels': labels,
             'original_images': images  # Keep original for visualization
         }

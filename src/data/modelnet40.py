@@ -20,7 +20,10 @@ class ModelNet40PerceiverDataModule:
                  fourier_dim=128,
                  max_frequencies=10,
                  num_frequency_bands=6,
-                 augment_train=True):
+                 augment_train=True,
+                 use_translation=False,
+                 translate_range=0.02,
+                 use_rotation=False):
         """
         DataModule for ModelNet40 dataset with point cloud processing for the Perceiver model.
         
@@ -57,8 +60,15 @@ class ModelNet40PerceiverDataModule:
             T.NormalizeScale(),
         ])
         
-        # Point cloud augmentation (separate from torch_geometric transforms)
-        self.train_augmentation = ModelNet40Augmentation(augment=augment_train)
+        # Point cloud augmentation (separate from torch_geometric transforms)  
+        self.train_augmentation = ModelNet40Augmentation(
+            augment=augment_train,
+            scale_min=0.99,  # Paper specification
+            scale_max=1.01,  # Paper specification
+            use_translation=use_translation,
+            translate_range=translate_range,
+            use_rotation=use_rotation
+        )
         self.test_augmentation = ModelNet40Augmentation(augment=False)
         
         # ModelNet40 class names for reference

@@ -1,0 +1,26 @@
+{
+  "pe_importance": {
+    "fourier_acc": 72.02000021934509,
+    "rgb_only_acc": 61.33999824523926,
+    "accuracy_drop": 10.680001974105835,
+    "relative_drop_pct": 14.829216803080639
+  },
+  "fourier_robustness": {
+    "standard_acc": 69.69000101089478,
+    "permuted_acc": 78.11999917030334,
+    "robustness_drop": -8.42999815940857
+  },
+  "pe_types": {
+    "learned_permuted_acc": 77.60000228881836,
+    "fourier_permuted_acc": 78.11999917030334,
+    "pe_difference": 0.5199968814849854
+  },
+  "weight_sharing": {
+    "with_sharing_acc": 68.48999857902527,
+    "without_sharing_acc": 73.84999990463257,
+    "sharing_difference": -5.3600013256073,
+    "with_sharing_params": 3350178,
+    "without_sharing_params": 8667810,
+    "parameter_increase": 5317632
+  }
+}

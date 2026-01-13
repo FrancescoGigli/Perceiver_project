@@ -1,0 +1,8 @@
+experiment,description,pe_type,permutation,weight_sharing,input_dim,total_parameters,val_accuracy_final,val_accuracy_max,val_loss_final,success,duration_message
+exp1_baseline_fourier,Baseline con Fourier PE,Fourier,False,True,76,3350178,69.69,69.69,0.8789,True,Completed in 2.93h
+exp2_learned_pe_permuted,Learned PE + Permutazione,Learned,True,True,76,3350178,77.60000000000001,77.60000000000001,0.7652,True,Completed in 4.45h
+exp3A_fourier_control,Fourier Control,Fourier,False,True,76,3350178,72.02,72.02,0.8036,True,Completed in 3.53h
+exp3B_rgb_only,RGB-only (NO PE),None,False,True,12,3300898,61.339999999999996,61.339999999999996,1.1519,True,Completed in 7.52h
+exp4A_weight_sharing_control,Weight Sharing Control,Fourier,False,True,76,3350178,68.49,68.49,0.8991,True,Completed in 2.98h
+exp4B_no_weight_sharing,No Weight Sharing,Fourier,False,False,76,8667810,73.85000000000001,73.85000000000001,0.7611,True,Completed in 4.91h
+exp6_fourier_permuted,Fourier PE + Permutazione,Fourier,True,True,76,3350178,78.12,78.12,0.7502,True,Completed in 7.35h
