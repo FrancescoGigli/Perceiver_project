@@ -17,7 +17,15 @@ import seaborn as sns
 from src.config.base_cfg import get_base_config
 from src.data.cifar10 import CIFAR10PerceiverDataModule
 from src.data.modelnet40 import ModelNet40PerceiverDataModule
+from src.data.wikitext2 import WikiText2PerceiverDataModule
+from src.data.wikitext103 import WikiText103PerceiverDataModule
+from src.data.glue_sst2 import SST2PerceiverDataModule
+from src.data.glue_tasks import GLUEPerceiverDataModule, GLUE_TASKS
+
+# Helper: all GLUE dataset names (excluding sst2 which has its own module)
+GLUE_DATASET_NAMES = [f'glue_{t}' for t in GLUE_TASKS.keys()]
 from src.perceiver.perceiver import Perceiver
+from src.perceiver_io.perceiver_io import PerceiverIO
 from src.utils.scheduler import get_scheduler
 from src.utils.logger import BaseLogger
 import torch_optimizer as custom_optim # For LAMB optimizer
@@ -73,6 +81,62 @@ def main(args):
         )
         num_classes = 40
         args.batch_size = args.batch_size_modelnet40
+    elif args.dataset == 'wikitext2':
+        data_module = WikiText2PerceiverDataModule(
+            data_dir=args.data_dir,
+            batch_size=args.batch_size_cifar10,
+            num_workers=args.num_workers,
+            seq_len=args.text_seq_len,
+            mask_prob=args.mlm_mask_prob,
+            fourier_dim=args.text_fourier_dim,
+            max_frequencies=args.text_max_freq,
+            num_frequency_bands=6,
+            wikitext2_zip_path=args.wikitext2_zip_path,
+            use_positional_encoding=not args.no_positional_encoding,
+        )
+        num_classes = args.mlm_vocab_size
+        args.batch_size = args.batch_size_cifar10
+    elif args.dataset == 'glue_sst2':
+        data_module = SST2PerceiverDataModule(
+            data_dir=args.data_dir,
+            batch_size=args.batch_size_cifar10, # Reuse CIFAR batch size arg
+            num_workers=args.num_workers,
+            seq_len=args.text_seq_len,
+            fourier_dim=args.text_fourier_dim,
+            max_frequencies=args.text_max_freq,
+            use_positional_encoding=not args.no_positional_encoding
+        )
+        num_classes = 2 # Positive/Negative
+        args.batch_size = args.batch_size_cifar10
+    elif args.dataset == 'wikitext103':
+        data_module = WikiText103PerceiverDataModule(
+            data_dir=args.data_dir,
+            batch_size=args.batch_size_cifar10,
+            num_workers=args.num_workers,
+            seq_len=args.text_seq_len,
+            mask_prob=args.mlm_mask_prob,
+            fourier_dim=args.text_fourier_dim,
+            max_frequencies=args.text_max_freq,
+            num_frequency_bands=6,
+            wikitext103_zip_path=args.wikitext103_zip_path,
+            use_positional_encoding=not args.no_positional_encoding,
+        )
+        num_classes = args.mlm_vocab_size
+        args.batch_size = args.batch_size_cifar10
+    elif args.dataset in GLUE_DATASET_NAMES:
+        task_name = args.dataset.replace('glue_', '')
+        data_module = GLUEPerceiverDataModule(
+            task_name=task_name,
+            data_dir=args.data_dir,
+            batch_size=args.batch_size_cifar10,
+            num_workers=args.num_workers,
+            seq_len=args.text_seq_len,
+            fourier_dim=args.text_fourier_dim,
+            max_frequencies=args.text_max_freq,
+            use_positional_encoding=not args.no_positional_encoding
+        )
+        num_classes = data_module.num_classes
+        args.batch_size = args.batch_size_cifar10
     else:
         raise ValueError(f"Unsupported dataset: {args.dataset}")
     
@@ -93,26 +157,58 @@ def main(args):
     elif args.dataset == 'modelnet40':
         # For ModelNet40, input dimension is 3 (coordinates) + fourier_dim
         input_dim = 3 + data_module.fourier_dim
+    elif args.dataset == 'wikitext2':
+        input_dim = data_module.input_dim
+    elif args.dataset == 'glue_sst2':
+        input_dim = data_module.input_dim
+    elif args.dataset == 'wikitext103':
+        input_dim = data_module.input_dim
+    elif args.dataset in GLUE_DATASET_NAMES:
+        input_dim = data_module.input_dim
 
     # Calculate head_dim based on latent_dim and num_heads
     head_dim = args.latent_dim // args.num_heads
+    num_output_queries = args.num_output_queries
+    if (args.dataset == 'wikitext2' or args.dataset == 'wikitext103') and args.model_type == 'perceiver_io' and args.model_task == 'mlm':
+        num_output_queries = args.text_seq_len
     
     # Temporary model instantiation just to calculate params (on CPU)
-    temp_model = Perceiver(
-        input_dim=input_dim,
-        num_classes=num_classes,
-        num_latents=args.num_latents,
-        latent_dim=args.latent_dim,
-        num_cross_attend_stages=args.num_cross_attend_stages,
-        num_transformer_blocks=args.num_transformer_blocks,
-        num_heads=args.num_heads, 
-        head_dim=head_dim,
-        mlp_ratio=4,
-        dropout=args.dropout,
-        output_pooling=args.output_pooling,
-        save_attention_maps=args.save_attention_maps,
-        weight_sharing=not args.no_weight_sharing
-    )
+    if args.model_type == 'perceiver':
+        temp_model = Perceiver(
+            input_dim=input_dim,
+            num_classes=num_classes,
+            num_latents=args.num_latents,
+            latent_dim=args.latent_dim,
+            num_cross_attend_stages=args.num_cross_attend_stages,
+            num_transformer_blocks=args.num_transformer_blocks,
+            num_heads=args.num_heads,
+            head_dim=head_dim,
+            mlp_ratio=4,
+            dropout=args.dropout,
+            output_pooling=args.output_pooling,
+            save_attention_maps=args.save_attention_maps,
+            weight_sharing=not args.no_weight_sharing
+        )
+    elif args.model_type == 'perceiver_io':
+        temp_model = PerceiverIO(
+            input_dim=input_dim,
+            num_classes=num_classes,
+            num_latents=args.num_latents,
+            latent_dim=args.latent_dim,
+            num_cross_attend_stages=args.num_cross_attend_stages,
+            num_transformer_blocks=args.num_transformer_blocks,
+            num_heads=args.num_heads,
+            head_dim=head_dim,
+            mlp_ratio=4,
+            dropout=args.dropout,
+            num_output_queries=num_output_queries,
+            task=args.model_task,
+            mlm_vocab_size=args.mlm_vocab_size,
+            save_attention_maps=args.save_attention_maps,
+            weight_sharing=not args.no_weight_sharing
+        )
+    else:
+        raise ValueError(f"Unsupported model_type: {args.model_type}")
     total_params = sum(p.numel() for p in temp_model.parameters() if p.requires_grad)
     del temp_model  # Free up memory
     
@@ -128,7 +224,7 @@ def main(args):
         
         f.write("\nMODEL ARCHITECTURE:\n")
         f.write("-" * 20 + "\n")
-        f.write(f"Model: Perceiver\n")
+        f.write(f"Model: {args.model_type}\n")
         f.write(f"Input dimension: {input_dim}\n")
         f.write(f"Number of latents: {args.num_latents}\n")
         f.write(f"Latent dimension: {args.latent_dim}\n")
@@ -138,6 +234,8 @@ def main(args):
         f.write(f"Head dimension: {head_dim}\n")
         f.write(f"MLP ratio: 4\n")
         f.write(f"Weight sharing: {not args.no_weight_sharing}\n")
+        if args.model_type == 'perceiver_io':
+            f.write(f"Number of output queries: {num_output_queries}\n")
         f.write(f"Total trainable parameters: {total_params:,}\n")
         
         f.write("\nTRAINING CONFIGURATION:\n")
@@ -149,6 +247,10 @@ def main(args):
         f.write(f"Scheduler: {args.scheduler}\n")
         f.write(f"Number of epochs: {args.epochs}\n")
         f.write(f"Batch size: {args.batch_size}\n")
+        if args.dataset == 'wikitext2' or args.dataset == 'wikitext103':
+            f.write(f"Text seq len: {args.text_seq_len}\n")
+            f.write(f"MLM mask prob: {args.mlm_mask_prob}\n")
+            f.write(f"Model task: {args.model_task}\n")
         
         # Add model summary info
         f.write("\n" + "=" * 50 + "\n")
@@ -162,23 +264,70 @@ def main(args):
     weight_sharing = not args.no_weight_sharing
     
     # Initialize Model
-    model = Perceiver(
-        input_dim=input_dim,
-        num_classes=num_classes,
-        num_latents=args.num_latents,
-        latent_dim=args.latent_dim,
-        num_cross_attend_stages=args.num_cross_attend_stages,
-        num_transformer_blocks=args.num_transformer_blocks,
-        num_heads=args.num_heads, 
-        head_dim=args.latent_dim // args.num_heads, # Calculate head_dim
-        mlp_ratio=4, # Standard MLP ratio, can be made configurable
-        dropout=args.dropout, # Use dropout from config
-        output_pooling=args.output_pooling, # Use output pooling from config
-        save_attention_maps=args.save_attention_maps, # Pass the flag
-        weight_sharing=weight_sharing # Pass weight sharing flag
-    ).to(device)
+    if args.model_type == 'perceiver':
+        model = Perceiver(
+            input_dim=input_dim,
+            num_classes=num_classes,
+            num_latents=args.num_latents,
+            latent_dim=args.latent_dim,
+            num_cross_attend_stages=args.num_cross_attend_stages,
+            num_transformer_blocks=args.num_transformer_blocks,
+            num_heads=args.num_heads,
+            head_dim=args.latent_dim // args.num_heads, # Calculate head_dim
+            mlp_ratio=4, # Standard MLP ratio, can be made configurable
+            dropout=args.dropout, # Use dropout from config
+            output_pooling=args.output_pooling, # Use output pooling from config
+            save_attention_maps=args.save_attention_maps, # Pass the flag
+            weight_sharing=weight_sharing # Pass weight sharing flag
+        ).to(device)
+    elif args.model_type == 'perceiver_io':
+        model = PerceiverIO(
+            input_dim=input_dim,
+            num_classes=num_classes,
+            num_latents=args.num_latents,
+            latent_dim=args.latent_dim,
+            num_cross_attend_stages=args.num_cross_attend_stages,
+            num_transformer_blocks=args.num_transformer_blocks,
+            num_heads=args.num_heads,
+            head_dim=args.latent_dim // args.num_heads, # Calculate head_dim
+            mlp_ratio=4, # Standard MLP ratio, can be made configurable
+            dropout=args.dropout, # Use dropout from config
+            num_output_queries=num_output_queries,
+            task=args.model_task,
+            mlm_vocab_size=args.mlm_vocab_size,
+            save_attention_maps=args.save_attention_maps, # Pass the flag
+            weight_sharing=weight_sharing # Pass weight sharing flag
+        ).to(device)
+    else:
+        raise ValueError(f"Unsupported model_type: {args.model_type}")
     
     print(f"Model initialized with {sum(p.numel() for p in model.parameters() if p.requires_grad)} trainable parameters.")
+
+    # Load checkpoint if provided
+    if args.load_checkpoint_path:
+        if os.path.exists(args.load_checkpoint_path):
+            print(f"Loading pretrained weights from {args.load_checkpoint_path}...")
+            checkpoint = torch.load(args.load_checkpoint_path, map_location=device)
+            if 'model_state_dict' in checkpoint:
+                state_dict = checkpoint['model_state_dict']
+            else:
+                state_dict = checkpoint # Assume it's the state dict itself
+            
+            # Filter out mismatching keys (e.g. different number of classes/outputs)
+            model_dict = model.state_dict()
+            pretrained_dict = {k: v for k, v in state_dict.items() if k in model_dict and v.shape == model_dict[k].shape}
+            
+            # Print what we are skipping
+            skipped_keys = [k for k in state_dict.keys() if k not in pretrained_dict]
+            if skipped_keys:
+                print(f"Skipped loading {len(skipped_keys)} keys due to mismatch (e.g. output heads):")
+                print(f"Examples: {skipped_keys[:5]}")
+            
+            model_dict.update(pretrained_dict)
+            model.load_state_dict(model_dict, strict=False)
+            print(f"Successfully loaded {len(pretrained_dict)}/{len(model_dict)} keys.")
+        else:
+            print(f"Warning: Checkpoint path {args.load_checkpoint_path} does not exist!")
 
     # Optimizer
     if args.optimizer.lower() == 'lamb':
@@ -202,7 +351,12 @@ def main(args):
     )
 
     # Loss Function
-    criterion = nn.CrossEntropyLoss()
+    # Loss Function: MSELoss for STS-B regression, CrossEntropyLoss for all others
+    if args.dataset == 'glue_stsb':
+        criterion = nn.MSELoss()
+        print("Using MSELoss for STS-B regression task")
+    else:
+        criterion = nn.CrossEntropyLoss()
     
     # Initialize GradScaler for AMP
     scaler = GradScaler(enabled=(device.type == 'cuda'))
@@ -210,6 +364,8 @@ def main(args):
 
     # Early stopping parameters
     best_val_accuracy = 0.0
+    if args.dataset == 'glue_stsb':
+        best_val_accuracy = float('-inf')  # For regression, use -loss as metric
     epochs_no_improve = 0
     patience = 10  # Stop after 10 epochs without improvement
     
@@ -252,15 +408,23 @@ def main(args):
             avg_val_loss, avg_val_acc = validate_one_epoch(
                 model, val_loader, criterion, device, epoch, logger, args, data_module
             )
-            # Convert accuracy to percentage and calculate difference
-            val_acc_pct = avg_val_acc * 100
-            val_diff = val_acc_pct - (prev_val_acc * 100)
-            diff_sign = '+' if val_diff > 0 else ''
-            best_val_acc_pct = best_val_accuracy * 100  # Convert to percentage
-            print(f"Epoch {epoch+1} Val: Avg Loss: {avg_val_loss:.4f}, Avg Acc: {val_acc_pct:.2f}% ({diff_sign}{val_diff:.2f}%), Top Acc: {best_val_acc_pct:.2f}%")
+            # For STS-B regression, override accuracy metric with negative loss
+            if args.dataset == 'glue_stsb':
+                avg_val_acc = -avg_val_loss  # Use negative loss as improvement metric
+                val_acc_pct = avg_val_loss  # Display as loss
+                val_diff = prev_val_acc - avg_val_loss  # Improvement = loss decrease
+                diff_sign = '+' if val_diff > 0 else ''
+                best_val_acc_pct = -best_val_accuracy  # Display best - loss
+                print(f"Epoch {epoch+1} Val: Avg Loss: {avg_val_loss:.4f} ({diff_sign}{val_diff:.4f}), Best Loss: {best_val_acc_pct:.4f}")
+            else:
+                val_acc_pct = avg_val_acc * 100
+                val_diff = val_acc_pct - (prev_val_acc * 100)
+                diff_sign = '+' if val_diff > 0 else ''
+                best_val_acc_pct = best_val_accuracy * 100
+                print(f"Epoch {epoch+1} Val: Avg Loss: {avg_val_loss:.4f}, Avg Acc: {val_acc_pct:.2f}% ({diff_sign}{val_diff:.2f}%), Top Acc: {best_val_acc_pct:.2f}%")
             
-            # Update previous accuracy for next epoch
-            prev_val_acc = avg_val_acc
+            # Update previous value for next epoch
+            prev_val_acc = avg_val_acc if args.dataset != 'glue_stsb' else avg_val_loss
             
             logger.log_scalar("val/epoch_loss", avg_val_loss, epoch + 1)
             logger.log_scalar("val/epoch_accuracy", avg_val_acc, epoch + 1)
@@ -332,9 +496,19 @@ def main(args):
             data_sample = batch_dict['inputs']
             # For attention visualization, only use the first item
             single_data_item = data_sample[0:1].to(device)
+        elif args.dataset == 'wikitext2' or args.dataset == 'wikitext103':
+            # WikiText-2/103 batches are (input_ids, labels, mask) and must be
+            # processed via the data module to build model-ready inputs.
+            batch_dict = data_module.preprocess_batch(data_batch)
+            data_sample = batch_dict['inputs']
+            single_data_item = data_sample[0:1].to(device)
+        elif args.dataset == 'glue_sst2' or args.dataset in GLUE_DATASET_NAMES:
+             batch_dict = data_module.preprocess_batch(data_batch)
+             data_sample = batch_dict['inputs']
+             single_data_item = data_sample[0:1].to(device)
         else:
             # Generic fallback
-            data_sample, _ = data_batch
+            data_sample = data_batch[0] if isinstance(data_batch, (tuple, list)) else data_batch
             single_data_item = data_sample[0:1].to(device)
 
         with torch.no_grad():
@@ -371,44 +545,91 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device, epoch_num
     
     progress_bar = tqdm(train_loader, desc=f"Epoch {epoch_num+1}/{args.epochs} [Train]")
     for batch_idx, batch in enumerate(progress_bar):
+        if batch_idx == 0:
+            print(f"DEBUG: args.dataset={args.dataset}, batch type={type(batch)}")
+            if isinstance(batch, list) or isinstance(batch, tuple):
+                 print(f"DEBUG: batch len={len(batch)}, item 0 shape={batch[0].shape if hasattr(batch[0], 'shape') else 'no_shape'}")
+
         # Process batch through data module
         if args.dataset == 'cifar10' or args.dataset == 'modelnet40':
-            # Use the data module to preprocess the batch
             batch_dict = data_module.preprocess_batch(batch)
             data = batch_dict['inputs']
             target = batch_dict['labels']
+            mask = None
+        elif args.dataset == 'wikitext2':
+            batch_dict = data_module.preprocess_batch(batch)
+            data = batch_dict['inputs']
+            target = batch_dict['labels']
+            mask = batch_dict['mask']
+            mask = batch_dict['mask']
+        elif args.dataset == 'wikitext103':
+            batch_dict = data_module.preprocess_batch(batch)
+            data = batch_dict['inputs']
+            target = batch_dict['labels']
+            mask = batch_dict['mask']
+        elif args.dataset == 'glue_sst2' or args.dataset in GLUE_DATASET_NAMES:
+            batch_dict = data_module.preprocess_batch(batch)
+            data = batch_dict['inputs']
+            target = batch_dict['labels']
+            mask = None
         else:
             # Generic fallback for any batch format
             data, target = batch
+            mask = None
         
-        data, target = data.to(device), target.to(device)
+        data = data.to(device)
+        target = target.to(device)
+        if mask is not None:
+            mask = mask.to(device)
 
         optimizer.zero_grad()
         
         # Use autocast for mixed precision training
         with autocast(device_type=device.type, enabled=(device.type == 'cuda')):
-            output = model(data) 
-            loss = criterion(output, target)
+            output = model(data)
+            if (args.dataset == 'wikitext2' or args.dataset == 'wikitext103') and args.model_task == 'mlm':
+                mask_flat = mask.view(-1)
+                if mask_flat.any():
+                    logits = output.view(-1, output.size(-1))
+                    target_flat = target.view(-1)
+                    loss = criterion(logits[mask_flat], target_flat[mask_flat])
+                else:
+                    loss = torch.tensor(0.0, device=device)
+            elif args.dataset == 'glue_stsb':
+                # STS-B regression: squeeze output to match target shape
+                loss = criterion(output.squeeze(-1), target.float())
+            else:
+                loss = criterion(output, target)
         
         # Use scaler for backwards pass and optimization
         scaler.scale(loss).backward()
         scaler.step(optimizer)
         scaler.update()
 
-        total_loss += loss.item() * data.size(0)
-        _, predicted = torch.max(output.data, 1)
-        total_correct += (predicted == target).sum().item()
-        total_samples += data.size(0)
+        if (args.dataset == 'wikitext2' or args.dataset == 'wikitext103') and args.model_task == 'mlm':
+            total_loss += loss.item() * mask.sum().item()
+            preds = output.argmax(dim=-1)
+            total_correct += (preds[mask] == target[mask]).sum().item()
+            total_samples += mask.sum().item()
+        elif args.dataset == 'glue_stsb':
+            # STS-B: track loss only (regression, no accuracy)
+            total_loss += loss.item() * data.size(0)
+            total_samples += data.size(0)
+        else:
+            total_loss += loss.item() * data.size(0)
+            _, predicted = torch.max(output.data, 1)
+            total_correct += (predicted == target).sum().item()
+            total_samples += data.size(0)
 
         # Update progress bar
-        current_loss = total_loss / total_samples
-        current_acc = total_correct / total_samples
+        current_loss = total_loss / max(1, total_samples)
+        current_acc = total_correct / max(1, total_samples)
         progress_bar.set_postfix(loss=f"{current_loss:.4f}", acc=f"{current_acc:.4f}")
         logger.log_scalar("train/batch_loss", loss.item(), epoch_num * len(train_loader) + batch_idx)
         logger.log_scalar("train/batch_accuracy", current_acc, epoch_num * len(train_loader) + batch_idx)
             
-    avg_loss = total_loss / total_samples
-    avg_acc = total_correct / total_samples
+    avg_loss = total_loss / max(1, total_samples)
+    avg_acc = total_correct / max(1, total_samples)
     return avg_loss, avg_acc
 
 
@@ -421,42 +642,89 @@ def validate_one_epoch(model, val_loader, criterion, device, epoch_num, logger, 
     # Collect all predictions and targets for advanced metrics
     all_predictions = []
     all_targets = []
-
     progress_bar = tqdm(val_loader, desc=f"Epoch {epoch_num+1}/{args.epochs} [Val]")
+    
     with torch.no_grad():
         for batch_idx, batch in enumerate(progress_bar):
             # Process batch through data module
             if args.dataset == 'cifar10' or args.dataset == 'modelnet40':
-                # Use the data module to preprocess the batch
                 batch_dict = data_module.preprocess_batch(batch)
                 data = batch_dict['inputs']
                 target = batch_dict['labels']
+                mask = None
+            elif args.dataset == 'wikitext2':
+                batch_dict = data_module.preprocess_batch(batch)
+                data = batch_dict['inputs']
+                target = batch_dict['labels']
+                mask = batch_dict['mask']
+            elif args.dataset == 'wikitext103':
+                batch_dict = data_module.preprocess_batch(batch)
+                data = batch_dict['inputs']
+                target = batch_dict['labels']
+                mask = batch_dict['mask']
+            elif args.dataset == 'glue_sst2' or args.dataset in GLUE_DATASET_NAMES:
+                batch_dict = data_module.preprocess_batch(batch)
+                data = batch_dict['inputs']
+                target = batch_dict['labels']
+                mask = None
             else:
                 # Generic fallback for any batch format
                 data, target = batch
+                mask = None
             
-            data, target = data.to(device), target.to(device)
+            data = data.to(device)
+            target = target.to(device)
+            if mask is not None:
+                mask = mask.to(device)
             
             # Use autocast for mixed precision in validation too
             with autocast(device_type=device.type, enabled=(device.type == 'cuda')):
                 output = model(data)
-                loss = criterion(output, target)
+                if (args.dataset == 'wikitext2' or args.dataset == 'wikitext103') and args.model_task == 'mlm':
+                    mask_flat = mask.view(-1)
+                    if mask_flat.any():
+                        logits = output.view(-1, output.size(-1))
+                        target_flat = target.view(-1)
+                        loss = criterion(logits[mask_flat], target_flat[mask_flat])
+                    else:
+                        loss = torch.tensor(0.0, device=device)
+                elif args.dataset == 'glue_stsb':
+                    loss = criterion(output.squeeze(-1), target.float())
+                else:
+                    loss = criterion(output, target)
 
-            total_loss += loss.item() * data.size(0)
-            _, predicted = torch.max(output.data, 1)
-            total_correct += (predicted == target).sum().item()
-            total_samples += data.size(0)
+            if (args.dataset == 'wikitext2' or args.dataset == 'wikitext103') and args.model_task == 'mlm':
+                total_loss += loss.item() * mask.sum().item()
+                preds = output.argmax(dim=-1)
+                total_correct += (preds[mask] == target[mask]).sum().item()
+                total_samples += mask.sum().item()
+            elif args.dataset == 'glue_stsb':
+                total_loss += loss.item() * data.size(0)
+                total_samples += data.size(0)
+            else:
+                total_loss += loss.item() * data.size(0)
+                _, predicted = torch.max(output.data, 1)
+                total_correct += (predicted == target).sum().item()
+                total_samples += data.size(0)
             
             # Save predictions and targets for metrics calculation
-            all_predictions.extend(predicted.cpu().numpy())
-            all_targets.extend(target.cpu().numpy())
+            if (args.dataset == 'wikitext2' or args.dataset == 'wikitext103') and args.model_task == 'mlm':
+                masked_preds = preds[mask].detach().cpu().numpy()
+                masked_targets = target[mask].detach().cpu().numpy()
+                all_predictions.extend(masked_preds)
+                all_targets.extend(masked_targets)
+            else:
+                if args.dataset == 'glue_stsb':
+                    predicted = output.squeeze(-1).detach()
+                all_predictions.extend(predicted.cpu().numpy())
+                all_targets.extend(target.cpu().numpy())
             
-            current_loss = total_loss / total_samples
-            current_acc = total_correct / total_samples
+            current_loss = total_loss / max(1, total_samples)
+            current_acc = total_correct / max(1, total_samples)
             progress_bar.set_postfix(loss=f"{current_loss:.4f}", acc=f"{current_acc:.4f}")
 
-    avg_loss = total_loss / total_samples
-    avg_acc = total_correct / total_samples
+    avg_loss = total_loss / max(1, total_samples)
+    avg_acc = total_correct / max(1, total_samples)
     
     # Calculate and save advanced metrics if enabled
     if hasattr(args, 'save_metrics') and args.save_metrics:
@@ -512,6 +780,18 @@ def save_attention_maps(model, val_loader, device, epoch_num, args, data_module)
             batch_dict = data_module.preprocess_batch(batch)
             data = batch_dict['inputs']
             target = batch_dict['labels']
+        elif args.dataset == 'wikitext2':
+            batch_dict = data_module.preprocess_batch(batch)
+            data = batch_dict['inputs']
+            target = batch_dict['labels']
+        elif args.dataset == 'wikitext103':
+            batch_dict = data_module.preprocess_batch(batch)
+            data = batch_dict['inputs']
+            target = batch_dict['labels']
+        elif args.dataset == 'glue_sst2' or args.dataset in GLUE_DATASET_NAMES:
+             batch_dict = data_module.preprocess_batch(batch)
+             data = batch_dict['inputs']
+             target = batch_dict['labels']
         else:
             # Generic fallback
             data, target = batch
