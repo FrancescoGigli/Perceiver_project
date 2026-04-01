@@ -1028,6 +1028,15 @@ def build_closing(prs, lang):
 def build(lang):
     """Build the full presentation for the given language ('en' or 'it')."""
     prs = Presentation(TEMPLATE)
+
+    # Remove pre-existing template slides (DIEF template has example content slides)
+    while len(prs.slides) > 0:
+        rId = prs.slides._sldIdLst[0].get(
+            '{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id'
+        )
+        prs.part.drop_rel(rId)
+        prs.slides._sldIdLst.remove(prs.slides._sldIdLst[0])
+
     build_section1(prs, lang)
     build_section2(prs, lang)
     build_section3(prs, lang)
