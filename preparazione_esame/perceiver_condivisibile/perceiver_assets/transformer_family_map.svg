@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="520" viewBox="0 0 1280 520" role="img" aria-labelledby="title desc">
+  <title id="title">Famiglia dei Transformer</title>
+  <desc id="desc">Mappa comparativa tra encoder-decoder, encoder-only, decoder-only, Vision Transformer e Perceiver.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f8ff}.card{fill:#fff;stroke:#dce2f2;stroke-width:2}.title{fill:#1a237e;font-family:Arial,sans-serif;font-size:28px;font-weight:800}.label{fill:#1f2430;font-family:Arial,sans-serif;font-size:18px;font-weight:700}.small{fill:#5d6472;font-family:Arial,sans-serif;font-size:15px}.chip{fill:#eef2ff;stroke:#cbd5ff;stroke-width:1.5}.accent{fill:#fff3e0;stroke:#ffb36b;stroke-width:1.5}.green{fill:#e8f5e9;stroke:#8ccf94;stroke-width:1.5}.arrow{stroke:#1a237e;stroke-width:4;fill:none;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10Z" fill="#1a237e"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="1280" height="520" rx="22"/>
+  <text class="title" x="54" y="58">Famiglia dei Transformer: stessa primitiva, usi diversi</text>
+
+  <g transform="translate(54 92)">
+    <rect class="card" width="224" height="340" rx="16"/>
+    <text class="label" x="22" y="38">Encoder-decoder</text>
+    <text class="small" x="22" y="66">Transformer originale</text>
+    <rect class="chip" x="30" y="104" width="164" height="42" rx="10"/><text class="small" x="72" y="130">Encoder</text>
+    <path class="arrow" d="M112 154V188"/>
+    <rect class="accent" x="30" y="198" width="164" height="42" rx="10"/><text class="small" x="72" y="224">Decoder</text>
+    <path class="arrow" d="M112 248V278"/>
+    <rect class="green" x="30" y="288" width="164" height="34" rx="10"/><text class="small" x="68" y="311">sequenza</text>
+  </g>
+
+  <g transform="translate(302 92)">
+    <rect class="card" width="224" height="340" rx="16"/>
+    <text class="label" x="22" y="38">Encoder-only</text>
+    <text class="small" x="22" y="66">BERT-style</text>
+    <rect class="chip" x="30" y="110" width="164" height="42" rx="10"/><text class="small" x="64" y="136">Encoder</text>
+    <rect class="chip" x="30" y="166" width="164" height="42" rx="10"/><text class="small" x="64" y="192">Encoder</text>
+    <rect class="chip" x="30" y="222" width="164" height="42" rx="10"/><text class="small" x="64" y="248">Encoder</text>
+    <text class="small" x="30" y="306">capisce tutto il contesto</text>
+  </g>
+
+  <g transform="translate(550 92)">
+    <rect class="card" width="224" height="340" rx="16"/>
+    <text class="label" x="22" y="38">Decoder-only</text>
+    <text class="small" x="22" y="66">GPT-style</text>
+    <rect class="accent" x="30" y="110" width="164" height="42" rx="10"/><text class="small" x="64" y="136">Masked</text>
+    <rect class="accent" x="30" y="166" width="164" height="42" rx="10"/><text class="small" x="64" y="192">Masked</text>
+    <rect class="accent" x="30" y="222" width="164" height="42" rx="10"/><text class="small" x="64" y="248">Masked</text>
+    <text class="small" x="30" y="306">genera un token alla volta</text>
+  </g>
+
+  <g transform="translate(798 92)">
+    <rect class="card" width="224" height="340" rx="16"/>
+    <text class="label" x="22" y="38">Vision Transformer</text>
+    <text class="small" x="22" y="66">ViT</text>
+    <rect class="green" x="30" y="104" width="164" height="42" rx="10"/><text class="small" x="72" y="130">Patch</text>
+    <path class="arrow" d="M112 154V188"/>
+    <rect class="chip" x="30" y="198" width="164" height="42" rx="10"/><text class="small" x="64" y="224">Encoder</text>
+    <path class="arrow" d="M112 248V278"/>
+    <rect class="green" x="30" y="288" width="164" height="34" rx="10"/><text class="small" x="84" y="311">CLS</text>
+  </g>
+
+  <g transform="translate(1046 92)">
+    <rect class="card" width="180" height="340" rx="16"/>
+    <text class="label" x="22" y="38">Perceiver</text>
+    <text class="small" x="22" y="66">bottleneck</text>
+    <rect class="green" x="24" y="104" width="132" height="42" rx="10"/><text class="small" x="56" y="130">Input M</text>
+    <path class="arrow" d="M90 154V188"/>
+    <rect class="accent" x="24" y="198" width="132" height="42" rx="10"/><text class="small" x="54" y="224">Latenti N</text>
+    <path class="arrow" d="M90 248V278"/>
+    <rect class="chip" x="24" y="288" width="132" height="34" rx="10"/><text class="small" x="48" y="311">Output</text>
+  </g>
+</svg>
