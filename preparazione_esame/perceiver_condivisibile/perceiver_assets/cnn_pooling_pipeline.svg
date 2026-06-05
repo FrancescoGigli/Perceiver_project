@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 420" role="img" aria-labelledby="title desc">
+  <title id="title">Max pooling pipeline</title>
+  <desc id="desc">A 4 by 4 feature map is reduced to 2 by 2 through MaxPool 2x2.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#1a237e"/>
+    </marker>
+    <style>
+      .title{font:800 28px system-ui,Segoe UI,sans-serif;fill:#1a237e}
+      .label{font:800 16px system-ui,Segoe UI,sans-serif;fill:#1a237e}
+      .small{font:600 12px system-ui,Segoe UI,sans-serif;fill:#4f566b}
+      .num{font:800 17px ui-monospace,SFMono-Regular,Consolas,monospace;fill:#1b1f2f;text-anchor:middle;dominant-baseline:middle}
+      .cell{stroke:#dfe4f2;stroke-width:2}
+      .arrow{stroke:#1a237e;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="980" height="420" fill="#f7f8ff"/>
+  <text class="title" x="34" y="48">Pooling: ridurre senza perdere il segnale forte</text>
+  <text class="small" x="35" y="74">Il pooling non inventa nuove feature: riassume piccole zone della feature map e rende la rete meno sensibile a spostamenti minimi.</text>
+
+  <g transform="translate(92 120)">
+    <text class="label" x="0" y="-20">Feature map 4x4</text>
+    <g>
+      <rect class="cell" x="0" y="0" width="56" height="56" fill="#eaf5ea"/><text class="num" x="28" y="28">1</text>
+      <rect class="cell" x="56" y="0" width="56" height="56" fill="#eaf5ea"/><text class="num" x="84" y="28">2</text>
+      <rect class="cell" x="112" y="0" width="56" height="56" fill="#fff2dd"/><text class="num" x="140" y="28">3</text>
+      <rect class="cell" x="168" y="0" width="56" height="56" fill="#fff2dd"/><text class="num" x="196" y="28">4</text>
+      <rect class="cell" x="0" y="56" width="56" height="56" fill="#eaf5ea"/><text class="num" x="28" y="84">5</text>
+      <rect class="cell" x="56" y="56" width="56" height="56" fill="#c8e8c8"/><text class="num" x="84" y="84">6</text>
+      <rect class="cell" x="112" y="56" width="56" height="56" fill="#fff2dd"/><text class="num" x="140" y="84">7</text>
+      <rect class="cell" x="168" y="56" width="56" height="56" fill="#ffd39a"/><text class="num" x="196" y="84">8</text>
+      <rect class="cell" x="0" y="112" width="56" height="56" fill="#e6efff"/><text class="num" x="28" y="140">9</text>
+      <rect class="cell" x="56" y="112" width="56" height="56" fill="#e6efff"/><text class="num" x="84" y="140">10</text>
+      <rect class="cell" x="112" y="112" width="56" height="56" fill="#eee9ff"/><text class="num" x="140" y="140">11</text>
+      <rect class="cell" x="168" y="112" width="56" height="56" fill="#eee9ff"/><text class="num" x="196" y="140">12</text>
+      <rect class="cell" x="0" y="168" width="56" height="56" fill="#e6efff"/><text class="num" x="28" y="196">13</text>
+      <rect class="cell" x="56" y="168" width="56" height="56" fill="#b8d4ff"/><text class="num" x="84" y="196">14</text>
+      <rect class="cell" x="112" y="168" width="56" height="56" fill="#eee9ff"/><text class="num" x="140" y="196">15</text>
+      <rect class="cell" x="168" y="168" width="56" height="56" fill="#cfc4ff"/><text class="num" x="196" y="196">16</text>
+    </g>
+  </g>
+
+  <path class="arrow" d="M380 230 H520"/>
+  <g transform="translate(405 173)">
+    <rect x="0" y="0" width="100" height="82" rx="10" fill="#fff" stroke="#dfe4f2"/>
+    <text class="label" x="16" y="29">MaxPool</text>
+    <text class="small" x="22" y="52">2x2</text>
+    <text class="small" x="22" y="70">stride 2</text>
+  </g>
+
+  <g transform="translate(590 148)">
+    <text class="label" x="0" y="-20">Output 2x2</text>
+    <rect class="cell" x="0" y="0" width="72" height="72" fill="#c8e8c8"/><text class="num" x="36" y="36">6</text>
+    <rect class="cell" x="72" y="0" width="72" height="72" fill="#ffd39a"/><text class="num" x="108" y="36">8</text>
+    <rect class="cell" x="0" y="72" width="72" height="72" fill="#b8d4ff"/><text class="num" x="36" y="108">14</text>
+    <rect class="cell" x="72" y="72" width="72" height="72" fill="#cfc4ff"/><text class="num" x="108" y="108">16</text>
+  </g>
+
+  <g transform="translate(760 132)">
+    <rect x="0" y="0" width="155" height="150" rx="12" fill="#fff" stroke="#dfe4f2"/>
+    <text class="label" x="22" y="34">Perche aiuta</text>
+    <text class="small" x="22" y="62">meno costo</text>
+    <text class="small" x="22" y="86">meno overfitting</text>
+    <text class="small" x="22" y="110">robustezza locale</text>
+    <text class="small" x="22" y="134">dettagli persi</text>
+  </g>
+</svg>

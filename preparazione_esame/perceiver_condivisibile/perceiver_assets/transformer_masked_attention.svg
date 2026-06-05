@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="500" viewBox="0 0 1280 500" role="img" aria-labelledby="title desc">
+  <title id="title">Masked self-attention nel decoder</title>
+  <desc id="desc">Matrice causale: le celle future sopra la diagonale sono mascherate.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f8ff}.txt{font-family:Arial,sans-serif;fill:#1f2430}.title{font-size:30px;font-weight:800;fill:#1a237e}.small{font-size:16px;fill:#5d6472}.cell{stroke:#dce2f2;stroke-width:2}.keep{fill:#eef2ff}.diag{fill:#fff3e0}.mask{fill:#1a237e;opacity:.12}.label{font-size:16px;font-weight:800;fill:#1a237e}.box{fill:#fff;stroke:#dce2f2;stroke-width:2}.arrow{stroke:#1a237e;stroke-width:4;fill:none;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#1a237e"/></marker>
+  </defs>
+  <rect class="bg" width="1280" height="500" rx="22"/>
+  <text class="txt title" x="54" y="58">Maschera causale: il decoder non vede il futuro</text>
+  <text class="txt small" x="54" y="90">Ogni riga i puo' usare solo colonne j <= i. Le celle future diventano -infinito prima della softmax.</text>
+
+  <g transform="translate(90 130)">
+    <text class="txt label" x="0" y="-18">QK^T masked</text>
+    <g>
+      <rect class="cell diag" x="0" y="0" width="62" height="62" rx="8"/><rect class="cell mask" x="70" y="0" width="62" height="62" rx="8"/><rect class="cell mask" x="140" y="0" width="62" height="62" rx="8"/><rect class="cell mask" x="210" y="0" width="62" height="62" rx="8"/>
+      <rect class="cell keep" x="0" y="70" width="62" height="62" rx="8"/><rect class="cell diag" x="70" y="70" width="62" height="62" rx="8"/><rect class="cell mask" x="140" y="70" width="62" height="62" rx="8"/><rect class="cell mask" x="210" y="70" width="62" height="62" rx="8"/>
+      <rect class="cell keep" x="0" y="140" width="62" height="62" rx="8"/><rect class="cell keep" x="70" y="140" width="62" height="62" rx="8"/><rect class="cell diag" x="140" y="140" width="62" height="62" rx="8"/><rect class="cell mask" x="210" y="140" width="62" height="62" rx="8"/>
+      <rect class="cell keep" x="0" y="210" width="62" height="62" rx="8"/><rect class="cell keep" x="70" y="210" width="62" height="62" rx="8"/><rect class="cell keep" x="140" y="210" width="62" height="62" rx="8"/><rect class="cell diag" x="210" y="210" width="62" height="62" rx="8"/>
+    </g>
+    <text class="txt small" x="12" y="306">token 4 vede token 1,2,3,4</text>
+  </g>
+
+  <path class="arrow" d="M430 265H540"/>
+  <rect class="box" x="570" y="158" width="250" height="210" rx="18"/>
+  <text class="txt label" x="612" y="205">softmax per riga</text>
+  <text class="txt small" x="612" y="238">le celle mascherate</text>
+  <text class="txt small" x="612" y="264">ricevono peso 0</text>
+  <text class="txt small" x="612" y="304">la generazione resta</text>
+  <text class="txt small" x="612" y="330">autoregressiva</text>
+
+  <path class="arrow" d="M850 265H960"/>
+  <rect class="box" x="990" y="158" width="210" height="210" rx="18"/>
+  <text class="txt label" x="1030" y="205">A V</text>
+  <text class="txt small" x="1030" y="238">contesto costruito</text>
+  <text class="txt small" x="1030" y="264">solo dal passato</text>
+  <text class="txt small" x="1030" y="304">poi FFN e logit</text>
+</svg>

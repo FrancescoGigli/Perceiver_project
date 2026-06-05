@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500" role="img" aria-labelledby="title desc">
+  <title id="title">Latent array as learned memory slots</title>
+  <desc id="desc">The latent array is a learned N by D matrix that generates queries for cross-attention.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#1a237e"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-20%" width="120%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#1a237e" flood-opacity=".12"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="500" rx="22" fill="#fbfbfd"/>
+  <text x="60" y="64" fill="#1a237e" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="700">Latent array: memoria compatta appresa</text>
+  <text x="60" y="98" fill="#5f6472" font-family="Segoe UI, Arial, sans-serif" font-size="18">Non e' un input: e' una matrice di parametri che impara come interrogare qualunque byte array.</text>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="135" width="430" height="285" rx="16" fill="#fff" stroke="#dfe3ef"/>
+    <text x="105" y="174" fill="#1a237e" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700">L in R^(N x D)</text>
+    <text x="105" y="202" fill="#6e6e76" font-family="Segoe UI, Arial, sans-serif" font-size="15">ImageNet: 512 righe x 1024 canali</text>
+    <g transform="translate(105 230)">
+      <rect width="22" height="22" rx="4" fill="#1a237e"/><rect x="28" width="22" height="22" rx="4" fill="#283593"/><rect x="56" width="22" height="22" rx="4" fill="#3949ab"/><rect x="84" width="22" height="22" rx="4" fill="#5c6bc0"/><rect x="112" width="22" height="22" rx="4" fill="#7986cb"/><rect x="140" width="22" height="22" rx="4" fill="#9fa8da"/><rect x="168" width="22" height="22" rx="4" fill="#c5cae9"/><rect x="196" width="22" height="22" rx="4" fill="#e8eaf6"/>
+      <rect y="28" width="22" height="22" rx="4" fill="#283593"/><rect x="28" y="28" width="22" height="22" rx="4" fill="#3949ab"/><rect x="56" y="28" width="22" height="22" rx="4" fill="#5c6bc0"/><rect x="84" y="28" width="22" height="22" rx="4" fill="#7986cb"/><rect x="112" y="28" width="22" height="22" rx="4" fill="#9fa8da"/><rect x="140" y="28" width="22" height="22" rx="4" fill="#c5cae9"/><rect x="168" y="28" width="22" height="22" rx="4" fill="#e8eaf6"/><rect x="196" y="28" width="22" height="22" rx="4" fill="#f3f4fb"/>
+      <rect y="56" width="22" height="22" rx="4" fill="#1a237e"/><rect x="28" y="56" width="22" height="22" rx="4" fill="#283593"/><rect x="56" y="56" width="22" height="22" rx="4" fill="#3949ab"/><rect x="84" y="56" width="22" height="22" rx="4" fill="#5c6bc0"/><rect x="112" y="56" width="22" height="22" rx="4" fill="#7986cb"/><rect x="140" y="56" width="22" height="22" rx="4" fill="#9fa8da"/><rect x="168" y="56" width="22" height="22" rx="4" fill="#c5cae9"/><rect x="196" y="56" width="22" height="22" rx="4" fill="#e8eaf6"/>
+      <text x="245" y="42" fill="#6e6e76" font-family="Consolas, monospace" font-size="18">D = 1024</text>
+      <text x="0" y="118" fill="#6e6e76" font-family="Consolas, monospace" font-size="18">N = 512 memory slots</text>
+    </g>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="565" y="135" width="265" height="285" rx="16" fill="#fff" stroke="#dfe3ef"/>
+    <text x="600" y="176" fill="#1a237e" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700">Durante il training</text>
+    <text x="600" y="214" fill="#3c3c3c" font-family="Segoe UI, Arial, sans-serif" font-size="17">Init piccola</text>
+    <text x="600" y="244" fill="#6e6e76" font-family="Consolas, monospace" font-size="18">N(0, 0.02^2)</text>
+    <text x="600" y="292" fill="#3c3c3c" font-family="Segoe UI, Arial, sans-serif" font-size="17">Poi si specializza</text>
+    <text x="600" y="322" fill="#6e6e76" font-family="Segoe UI, Arial, sans-serif" font-size="16">slot per pattern, regioni,</text>
+    <text x="600" y="346" fill="#6e6e76" font-family="Segoe UI, Arial, sans-serif" font-size="16">texture, contesto globale</text>
+  </g>
+
+  <line x1="850" y1="275" x2="975" y2="275" stroke="#1a237e" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="865" y="246" fill="#1a237e" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700">produce Q</text>
+
+  <g filter="url(#shadow)">
+    <rect x="995" y="175" width="140" height="200" rx="16" fill="#e8eaf6" stroke="#c5cae9"/>
+    <text x="1065" y="230" text-anchor="middle" fill="#1a237e" font-family="Segoe UI, Arial, sans-serif" font-size="38" font-weight="800">Q</text>
+    <text x="1065" y="268" text-anchor="middle" fill="#1a237e" font-family="Consolas, monospace" font-size="17">512 x 261</text>
+    <text x="1065" y="306" text-anchor="middle" fill="#3c3c3c" font-family="Segoe UI, Arial, sans-serif" font-size="15">domande</text>
+  </g>
+</svg>

@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 430" role="img" aria-labelledby="title desc">
+  <title id="title">CNN, ResNet and Perceiver residual bridge</title>
+  <desc id="desc">A comparison between plain CNN blocks, ResNet skip connections and Perceiver residual blocks.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#1a237e"/>
+    </marker>
+    <style>
+      .title{font:800 28px system-ui,Segoe UI,sans-serif;fill:#1a237e}
+      .label{font:800 16px system-ui,Segoe UI,sans-serif;fill:#1a237e}
+      .small{font:600 12px system-ui,Segoe UI,sans-serif;fill:#4f566b}
+      .box{fill:#fff;stroke:#dfe4f2;stroke-width:2}
+      .soft{fill:#eef3ff;stroke:#b9c5ef;stroke-width:2}
+      .accent{fill:#fff4e8;stroke:#ffb36f;stroke-width:2}
+      .arrow{stroke:#1a237e;stroke-width:3;fill:none;marker-end:url(#arrow)}
+      .skip{stroke:#ff6d00;stroke-width:4;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="980" height="430" fill="#f7f8ff"/>
+  <text class="title" x="34" y="48">ResNet: percorso principale piu scorciatoia</text>
+  <text class="small" x="35" y="74">La differenza chiave non e' solo avere piu layer: e' dare al segnale una corsia identita che il gradiente puo seguire.</text>
+
+  <g transform="translate(45 130)">
+    <text class="label" x="0" y="-18">CNN profonda senza skip</text>
+    <rect class="box" x="0" y="35" width="105" height="72" rx="10"/><text class="small" x="28" y="76">Conv</text>
+    <path class="arrow" d="M112 71 H150"/>
+    <rect class="box" x="160" y="35" width="105" height="72" rx="10"/><text class="small" x="186" y="76">ReLU</text>
+    <path class="arrow" d="M272 71 H310"/>
+    <rect class="box" x="320" y="35" width="105" height="72" rx="10"/><text class="small" x="344" y="76">Conv</text>
+    <text class="small" x="0" y="145">Ogni blocco deve riscrivere la rappresentazione.</text>
+  </g>
+
+  <g transform="translate(45 270)">
+    <text class="label" x="0" y="-18">Blocco ResNet</text>
+    <circle cx="0" cy="71" r="6" fill="#1a237e"/>
+    <path class="arrow" d="M8 71 H72"/>
+    <rect class="soft" x="82" y="35" width="115" height="72" rx="10"/><text class="small" x="116" y="76">F(x)</text>
+    <path class="arrow" d="M205 71 H282"/>
+    <circle cx="302" cy="71" r="20" fill="#1a237e"/><text x="302" y="77" text-anchor="middle" font-family="system-ui" font-size="20" font-weight="800" fill="#fff">+</text>
+    <path class="arrow" d="M323 71 H398"/>
+    <path class="skip" d="M0 71 C80 5 230 5 302 50"/>
+    <text class="small" x="0" y="145">skip connection: y = F(x) + x</text>
+  </g>
+
+  <g transform="translate(555 138)">
+    <text class="label" x="0" y="-20">Perceiver: stessa idea nei latenti</text>
+    <rect class="accent" x="0" y="0" width="350" height="190" rx="14"/>
+    <text class="small" x="24" y="38">Latenti L</text>
+    <path class="arrow" d="M84 34 H138"/>
+    <rect class="box" x="150" y="10" width="130" height="50" rx="9"/><text class="small" x="174" y="40">Attention</text>
+    <path class="arrow" d="M282 35 H320"/>
+    <path class="skip" d="M70 75 C135 128 240 128 318 64"/>
+    <circle cx="320" cy="64" r="16" fill="#1a237e"/><text x="320" y="69" text-anchor="middle" font-family="system-ui" font-size="16" font-weight="800" fill="#fff">+</text>
+    <rect class="box" x="150" y="112" width="130" height="50" rx="9"/><text class="small" x="191" y="142">FFN</text>
+    <path class="skip" d="M70 145 C135 190 240 190 318 164"/>
+    <circle cx="320" cy="164" r="16" fill="#1a237e"/><text x="320" y="169" text-anchor="middle" font-family="system-ui" font-size="16" font-weight="800" fill="#fff">+</text>
+    <text class="small" x="24" y="218">I blocchi profondi imparano correzioni, non ricostruzioni complete.</text>
+  </g>
+</svg>

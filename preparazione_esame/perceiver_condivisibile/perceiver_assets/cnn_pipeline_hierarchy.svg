@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 430" role="img" aria-labelledby="title desc">
+  <title id="title">CNN hierarchy pipeline</title>
+  <desc id="desc">A CNN pipeline from image grid to convolution, pooling, flattening, fully connected layer and class probabilities.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#1a237e"/>
+    </marker>
+    <style>
+      .title{font:800 28px system-ui,Segoe UI,sans-serif;fill:#1a237e}
+      .label{font:800 15px system-ui,Segoe UI,sans-serif;fill:#1a237e}
+      .small{font:600 12px system-ui,Segoe UI,sans-serif;fill:#4f566b}
+      .tiny{font:700 10px system-ui,Segoe UI,sans-serif;fill:#5d6480}
+      .box{fill:#fff;stroke:#dfe4f2;stroke-width:2}
+      .soft{fill:#eef3ff;stroke:#b9c5ef;stroke-width:2}
+      .accent{fill:#fff4e8;stroke:#ffb36f;stroke-width:2}
+      .arrow{stroke:#1a237e;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="980" height="430" fill="#f7f8ff"/>
+  <text class="title" x="34" y="48">CNN: dalla griglia alla classe</text>
+  <text class="small" x="35" y="74">La rete non guarda tutto con connessioni dense: ripete lo stesso detector locale, riduce lo spazio, poi classifica.</text>
+
+  <g transform="translate(40 125)">
+    <rect class="box" x="0" y="0" width="130" height="150" rx="12"/>
+    <text class="label" x="24" y="26">Input</text>
+    <text class="small" x="20" y="47">H x W x C</text>
+    <g transform="translate(22 66)">
+      <rect x="0" y="0" width="18" height="18" fill="#b7d9b4"/><rect x="23" y="0" width="18" height="18" fill="#f7c66b"/><rect x="46" y="0" width="18" height="18" fill="#82bdd8"/><rect x="69" y="0" width="18" height="18" fill="#8b7ec8"/>
+      <rect x="0" y="23" width="18" height="18" fill="#f29f6f"/><rect x="23" y="23" width="18" height="18" fill="#b7d9b4"/><rect x="46" y="23" width="18" height="18" fill="#82bdd8"/><rect x="69" y="23" width="18" height="18" fill="#f7c66b"/>
+      <rect x="0" y="46" width="18" height="18" fill="#82bdd8"/><rect x="23" y="46" width="18" height="18" fill="#8b7ec8"/><rect x="46" y="46" width="18" height="18" fill="#b7d9b4"/><rect x="69" y="46" width="18" height="18" fill="#f29f6f"/>
+    </g>
+  </g>
+
+  <path class="arrow" d="M180 200 H235"/>
+  <g transform="translate(245 120)">
+    <rect class="soft" x="0" y="0" width="145" height="160" rx="12"/>
+    <text class="label" x="22" y="30">Conv + ReLU</text>
+    <text class="small" x="22" y="54">kernel condiviso</text>
+    <text class="tiny" x="22" y="84">bordi</text>
+    <text class="tiny" x="22" y="105">texture</text>
+    <text class="tiny" x="22" y="126">gradienti colore</text>
+  </g>
+  <path class="arrow" d="M400 200 H455"/>
+  <g transform="translate(465 120)">
+    <rect class="accent" x="0" y="0" width="120" height="160" rx="12"/>
+    <text class="label" x="27" y="30">Pool</text>
+    <text class="small" x="22" y="54">H,W piu piccoli</text>
+    <text class="tiny" x="22" y="84">meno costo</text>
+    <text class="tiny" x="22" y="105">piu robustezza</text>
+  </g>
+  <path class="arrow" d="M595 200 H650"/>
+  <g transform="translate(660 120)">
+    <rect class="soft" x="0" y="0" width="145" height="160" rx="12"/>
+    <text class="label" x="22" y="30">Conv + ReLU</text>
+    <text class="small" x="22" y="54">feature astratte</text>
+    <text class="tiny" x="22" y="84">parti di oggetti</text>
+    <text class="tiny" x="22" y="105">forme ricorrenti</text>
+    <text class="tiny" x="22" y="126">pattern complessi</text>
+  </g>
+  <path class="arrow" d="M815 200 H870"/>
+  <g transform="translate(880 120)">
+    <rect class="box" x="0" y="0" width="70" height="160" rx="12"/>
+    <text class="label" x="13" y="30">FC</text>
+    <text class="small" x="13" y="54">logit</text>
+    <circle cx="35" cy="86" r="10" fill="#1a237e"/>
+    <circle cx="35" cy="116" r="10" fill="#ff6d00"/>
+    <circle cx="35" cy="146" r="10" fill="#8b94cc"/>
+  </g>
+
+  <g transform="translate(40 330)">
+    <rect x="0" y="0" width="900" height="46" rx="10" fill="#ffffff" stroke="#dfe4f2"/>
+    <text class="small" x="22" y="29">lettura: pixel -> bordi/texture -> parti -> oggetti -> probabilita di classe</text>
+  </g>
+</svg>
