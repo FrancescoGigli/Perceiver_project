@@ -12,11 +12,11 @@ const LAB_SOURCE_REFS = {
   activations: "Rif. E",
   optimizers: "Rif. G",
   pooling: "Rif. M.3",
-  dropout:        "Rif. P",
-  weightInit:     "Rif. Q",
-  regularization: "Rif. R",
-  dataAug:        "Rif. S",
-  ioResults:      "Rif. T",
+  dropout:        "Rif. Q",
+  weightInit:     "Rif. R",
+  regularization: "Rif. S",
+  dataAug:        "Rif. T",
+  ioResults:      "Rif. U",
   lrSchedule:     "Rif. 1.6",
   fourierWaves:   "Rif. B"
 };

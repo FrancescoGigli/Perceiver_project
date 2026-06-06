@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260606-anim2">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260606-anim2">
-<script defer src="js/interactive-labs.js?v=20260606-anim2"></script>
+<link rel="stylesheet" href="css/style.css?v=20260606-anim3">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260606-anim3">
+<script defer src="js/interactive-labs.js?v=20260606-anim3"></script>
 </head>
 <body>
 
@@ -3494,7 +3494,7 @@ S_{ij} & j \le i \\
       <div class="concept-lab dropout-lab" data-lab="dropout">
         <div class="lab-head">
           <div>
-            <span class="lab-source">Rif. P · Dropout</span>
+            <span class="lab-source">Rif. Q · Dropout</span>
             <h3>Griglia neuroni — un campione a ogni forward pass</h3>
             <p>In <strong>Training</strong> la maschera si ricampiona da sola: a ogni forward pass una frazione <code>p</code> diversa di neuroni si spegne (rosso, rimpicciolito), gli altri restano attivi (blu, scalati ×1/(1−p)). Sposta lo slider per cambiare <code>p</code>; passa a <strong>Inference</strong> per fissarli tutti accesi.</p>
           </div>
@@ -3551,7 +3551,7 @@ S_{ij} & j \le i \\
       <div class="concept-lab weight-init-lab" data-lab="weight-init">
         <div class="lab-head">
           <div>
-            <span class="lab-source">Rif. Q · Weight Initialization</span>
+            <span class="lab-source">Rif. R · Weight Initialization</span>
             <h3>Varianza strato per strato</h3>
             <p>Sposta il cursore per cambiare la profondità. Ogni linea mostra come evolve la varianza delle attivazioni con un'init diversa.</p>
           </div>
@@ -3608,7 +3608,7 @@ S_{ij} & j \le i \\
       <div class="concept-lab reg-lab" data-lab="regularization">
         <div class="lab-head">
           <div>
-            <span class="lab-source">Rif. R · Regolarizzazione</span>
+            <span class="lab-source">Rif. S · Regolarizzazione</span>
             <h3>Istogramma dei pesi simulati</h3>
             <p>Sposta λ e cambia il tipo: L1 spinge i pesi a zero (picco centrale), L2 comprime la distribuzione ma non azzera.</p>
           </div>
@@ -3670,7 +3670,7 @@ S_{ij} & j \le i \\
       <div class="concept-lab aug-lab" data-lab="data-aug">
         <div class="lab-head">
           <div>
-            <span class="lab-source">Rif. S · Data Augmentation</span>
+            <span class="lab-source">Rif. T · Data Augmentation</span>
             <h3>Effetto visivo delle augmentation</h3>
             <p>Seleziona una tecnica per vedere l'effetto sulla griglia-campione. In produzione queste si combinano casualmente.</p>
           </div>
@@ -3716,7 +3716,7 @@ S_{ij} & j \le i \\
       <div class="concept-lab io-results-lab" data-lab="io-results">
         <div class="lab-head">
           <div>
-            <span class="lab-source">Rif. T · Perceiver IO Results</span>
+            <span class="lab-source">Rif. U · Perceiver IO Results</span>
             <h3>Risultati per task</h3>
             <p>Seleziona un task per vedere i numeri del paper a confronto con i modelli specializzati.</p>
           </div>
@@ -4207,6 +4207,6 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260606-anim2"></script>
+<script defer src="js/app.js?v=20260606-anim3"></script>
 </body>
 </html>
