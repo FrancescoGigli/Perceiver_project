@@ -1990,3 +1990,114 @@
   from { top: 0; }
   to { top: calc(100% - 10px); }
 }
+
+/* ============================================================
+   NUOVI WIDGET — Rif. 18-22
+   ============================================================ */
+
+/* --- Dropout grid --- */
+.dropout-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  padding: 12px;
+  background: var(--bg-soft, #f3f4f8);
+  border-radius: 8px;
+  margin: 12px 0;
+}
+.dropout-neuron {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #5b8cf5;
+  transition: background 0.25s, opacity 0.25s;
+}
+.dropout-neuron.dropped {
+  background: #e57373;
+  opacity: 0.35;
+}
+.dropout-neuron.active {
+  background: #5b8cf5;
+  opacity: 1;
+}
+
+/* --- Weight init canvas --- */
+.weight-init-canvas {
+  display: block;
+  width: 100%;
+  max-width: 500px;
+  height: 160px;
+  border-radius: 6px;
+  background: var(--bg-soft, #f3f4f8);
+  margin: 12px 0;
+}
+
+/* --- Reg bars (histogram) --- */
+.reg-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 80px;
+  padding: 8px 12px;
+  background: var(--bg-soft, #f3f4f8);
+  border-radius: 8px;
+  margin: 12px 0;
+}
+.reg-bar-col {
+  flex: 1;
+  background: #5b8cf5;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.3s var(--ease-out, ease), background 0.3s;
+  min-height: 2px;
+}
+.reg-bar-col.sparse {
+  background: #e65100;
+}
+
+/* --- Data aug preview --- */
+.aug-preview-wrap {
+  padding: 12px;
+  background: var(--bg-soft, #f3f4f8);
+  border-radius: 8px;
+  margin: 12px 0;
+  overflow: hidden;
+}
+.aug-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 3px;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto 8px;
+  transition: transform 0.4s var(--ease-out, ease), filter 0.4s;
+}
+.aug-cell {
+  aspect-ratio: 1;
+  border-radius: 2px;
+}
+.aug-label {
+  font-size: 0.82rem;
+  color: var(--muted, #6e6e76);
+  text-align: center;
+  margin-top: 6px;
+}
+
+/* --- IO results table --- */
+.io-results-table-wrap table {
+  width: 100%;
+  margin: 12px 0;
+}
+.io-results-table-wrap tr.highlight {
+  background: var(--primary-soft, #e8eaf6);
+  font-weight: 600;
+}
+.io-results-table-wrap td:nth-child(2),
+.io-results-table-wrap th:nth-child(2) {
+  color: var(--primary, #1a237e);
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .dropout-grid { grid-template-columns: repeat(6, 1fr); }
+  .aug-grid { grid-template-columns: repeat(8, 1fr); }
+  .weight-init-canvas { height: 120px; }
+}
