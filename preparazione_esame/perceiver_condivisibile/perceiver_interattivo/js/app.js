@@ -1,10 +1,10 @@
 ﻿"use strict";
 
-const TOTAL = 38;
+const TOTAL = 43;
 const MAIN_TOTAL = 18;
 const REFERENCE_START = 19;
-const REFERENCE_END = 35;
-const APPENDIX_START = 36;
+const REFERENCE_END = 40;
+const APPENDIX_START = 41;
 const CHAPTER_TITLES = [
   "Il problema",
   "Self → Cross-attention",
@@ -41,6 +41,11 @@ const CHAPTER_TITLES = [
   "ResNet",
   "Transformer",
   "Vision Transformer",
+  "Dropout",
+  "Inizializzazione pesi",
+  "Regolarizzazione L1/L2",
+  "Data Augmentation",
+  "Perceiver IO: risultati",
   "Formulario ragionato",
   "Mappa forward interattiva",
   "Confronti e specifiche"
@@ -139,9 +144,14 @@ const RAIL_DATA = {
   33: { stage: 5, idea: "ResNet: la skip connection fa imparare correzioni residue e tiene vivo il gradiente." },
   34: { stage: 5, idea: "Transformer: self-attention globale e M×M; il Perceiver eredita i blocchi ma cambia dove applicarli." },
   35: { stage: 5, idea: "ViT: trasforma l'immagine in patch-token, poi usa un Transformer standard." },
-  36: { stage: 0, idea: "Formulario: ogni formula va legata a problema, punto del modello e significato dei simboli." },
-  37: { stage: 4, idea: "Mappa forward: osserva come cambiano forme e responsabilità a ogni stadio." },
-  38: { stage: 0, idea: "Confronti: prepara differenze nette, non definizioni isolate." }
+  36: { stage: 0, idea: "<strong>Dropout</strong>: maschera Bernoulli durante il training, identità a inference. Il Perceiver non lo usa: il weight sharing già regolarizza." },
+  37: { stage: 0, idea: "<strong>Xavier</strong> per tanh/sigmoid, <strong>He</strong> per ReLU/GELU: preservano la varianza delle attivazioni strato per strato." },
+  38: { stage: 0, idea: "<strong>L2</strong> = prior gaussiano sui pesi. <strong>AdamW/LAMB</strong> applica il weight decay separatamente dai momenti adattivi." },
+  39: { stage: 0, idea: "<strong>Data aug</strong>: crop, flip, jitter. Più critica per il Perceiver (no inductive bias spaziale) che per le CNN." },
+  40: { stage: 0, idea: "Perceiver IO: stesso modello → optical flow AEE 1.81, language MLM BPC 1.74, multimodal Kinetics. Generalità dimostrata." },
+  41: { stage: 0, idea: "Formulario: ogni formula va legata a problema, punto del modello e significato dei simboli." },
+  42: { stage: 4, idea: "Mappa forward: osserva come cambiano forme e responsabilità a ogni stadio." },
+  43: { stage: 0, idea: "Confronti: prepara differenze nette, non definizioni isolate." }
 };
 const SOURCE_DATA = {
   1: { pdfPage: 5,   pdfPages: "PDF p. 5",       section: "1.1 Il problema della complessità quadratica", texLine: 266 },
@@ -179,9 +189,14 @@ const SOURCE_DATA = {
   33: { pdfPage: 177, pdfPages: "PDF pp. 177-178", section: "M.6 ResNet e Residual Connections", texLine: 8637 },
   34: { pdfPage: 178, pdfPages: "PDF pp. 178-184", section: "N Transformer", texLine: 8709 },
   35: { pdfPage: 185, pdfPages: "PDF pp. 185-188", section: "O Vision Transformer (ViT)", texLine: 8953 },
-  36: { pdfPage: 5,   pdfPages: "PDF pp. 5-157",   section: "Sintesi finale: formule ricorrenti del Perceiver", texLine: 266 },
-  37: { pdfPage: 10,  pdfPages: "PDF pp. 10-42",   section: "Sintesi finale: forward pass e forme tensoriali", texLine: 369 },
-  38: { pdfPage: 77,  pdfPages: "PDF pp. 77-157",  section: "Sintesi finale: confronti, specifiche e riferimenti teorici", texLine: 4050 }
+  36: { pdfPage: null, pdfPages: "Appendice P", section: "P Dropout", texLine: null },
+  37: { pdfPage: null, pdfPages: "Appendice Q", section: "Q Inizializzazione dei Pesi", texLine: null },
+  38: { pdfPage: null, pdfPages: "Appendice R", section: "R Regolarizzazione L1 e L2", texLine: null },
+  39: { pdfPage: null, pdfPages: "Appendice S", section: "S Data Augmentation", texLine: null },
+  40: { pdfPage: null, pdfPages: "Appendice T", section: "T Perceiver IO — Risultati Sperimentali", texLine: null },
+  41: { pdfPage: 5,   pdfPages: "PDF pp. 5-157",   section: "Sintesi finale: formule ricorrenti del Perceiver", texLine: 266 },
+  42: { pdfPage: 10,  pdfPages: "PDF pp. 10-42",   section: "Sintesi finale: forward pass e forme tensoriali", texLine: 369 },
+  43: { pdfPage: 77,  pdfPages: "PDF pp. 77-157",  section: "Sintesi finale: confronti, specifiche e riferimenti teorici", texLine: 4050 }
 };
 const PIPE_STAGES = ["Input", "Fourier", "Latenti", "Cross-Att", "Latent Tr.", "×T", "Pooling/Decoder"];
 const QUICK_LINKS = {
