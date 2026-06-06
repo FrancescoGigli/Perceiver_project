@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260529-transformer-detail">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260529-transformer-detail">
-<script defer src="js/interactive-labs.js"></script>
+<link rel="stylesheet" href="css/style.css?v=20260606-anim">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260606-anim">
+<script defer src="js/interactive-labs.js?v=20260606-anim"></script>
 </head>
 <body>
 
@@ -3462,8 +3462,8 @@ S_{ij} & j \le i \\
         <div class="lab-head">
           <div>
             <span class="lab-source">Rif. P · Dropout</span>
-            <h3>Griglia neuroni — sposta il cursore</h3>
-            <p>Ogni cerchio è un neurone. In rosso i neuroni azzerati, in blu gli attivi (scalati di ×1/(1−p)).</p>
+            <h3>Griglia neuroni — un campione a ogni forward pass</h3>
+            <p>In <strong>Training</strong> la maschera si ricampiona da sola: a ogni forward pass una frazione <code>p</code> diversa di neuroni si spegne (rosso, rimpicciolito), gli altri restano attivi (blu, scalati ×1/(1−p)). Sposta lo slider per cambiare <code>p</code>; passa a <strong>Inference</strong> per fissarli tutti accesi.</p>
           </div>
           <div class="lab-toggle" role="tablist" aria-label="Modalità dropout">
             <button type="button" class="active" data-dropout-mode="train">Training</button>
@@ -4174,6 +4174,6 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js"></script>
+<script defer src="js/app.js?v=20260606-anim"></script>
 </body>
 </html>

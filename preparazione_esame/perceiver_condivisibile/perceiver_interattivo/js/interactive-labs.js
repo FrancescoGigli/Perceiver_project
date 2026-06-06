@@ -1445,26 +1445,23 @@ const LAB_SOURCE_REFS = {
     }
 
     let mode = 'train';
-    let seed = 42;
-    function seededRandom() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
 
     function render() {
-      seed = 42;
       const p = parseFloat(slider.value);
       if (pLabel) pLabel.textContent = p.toFixed(2);
       const cells = grid.querySelectorAll('.dropout-neuron');
       let dropped = 0;
-      cells.forEach(cell => {
-        const isDrop = mode === 'train' && seededRandom() < p;
+      cells.forEach(function(cell) {
+        const isDrop = mode === 'train' && Math.random() < p;
         cell.classList.toggle('dropped', isDrop);
         cell.classList.toggle('active', !isDrop);
         if (isDrop) dropped++;
       });
-      const scale = mode === 'inference' ? '1.00' : (p >= 1 ? '∞' : (1 / (1 - p)).toFixed(2));
       if (mode === 'inference') {
-        readout.textContent = 'Inference: tutti i ' + TOTAL_N + ' neuroni attivi. Nessuna scala applicata (×1.00).';
+        readout.textContent = 'Inference: tutti i ' + TOTAL_N + ' neuroni attivi, nessuno spento (×1.00).';
       } else {
-        readout.textContent = 'Training (p=' + p.toFixed(2) + '): ' + dropped + ' neuroni azzerati su ' + TOTAL_N + '. Neuroni attivi scalati ×' + scale + '.';
+        const scale = p >= 1 ? '∞' : (1 / (1 - p)).toFixed(2);
+        readout.textContent = 'Training (p=' + p.toFixed(2) + '): ' + dropped + ' neuroni spenti su ' + TOTAL_N + ' — nuovo campionamento a ogni forward pass. Attivi scalati ×' + scale + '.';
       }
     }
 
@@ -1477,6 +1474,12 @@ const LAB_SOURCE_REFS = {
         render();
       });
     });
+
+    // Ricampiona la maschera a ogni "forward pass" finché siamo in training e la sezione è visibile
+    setInterval(function() {
+      if (mode === 'train' && !reduceMotion() && grid.offsetParent !== null) render();
+    }, 900);
+
     render();
   }
 
