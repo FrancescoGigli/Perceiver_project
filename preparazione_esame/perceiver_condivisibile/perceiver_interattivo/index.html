@@ -3448,8 +3448,277 @@ S_{ij} & j \le i \\
       </div>
     </section>
 
-    <!-- ============ CAP 36 — Formula map ============ -->
+    <!-- ============ CAP 36 — Dropout ============ -->
     <section class="chapter" data-chapter="36">
+      <div class="chap-meta"><span class="chap-badge">Rif. 18</span><span class="chap-time">~6 min</span></div>
+      <h1>Riferimento: Dropout</h1>
+      <p class="intro">Il dropout azzera casualmente una frazione di attivazioni durante il training. L'effetto è quello di addestrare implicitamente un ensemble esponenziale di sottoreti, rendendo la rete più robusta.</p>
+
+      <div class="display-eq">\tilde{x}_i = \frac{m_i \cdot x_i}{1-p}, \quad m_i \sim \text{Bernoulli}(1-p)</div>
+      <p>La divisione per <code>(1-p)</code> (<em>inverted dropout</em>) mantiene il valore atteso dell'output uguale all'input: <code>E[x̃] = x</code>. A inference si usa l'identità.</p>
+
+      <h2>Train vs. inference</h2>
+      <div class="concept-lab dropout-lab" data-lab="dropout">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">Rif. P · Dropout</span>
+            <h3>Griglia neuroni — sposta il cursore</h3>
+            <p>Ogni cerchio è un neurone. In rosso i neuroni azzerati, in blu gli attivi (scalati di ×1/(1−p)).</p>
+          </div>
+          <div class="lab-toggle" role="tablist" aria-label="Modalità dropout">
+            <button type="button" class="active" data-dropout-mode="train">Training</button>
+            <button type="button" data-dropout-mode="inference">Inference</button>
+          </div>
+        </div>
+        <div class="widget-row">
+          <label for="dropoutP">p (prob. azzeramento)</label>
+          <input type="range" id="dropoutP" data-dropout-p min="0" max="0.9" step="0.05" value="0.5">
+          <span class="val" id="dropoutPVal">0.50</span>
+        </div>
+        <div class="dropout-grid" id="dropoutGrid" aria-label="Griglia neuroni dropout"></div>
+        <div class="lab-readout" id="dropoutReadout">Training (p=0.5): 16 neuroni azzerati su 32. Scala: ×2.00.</div>
+      </div>
+
+      <h2>Interpretazione ensemble</h2>
+      <p>Con <code>N</code> neuroni esistono <code>2^N</code> sottoreti possibili. Ogni forward pass ne campiona una diversa. A inference il modello completo è la media geometrica di tutte.</p>
+
+      <h2>Dove si applica</h2>
+      <table>
+        <tr><th>Posizione</th><th>Dropout?</th><th>Motivo</th></tr>
+        <tr><td>Dopo Linear / MLP</td><td>✓ sì</td><td>classico punto di applicazione</td></tr>
+        <tr><td>Subito dopo LayerNorm</td><td>✗ no</td><td>destabilizza la normalizzazione appena calcolata</td></tr>
+        <tr><td>Dopo Attention scores</td><td>✓ opzionale</td><td>attention dropout usato in BERT, non nel Perceiver</td></tr>
+        <tr><td>Inference</td><td>✗ mai</td><td>identità: il modello usa tutti i neuroni</td></tr>
+      </table>
+
+      <div class="idea">
+        <div class="idea-label">Collegamento al Perceiver</div>
+        <p>Il Perceiver <strong>non usa dropout</strong>: il weight sharing tra le <em>T</em> iterazioni agisce già da regolarizzatore implicito. Gli autori mostrano che aggiungere dropout non migliora l'accuracy su ImageNet in questa configurazione.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-36">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="36"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-36">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 37 — Weight Init ============ -->
+    <section class="chapter" data-chapter="37">
+      <div class="chap-meta"><span class="chap-badge">Rif. 19</span><span class="chap-time">~7 min</span></div>
+      <h1>Riferimento: Inizializzazione dei Pesi (Xavier / He)</h1>
+      <p class="intro">L'inizializzazione dei pesi determina la varianza delle attivazioni al primo forward pass. Se la varianza cresce strato per strato esplode; se decresce svanisce. In entrambi i casi il training non converge.</p>
+
+      <h2>Il problema: propagazione della varianza</h2>
+      <p>Per un layer lineare <code>z = Wx</code> con <code>n</code> ingressi e pesi i.i.d. a media zero:</p>
+      <div class="display-eq">\text{Var}(z_j) = n \cdot \text{Var}(W) \cdot \text{Var}(x)</div>
+      <p>Per mantenere <code>Var(z) = Var(x)</code> occorre <code>Var(W) = 1/n</code>.</p>
+
+      <h2>Xavier vs. He: il confronto interattivo</h2>
+      <div class="concept-lab weight-init-lab" data-lab="weight-init">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">Rif. Q · Weight Initialization</span>
+            <h3>Varianza strato per strato</h3>
+            <p>Sposta il cursore per cambiare la profondità. Ogni linea mostra come evolve la varianza delle attivazioni con un'init diversa.</p>
+          </div>
+          <div class="lab-toggle" role="tablist" aria-label="Tipo di inizializzazione">
+            <button type="button" data-init-type="random">Random</button>
+            <button type="button" data-init-type="xavier" class="active">Xavier</button>
+            <button type="button" data-init-type="he">He</button>
+          </div>
+        </div>
+        <div class="widget-row">
+          <label for="initLayers">Layer (1–20)</label>
+          <input type="range" id="initLayers" data-layers min="1" max="20" step="1" value="10">
+          <span class="val" id="initLayersVal">10</span>
+        </div>
+        <canvas class="weight-init-canvas" id="weightInitCanvas" width="500" height="160" aria-label="Grafico varianza per layer"></canvas>
+        <div class="lab-readout" id="weightInitReadout">10 layer, Xavier: varianza finale ≈ 1.000 → stabile ✓</div>
+      </div>
+
+      <table>
+        <tr><th>Metodo</th><th>Formula Var(W)</th><th>Attivazione</th><th>Effetto</th></tr>
+        <tr><td>Random piccolo</td><td>0.0001</td><td>qualsiasi</td><td>vanishing 💀</td></tr>
+        <tr><td><strong>Xavier/Glorot</strong></td><td>2/(n_in + n_out)</td><td>tanh, sigmoid</td><td>stabile ✓</td></tr>
+        <tr><td><strong>He/Kaiming</strong></td><td>2/n_in</td><td>ReLU, GELU</td><td>stabile ✓</td></tr>
+        <tr><td>Random grande</td><td>1</td><td>qualsiasi</td><td>exploding 💥</td></tr>
+      </table>
+
+      <div class="idea">
+        <div class="idea-label">Collegamento al Perceiver</div>
+        <p>Il latent array usa <code>N(0, 0.02)</code> troncata — piccolo per non dominare il primo forward. Le proiezioni Q/K/V usano He (GELU nell'MLP). Le proiezioni tra dimensioni diverse (C_tot=261 → D_QKV) usano Xavier.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-37">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="37"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-37">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 38 — Regularization ============ -->
+    <section class="chapter" data-chapter="38">
+      <div class="chap-meta"><span class="chap-badge">Rif. 20</span><span class="chap-time">~6 min</span></div>
+      <h1>Riferimento: Regolarizzazione L1 e L2</h1>
+      <p class="intro">La regolarizzazione aggiunge una penalità alla loss per scoraggiare pesi grandi, riducendo l'overfitting a scapito di un leggero aumento del bias.</p>
+
+      <h2>L2 (Ridge / Weight Decay)</h2>
+      <div class="display-eq">\mathcal{L}_{\text{reg}} = \mathcal{L} + \frac{\lambda}{2}\|\mathbf{w}\|_2^2</div>
+      <p>L'aggiornamento SGD diventa <code>w ← w(1 − ηλ) − η∇L</code>: ogni passo scala i pesi verso zero di un fattore <code>ηλ</code>. Prior bayesiano: gaussiano.</p>
+
+      <h2>L1 (Lasso)</h2>
+      <div class="display-eq">\mathcal{L}_{\text{reg}} = \mathcal{L} + \lambda\|\mathbf{w}\|_1</div>
+      <p>Penalità uniforme su ogni peso non-zero → sparsità (molti pesi esattamente zero). Prior bayesiano: Laplace.</p>
+
+      <h2>Distribuzione dei pesi: L1 vs L2 interattivo</h2>
+      <div class="concept-lab reg-lab" data-lab="regularization">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">Rif. R · Regolarizzazione</span>
+            <h3>Istogramma dei pesi simulati</h3>
+            <p>Sposta λ e cambia il tipo: L1 spinge i pesi a zero (picco centrale), L2 comprime la distribuzione ma non azzera.</p>
+          </div>
+          <div class="lab-toggle" role="tablist" aria-label="Tipo di regolarizzazione">
+            <button type="button" class="active" data-reg-type="none">Nessuna</button>
+            <button type="button" data-reg-type="l2">L2</button>
+            <button type="button" data-reg-type="l1">L1</button>
+          </div>
+        </div>
+        <div class="widget-row">
+          <label for="regLambda">λ (forza regolarizzazione)</label>
+          <input type="range" id="regLambda" data-reg-lambda min="0" max="1" step="0.05" value="0.3">
+          <span class="val" id="regLambdaVal">0.30</span>
+        </div>
+        <div class="reg-bars" id="regBars" aria-label="Istogramma pesi"></div>
+        <div class="lab-readout" id="regReadout">Nessuna regolarizzazione: distribuzione gaussiana centrata.</div>
+      </div>
+
+      <h2>L2 nella loss vs. Weight Decay in Adam</h2>
+      <div class="nota">
+        <span class="nota-label">Attenzione</span>
+        In Adam standard, aggiungere L2 alla loss <strong>≠</strong> weight decay: il gradiente di L2 viene scalato dai momenti adattivi, rendendo la penalità non uniforme. <strong>AdamW</strong> e <strong>LAMB</strong> applicano il decay <em>dopo</em> la scalatura: <code>w ← w − η·Adam_step − ηλw</code>.
+      </div>
+
+      <table>
+        <tr><th>Metodo</th><th>Effetto</th><th>Sparsità</th><th>Usato nel Perceiver</th></tr>
+        <tr><td>L1</td><td>prior Laplace, penalità uniforme</td><td>✓ sì</td><td>✗ no</td></tr>
+        <tr><td>L2 nella loss</td><td>prior gaussiano, scalato dai momenti in Adam</td><td>✗ no</td><td>✗ no</td></tr>
+        <tr><td>LAMB weight decay</td><td>decay separato dal passo adattivo</td><td>✗ no</td><td>✓ sì (λ=0.1)</td></tr>
+      </table>
+
+      <div class="idea">
+        <div class="idea-label">Collegamento al Perceiver</div>
+        <p>Il Perceiver usa <strong>weight decay λ=0.1 via LAMB</strong>. Il decay è separato dal trust ratio per layer, evitando che la scalatura LAMB lo annulli nelle run con large batch.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-38">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="38"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-38">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 39 — Data Augmentation ============ -->
+    <section class="chapter" data-chapter="39">
+      <div class="chap-meta"><span class="chap-badge">Rif. 21</span><span class="chap-time">~5 min</span></div>
+      <h1>Riferimento: Data Augmentation</h1>
+      <p class="intro">La data augmentation genera varianti trasformate degli esempi di training per aumentare artificialmente la diversità del dataset, riducendo l'overfitting senza raccogliere nuovi dati.</p>
+
+      <h2>Pipeline standard ImageNet</h2>
+      <ul>
+        <li><strong>Random Resized Crop</strong>: scala in [0.08, 1.0], aspect ratio [0.75, 1.33] → resize 224×224</li>
+        <li><strong>Horizontal Flip</strong>: p = 0.5</li>
+        <li><strong>Color Jitter</strong>: luminosità ±0.4, contrasto ±0.4, saturazione ±0.4, tinta ±0.1</li>
+        <li><strong>Normalization</strong>: μ=(0.485, 0.456, 0.406), σ=(0.229, 0.224, 0.225)</li>
+      </ul>
+
+      <h2>Trasformazioni — prova le augmentation</h2>
+      <div class="concept-lab aug-lab" data-lab="data-aug">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">Rif. S · Data Augmentation</span>
+            <h3>Effetto visivo delle augmentation</h3>
+            <p>Seleziona una tecnica per vedere l'effetto sulla griglia-campione. In produzione queste si combinano casualmente.</p>
+          </div>
+          <div class="lab-toggle" role="tablist" aria-label="Tipo di augmentation">
+            <button type="button" class="active" data-aug-type="none">Originale</button>
+            <button type="button" data-aug-type="flip">Flip</button>
+            <button type="button" data-aug-type="crop">Crop</button>
+            <button type="button" data-aug-type="color">Color</button>
+          </div>
+        </div>
+        <div class="aug-preview-wrap">
+          <div class="aug-grid" id="augGrid" aria-label="Griglia immagine simulata"></div>
+          <div class="aug-label" id="augLabel">Originale — nessuna trasformazione</div>
+        </div>
+      </div>
+
+      <h2>Tecniche avanzate</h2>
+      <table>
+        <tr><th>Tecnica</th><th>Idea</th><th>Formula label</th></tr>
+        <tr><td><strong>MixUp</strong></td><td>interpola 2 immagini e label</td><td>ỹ = λy_i + (1−λ)y_j, λ~Beta(α,α)</td></tr>
+        <tr><td><strong>CutMix</strong></td><td>patch di x_j incollata su x_i</td><td>ỹ proporzionale all'area patch</td></tr>
+        <tr><td><strong>RandAugment</strong></td><td>N trasf. casuali a magnitudine M</td><td>—</td></tr>
+      </table>
+
+      <div class="idea">
+        <div class="idea-label">Collegamento al Perceiver</div>
+        <p>Il Perceiver usa crop + flip + normalization (nessun MixUp). È <strong>più dipendente dall'augmentation</strong> rispetto alle CNN perché non ha inductive bias spaziale: senza crop e flip potrebbe memorizzare le posizioni assolute degli oggetti nel training set. Le Fourier features forniscono la posizione <em>esplicita</em>, ma non l'invarianza a scala e composizione.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-39">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="39"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-39">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 40 — Perceiver IO Results ============ -->
+    <section class="chapter" data-chapter="40">
+      <div class="chap-meta"><span class="chap-badge">Rif. 22</span><span class="chap-time">~5 min</span></div>
+      <h1>Riferimento: Perceiver IO — Risultati Sperimentali</h1>
+      <p class="intro">Stessa architettura, output query diverse, task radicalmente diversi. Questi numeri dimostrano la generalità del Perceiver IO.</p>
+
+      <div class="concept-lab io-results-lab" data-lab="io-results">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">Rif. T · Perceiver IO Results</span>
+            <h3>Risultati per task</h3>
+            <p>Seleziona un task per vedere i numeri del paper a confronto con i modelli specializzati.</p>
+          </div>
+          <div class="lab-toggle" role="tablist" aria-label="Task Perceiver IO">
+            <button type="button" class="active" data-io-task="flow">Optical Flow</button>
+            <button type="button" data-io-task="language">Language</button>
+            <button type="button" data-io-task="multimodal">Multimodal</button>
+          </div>
+        </div>
+        <div class="io-results-table-wrap" id="ioResultsTable" aria-live="polite"></div>
+        <div class="lab-readout" id="ioResultsReadout">Optical flow: il Perceiver IO supera modelli specializzati su Sintel Final pur essendo un modello generale.</div>
+      </div>
+
+      <h2>Messaggio chiave</h2>
+      <p>Lo stesso modello — stessa architettura encoder-process-decode, stessi pesi — adattato solo tramite le output query e le proiezioni di ingresso/uscita:</p>
+      <ul>
+        <li><strong>Optical flow</strong>: query = coordinate pixel + feature immagine → AEE 1.81 Sintel Clean</li>
+        <li><strong>Language MLM</strong>: query = posizioni byte mascherati → BPC 1.74</li>
+        <li><strong>Multimodal autoencoding</strong>: query = indicatori modalità → video/audio/label simultaneamente</li>
+      </ul>
+
+      <div class="idea">
+        <div class="idea-label">Idea chiave</div>
+        <p>Nessun componente domain-specific aggiunto. L'adattamento avviene interamente attraverso le <strong>output query</strong>. Questo è il contributo centrale del paper: <em>one architecture, many outputs</em>.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-40">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="40"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-40">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 41 — Formula map ============ -->
+    <section class="chapter" data-chapter="41">
       <div class="chap-meta"><span class="chap-badge">App. 1</span><span class="chap-time">~8 min</span></div>
       <h1>Formulario ragionato</h1>
       <p class="intro">Non è un formulario da imparare a memoria in blocco: è una mappa. Ogni formula va collegata a dove entra nel Perceiver e a quale problema risolve.</p>
@@ -3513,14 +3782,14 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
       </div>
 
       <div class="nav-bar">
-        <button class="btn btn-secondary" id="prev-36">← Precedente</button>
-        <label class="checkbox-done"><input type="checkbox" data-done="36"><span class="check"></span><span class="check-label">Ho capito</span></label>
-        <button class="btn btn-primary" id="next-36">Successivo →</button>
+        <button class="btn btn-secondary" id="prev-41">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="41"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-41">Successivo →</button>
       </div>
     </section>
 
-    <!-- ============ CAP 37 — Interactive forward map ============ -->
-    <section class="chapter" data-chapter="37">
+    <!-- ============ CAP 42 — Interactive forward map ============ -->
+    <section class="chapter" data-chapter="42">
       <div class="chap-meta"><span class="chap-badge">App. 2</span><span class="chap-time">~7 min</span></div>
       <h1>Mappa forward interattiva</h1>
       <p class="intro">Questa è la vista compatta del viaggio dei dati: <strong>Input → Fourier → Latenti → Cross-Attention → Latent Transformer → ×T → Pooling/Decoder</strong>. Clicca un blocco per vedere cosa cambia davvero.</p>
@@ -3559,14 +3828,14 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
       </div>
 
       <div class="nav-bar">
-        <button class="btn btn-secondary" id="prev-37">← Precedente</button>
-        <label class="checkbox-done"><input type="checkbox" data-done="37"><span class="check"></span><span class="check-label">Ho capito</span></label>
-        <button class="btn btn-primary" id="next-37">Successivo →</button>
+        <button class="btn btn-secondary" id="prev-42">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="42"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-42">Successivo →</button>
       </div>
     </section>
 
-    <!-- ============ CAP 38 — Comparisons and specs ============ -->
-    <section class="chapter" data-chapter="38">
+    <!-- ============ CAP 43 — Comparisons and specs ============ -->
+    <section class="chapter" data-chapter="43">
       <div class="chap-meta"><span class="chap-badge">App. 3</span><span class="chap-time">~20 min</span></div>
       <h1>Confronti e specifiche</h1>
       <p class="intro">Qui trovi i confronti da ripetere bene all'esame: non definizioni isolate, ma differenze operative tra scelte architetturali. Leggili come una mappa: prima capisci <strong>che cosa cambia nella struttura</strong>, poi <strong>che costo computazionale produce</strong>, infine <strong>perché quella scelta aiuta il Perceiver</strong>.</p>
@@ -3820,9 +4089,9 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
       </div>
 
       <div class="nav-bar">
-        <button class="btn btn-secondary" id="prev-38">← Precedente</button>
-        <label class="checkbox-done"><input type="checkbox" data-done="38"><span class="check"></span><span class="check-label">Ho capito</span></label>
-        <button class="btn btn-primary" id="next-38" disabled>Fine</button>
+        <button class="btn btn-secondary" id="prev-43">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="43"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-43" disabled>Fine</button>
       </div>
 
       <div id="finalRecap" class="hidden" style="margin-top:40px;padding:30px;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-radius:14px;text-align:center;">
