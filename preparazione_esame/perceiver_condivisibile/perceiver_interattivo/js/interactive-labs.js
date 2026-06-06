@@ -16,7 +16,9 @@ const LAB_SOURCE_REFS = {
   weightInit:     "Rif. Q",
   regularization: "Rif. R",
   dataAug:        "Rif. S",
-  ioResults:      "Rif. T"
+  ioResults:      "Rif. T",
+  lrSchedule:     "Rif. 1.6",
+  fourierWaves:   "Rif. B"
 };
 
 (function () {
@@ -1802,6 +1804,223 @@ const LAB_SOURCE_REFS = {
     render('flow', false);
   }
 
+  // --- ch11: Learning-rate step-decay schedule ---
+  function initLrScheduleLab() {
+    const container = document.querySelector('[data-lab="lr-schedule"]');
+    if (!container) return;
+    const canvas = document.getElementById('lrScheduleCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const readout = document.getElementById('lrScheduleReadout');
+
+    const W = canvas.width, H = canvas.height;
+    const PAD_L = 54, PAD_R = 16, PAD_T = 14, PAD_B = 30;
+    const PLOT_W = W - PAD_L - PAD_R, PLOT_H = H - PAD_T - PAD_B;
+    const EPOCHS = 120, LR_START = 4e-3, CUTS = [84, 102, 114], DURATION_MS = 5000;
+    const LR_MAX = LR_START * 1.5, LR_MIN = LR_START / 1000;
+    const LOG_MIN = Math.log10(LR_MIN), LOG_MAX = Math.log10(LR_MAX);
+
+    function lrAtEpoch(e) {
+      let lr = LR_START;
+      for (let i = 0; i < CUTS.length; i++) { if (e >= CUTS[i]) lr /= 10; }
+      return lr;
+    }
+    function xForEpoch(e) { return PAD_L + (e / EPOCHS) * PLOT_W; }
+    function yForLr(lr) {
+      const t = (Math.log10(lr) - LOG_MIN) / (LOG_MAX - LOG_MIN);
+      return PAD_T + PLOT_H - clamp(t, 0, 1) * PLOT_H;
+    }
+    function drawGridAxes() {
+      ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 1;
+      [0, 20, 40, 60, 80, 100, 120].forEach(function(ep) {
+        const x = xForEpoch(ep);
+        ctx.beginPath(); ctx.moveTo(x, PAD_T); ctx.lineTo(x, PAD_T + PLOT_H); ctx.stroke();
+      });
+      const yLabels = [4e-3, 4e-4, 4e-5, 4e-6];
+      ctx.fillStyle = '#999'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      yLabels.forEach(function(lr) {
+        const y = yForLr(lr);
+        ctx.beginPath(); ctx.moveTo(PAD_L, y); ctx.lineTo(PAD_L + PLOT_W, y); ctx.stroke();
+        ctx.fillText(lr.toExponential(0), PAD_L - 5, y);
+      });
+      ctx.strokeStyle = '#999'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(PAD_L, PAD_T); ctx.lineTo(PAD_L, PAD_T + PLOT_H); ctx.lineTo(PAD_L + PLOT_W, PAD_T + PLOT_H); ctx.stroke();
+      ctx.fillStyle = '#999'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+      [0, 40, 80, 120].forEach(function(ep) { ctx.fillText(ep, xForEpoch(ep), PAD_T + PLOT_H + 14); });
+    }
+    function drawCurve(upTo) {
+      ctx.strokeStyle = '#5b8cf5'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+      const breaks = [0].concat(CUTS).concat([EPOCHS]);
+      ctx.beginPath();
+      let started = false;
+      for (let s = 0; s < breaks.length - 1; s++) {
+        const eS = breaks[s]; if (eS > upTo) break;
+        const eE = Math.min(breaks[s + 1], upTo);
+        const y = yForLr(lrAtEpoch(eS));
+        if (!started) { ctx.moveTo(xForEpoch(eS), y); started = true; } else { ctx.lineTo(xForEpoch(eS), y); }
+        ctx.lineTo(xForEpoch(eE), y);
+      }
+      ctx.stroke();
+    }
+    function drawCutMarkers() {
+      ctx.fillStyle = '#e65100';
+      CUTS.forEach(function(e) {
+        const x = xForEpoch(e), yTop = yForLr(lrAtEpoch(e - 1)), yBot = yForLr(lrAtEpoch(e));
+        ctx.strokeStyle = '#e65100'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.moveTo(x, yTop); ctx.lineTo(x, yBot); ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath(); ctx.arc(x, yBot, 3.5, 0, Math.PI * 2); ctx.fill();
+      });
+    }
+    function drawPlayhead(epoch) {
+      const x = xForEpoch(epoch), y = yForLr(lrAtEpoch(Math.floor(epoch)));
+      ctx.strokeStyle = '#1a237e'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.moveTo(x, PAD_T); ctx.lineTo(x, PAD_T + PLOT_H); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = '#1a237e'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.stroke();
+    }
+    function updateReadout(epochFrac) {
+      if (!readout) return;
+      const eInt = Math.floor(epochFrac);
+      let note = '';
+      for (let i = 0; i < CUTS.length; i++) { if (Math.abs(epochFrac - CUTS[i]) < 1.5) note = '  ⬇ taglio ×10'; }
+      readout.textContent = 'Epoca ' + eInt + ' / 120 · LR = ' + lrAtEpoch(eInt).toExponential(3) + note;
+    }
+    function drawStatic() {
+      ctx.clearRect(0, 0, W, H); drawGridAxes(); drawCurve(EPOCHS); drawCutMarkers();
+    }
+    function drawFrame(epochFrac) {
+      ctx.clearRect(0, 0, W, H); drawGridAxes(); drawCurve(epochFrac); drawCutMarkers(); drawPlayhead(epochFrac); updateReadout(epochFrac);
+    }
+
+    let rafId = null, startTime = null;
+    function loop(now) {
+      if (reduceMotion() || canvas.offsetParent === null) { drawStatic(); updateReadout(EPOCHS); rafId = null; startTime = null; return; }
+      if (startTime === null) startTime = now;
+      const t = ((now - startTime) % DURATION_MS) / DURATION_MS;
+      drawFrame(t * EPOCHS);
+      rafId = requestAnimationFrame(loop);
+    }
+    function start() { if (rafId === null && !reduceMotion()) { startTime = null; rafId = requestAnimationFrame(loop); } }
+    function stop() { if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; } }
+
+    if (typeof IntersectionObserver !== 'undefined') {
+      const obs = new IntersectionObserver(function(entries) { if (entries[0].isIntersecting) start(); else stop(); }, { threshold: 0.15 });
+      obs.observe(canvas);
+    } else { start(); }
+
+    drawStatic();
+    updateReadout(EPOCHS);
+  }
+
+  // --- ch20: Fourier features waves ---
+  function initFourierWavesLab() {
+    const container = document.querySelector(".fourier-waves-lab");
+    if (!container) return;
+    const canvas = container.querySelector(".fourier-waves-canvas");
+    if (!canvas || !canvas.getContext) return;
+    const ctx = canvas.getContext("2d");
+    const slider = container.querySelector("[data-fourier-k]");
+    const kValDisplay = document.getElementById("fourierKVal");
+    const readout = document.getElementById("fourierWavesReadout");
+    const modeButtons = container.querySelectorAll("[data-fourier-mode]");
+
+    const state = { k: 3, mode: "separate", phase: 0, rafId: null, lastTime: null };
+    const PALETTE = ["#1a237e", "#1565c0", "#1976d2", "#2e7d32", "#f57c00", "#e65100"];
+
+    function hexToRgb(hex) { return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)]; }
+    function rgbToHex(r, g, b) {
+      return "#" + [r, g, b].map(function(v) { const h = Math.round(v).toString(16); return h.length === 1 ? "0" + h : h; }).join("");
+    }
+    function lerpColor(a, b, t) {
+      const ca = hexToRgb(a), cb = hexToRgb(b);
+      return rgbToHex(ca[0] + (cb[0] - ca[0]) * t, ca[1] + (cb[1] - ca[1]) * t, ca[2] + (cb[2] - ca[2]) * t);
+    }
+    function getColor(i, total) {
+      const t = total <= 1 ? 0 : i / (total - 1);
+      const maxIdx = PALETTE.length - 1, pos = t * maxIdx, lo = Math.floor(pos), hi = Math.min(lo + 1, maxIdx);
+      return lerpColor(PALETTE[lo], PALETTE[hi], pos - lo);
+    }
+    function freqForBand(i) { return Math.pow(2, i); }
+
+    function drawGrid() {
+      const w = canvas.width, h = canvas.height;
+      ctx.strokeStyle = "#e0e0e0"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();
+      ctx.setLineDash([4, 4]);
+      [h * 0.25, h * 0.75].forEach(function(y) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); });
+      ctx.setLineDash([]);
+    }
+    function drawWave(freq, phase, amp, color, lw) {
+      const w = canvas.width, cy = canvas.height / 2;
+      ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = lw || 2;
+      for (let x = 0; x <= w; x++) {
+        const y = cy - amp * Math.sin(2 * Math.PI * freq * (x / w) + phase);
+        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    function drawSumWave(k, phase) {
+      const w = canvas.width, cy = canvas.height / 2;
+      const amp = clamp(55 / Math.sqrt(k), 18, 55);
+      ctx.beginPath(); ctx.strokeStyle = "#1a237e"; ctx.lineWidth = 2.5;
+      for (let x = 0; x <= w; x++) {
+        let sum = 0;
+        for (let i = 0; i < k; i++) sum += Math.sin(2 * Math.PI * freqForBand(i) * (x / w) + phase * (i + 1) * 0.7);
+        const y = cy - amp * sum;
+        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    function updateReadout() {
+      const k = state.k, labels = [];
+      for (let i = 0; i < k; i++) labels.push(freqForBand(i) + "x");
+      readout.textContent = "K = " + k + " band" + (k === 1 ? "a" : "e") + " · frequenze " + labels.join(", ")
+        + " — basse=globale, alte=dettaglio · (" + (state.mode === "separate" ? "onde separate" : "segnale sommato") + ")";
+    }
+    function render(phase) {
+      const w = canvas.width, h = canvas.height, k = state.k;
+      ctx.clearRect(0, 0, w, h); drawGrid();
+      if (state.mode === "separate") {
+        const amp = clamp(60 / k, 14, 60), lw = k <= 3 ? 2.2 : 1.8;
+        for (let i = 0; i < k; i++) drawWave(freqForBand(i), phase * (i + 1), amp, getColor(i, k), lw);
+      } else {
+        drawSumWave(k, phase);
+      }
+      updateReadout();
+    }
+    function tick(now) {
+      if (reduceMotion() || canvas.offsetParent === null) { render(0); state.rafId = null; state.lastTime = null; return; }
+      if (state.lastTime === null) state.lastTime = now;
+      const dt = (now - state.lastTime) / 1000; state.lastTime = now;
+      state.phase += dt * 0.6;
+      render(state.phase);
+      state.rafId = requestAnimationFrame(tick);
+    }
+    function startLoop() { if (state.rafId === null && !reduceMotion()) { state.lastTime = null; state.rafId = requestAnimationFrame(tick); } }
+    function stopLoop() { if (state.rafId !== null) { cancelAnimationFrame(state.rafId); state.rafId = null; } }
+
+    if (typeof IntersectionObserver !== "undefined") {
+      const obs = new IntersectionObserver(function(entries) { if (entries[0].isIntersecting) startLoop(); else stopLoop(); }, { threshold: 0.1 });
+      obs.observe(canvas);
+    } else { startLoop(); }
+
+    slider.addEventListener("input", function() {
+      state.k = clamp(parseInt(this.value, 10), 1, 6);
+      kValDisplay.textContent = state.k;
+      render(state.phase);
+    });
+    modeButtons.forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        modeButtons.forEach(function(b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+        state.mode = btn.getAttribute("data-fourier-mode");
+        render(state.phase);
+      });
+    });
+
+    render(0);
+  }
+
   function initInteractiveLabs() {
     initArchitectureFlowLab();
     initByteUnrollLab();
@@ -1839,6 +2058,8 @@ const LAB_SOURCE_REFS = {
     initRegularizationLab();
     initDataAugLab();
     initIoResultsLab();
+    initLrScheduleLab();
+    initFourierWavesLab();
   }
 
   window.PerceiverInteractiveLabs = { initInteractiveLabs };
