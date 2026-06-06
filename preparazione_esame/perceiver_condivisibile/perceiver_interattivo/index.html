@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260606-anim">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260606-anim">
-<script defer src="js/interactive-labs.js?v=20260606-anim"></script>
+<link rel="stylesheet" href="css/style.css?v=20260606-anim2">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260606-anim2">
+<script defer src="js/interactive-labs.js?v=20260606-anim2"></script>
 </head>
 <body>
 
@@ -929,6 +929,18 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       </ul>
       <p>Schema "vecchia scuola": rate alto per la maggior parte del training, poi tre tagli netti verso la fine per fissare i pesi.</p>
 
+      <div class="concept-lab lr-schedule-lab" data-lab="lr-schedule">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">Rif. 1.6 · ImageNet training schedule</span>
+            <h3>Learning rate — step decay animato</h3>
+            <p>La testina avanza tra le 120 epoche: il LR parte da 4×10⁻³ e viene tagliato ÷10 alle epoche 84, 102, 114 (asse Y logaritmico).</p>
+          </div>
+        </div>
+        <canvas class="lr-schedule-canvas" id="lrScheduleCanvas" width="500" height="170" aria-label="Curva del learning rate per epoca"></canvas>
+        <div class="lab-readout" id="lrScheduleReadout">Epoca 0 / 120 · LR = 4.000e-3</div>
+      </div>
+
       <h2>Niente dropout (e perché)</h2>
       <p>Sorprendentemente, il Perceiver <strong>non usa dropout</strong>. Citazione dal paper (App. C):</p>
       <div class="nota">
@@ -1593,6 +1605,27 @@ p_i = \frac{e^(z_i - m)}{Σ_j e^(z_j - m)}</div>
         <img src="../appunti_images/papers/fig_positional_encoding.png" alt="Fourier positional encoding">
         <figcaption>Le frequenze basse catturano struttura globale; le frequenze alte distinguono dettagli locali. La coordinata grezza resta concatenata per evitare ambiguità.</figcaption>
       </figure>
+
+      <div class="concept-lab fourier-waves-lab" data-lab="fourier-waves">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">Rif. B · Fourier feature encoding</span>
+            <h3>Onde a frequenze multiple</h3>
+            <p>Ogni banda è un seno a frequenza doppia della precedente. Aumenta K per vedere come più bande arricchiscono la codifica; passa a "Somma" per il segnale combinato.</p>
+          </div>
+          <div class="lab-toggle" role="tablist" aria-label="Modalità visualizzazione">
+            <button type="button" class="active" data-fourier-mode="separate">Onde separate</button>
+            <button type="button" data-fourier-mode="sum">Somma</button>
+          </div>
+        </div>
+        <div class="widget-row">
+          <label for="fourierK">K bande</label>
+          <input type="range" id="fourierK" data-fourier-k min="1" max="6" step="1" value="3">
+          <span class="val" id="fourierKVal">3</span>
+        </div>
+        <canvas class="fourier-waves-canvas" id="fourierWavesCanvas" width="500" height="170" aria-label="Onde sinusoidali a frequenze multiple"></canvas>
+        <div class="lab-readout" id="fourierWavesReadout"></div>
+      </div>
 
       <h2>Formula pratica nel Perceiver</h2>
       <p>Per ogni dimensione spaziale si usano seno e coseno a frequenze linearly spaced, più la coordinata grezza. Per immagini 2D con <code>K = 64</code> bande e <code>C = 3</code> canali RGB:</p>
@@ -4174,6 +4207,6 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260606-anim"></script>
+<script defer src="js/app.js?v=20260606-anim2"></script>
 </body>
 </html>
