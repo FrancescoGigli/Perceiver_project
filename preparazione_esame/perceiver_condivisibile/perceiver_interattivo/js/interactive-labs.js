@@ -11,7 +11,12 @@ const LAB_SOURCE_REFS = {
   layerNorm: "Rif. D",
   activations: "Rif. E",
   optimizers: "Rif. G",
-  pooling: "Rif. M.3"
+  pooling: "Rif. M.3",
+  dropout:        "Rif. P",
+  weightInit:     "Rif. Q",
+  regularization: "Rif. R",
+  dataAug:        "Rif. S",
+  ioResults:      "Rif. T"
 };
 
 (function () {
@@ -1417,6 +1422,337 @@ const LAB_SOURCE_REFS = {
     render(16);
   }
 
+  /* ============================================================
+     NUOVI WIDGET — Rif. 18-22
+     ============================================================ */
+
+  // --- Rif. 18: Dropout ---
+  function initDropoutLab() {
+    const container = document.querySelector('[data-lab="dropout"]');
+    if (!container) return;
+    const slider = container.querySelector('[data-dropout-p]');
+    const pLabel = document.getElementById('dropoutPVal');
+    const modeButtons = container.querySelectorAll('[data-dropout-mode]');
+    const grid = document.getElementById('dropoutGrid');
+    const readout = document.getElementById('dropoutReadout');
+    const ROWS = 4, COLS = 8, TOTAL_N = ROWS * COLS;
+
+    grid.innerHTML = '';
+    for (let i = 0; i < TOTAL_N; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'dropout-neuron active';
+      grid.appendChild(cell);
+    }
+
+    let mode = 'train';
+    let seed = 42;
+    function seededRandom() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+
+    function render() {
+      seed = 42;
+      const p = parseFloat(slider.value);
+      if (pLabel) pLabel.textContent = p.toFixed(2);
+      const cells = grid.querySelectorAll('.dropout-neuron');
+      let dropped = 0;
+      cells.forEach(cell => {
+        const isDrop = mode === 'train' && seededRandom() < p;
+        cell.classList.toggle('dropped', isDrop);
+        cell.classList.toggle('active', !isDrop);
+        if (isDrop) dropped++;
+      });
+      const scale = mode === 'inference' ? '1.00' : (p >= 1 ? '∞' : (1 / (1 - p)).toFixed(2));
+      if (mode === 'inference') {
+        readout.textContent = 'Inference: tutti i ' + TOTAL_N + ' neuroni attivi. Nessuna scala applicata (×1.00).';
+      } else {
+        readout.textContent = 'Training (p=' + p.toFixed(2) + '): ' + dropped + ' neuroni azzerati su ' + TOTAL_N + '. Neuroni attivi scalati ×' + scale + '.';
+      }
+    }
+
+    slider.addEventListener('input', render);
+    modeButtons.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        modeButtons.forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        mode = btn.dataset.dropoutMode;
+        render();
+      });
+    });
+    render();
+  }
+
+  // --- Rif. 19: Weight Initialization ---
+  function initWeightInitLab() {
+    const container = document.querySelector('[data-lab="weight-init"]');
+    if (!container) return;
+    const slider = container.querySelector('[data-layers]');
+    const layersLabel = document.getElementById('initLayersVal');
+    const initButtons = container.querySelectorAll('[data-init-type]');
+    const canvas = document.getElementById('weightInitCanvas');
+    const readout = document.getElementById('weightInitReadout');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let initType = 'xavier';
+    const FAN_IN = 256;
+
+    function computeVars(nLayers, type) {
+      const vars = [1.0];
+      for (let l = 0; l < nLayers; l++) {
+        let wVar;
+        if (type === 'random') wVar = 0.0001;
+        else if (type === 'xavier') wVar = 2 / (FAN_IN + FAN_IN);
+        else wVar = 2 / FAN_IN;
+        vars.push(clamp(vars[vars.length - 1] * FAN_IN * wVar, 0, 1e6));
+      }
+      return vars;
+    }
+
+    function draw(vars) {
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+      const maxV = Math.max.apply(null, vars.concat([1]));
+      const pad = { l: 48, r: 12, t: 12, b: 28 };
+      const iW = W - pad.l - pad.r, iH = H - pad.t - pad.b;
+
+      ctx.strokeStyle = '#e0e0e0';
+      ctx.lineWidth = 1;
+      [0, 0.25, 0.5, 0.75, 1].forEach(function(f) {
+        const y = pad.t + iH * (1 - f);
+        ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + iW, y); ctx.stroke();
+        ctx.fillStyle = '#999'; ctx.font = '10px sans-serif';
+        ctx.fillText((f * maxV).toFixed(f === 0 ? 0 : 2), 2, y + 4);
+      });
+
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1;
+      const yStable = pad.t + iH * (1 - Math.min(1, maxV) / maxV);
+      ctx.beginPath(); ctx.moveTo(pad.l, yStable); ctx.lineTo(pad.l + iW, yStable); ctx.stroke();
+      ctx.setLineDash([]);
+
+      const colors = { random: '#e57373', xavier: '#5b8cf5', he: '#43a047' };
+      ctx.strokeStyle = colors[initType] || '#5b8cf5';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      vars.forEach(function(v, i) {
+        const x = pad.l + (i / (vars.length - 1)) * iW;
+        const y = pad.t + iH * (1 - Math.min(v, maxV) / maxV);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      ctx.fillStyle = '#666'; ctx.font = '10px sans-serif';
+      ctx.fillText('Layer 0', pad.l - 4, H - 8);
+      ctx.fillText('L' + (vars.length - 1), pad.l + iW - 10, H - 8);
+    }
+
+    function render() {
+      const nLayers = parseInt(slider.value);
+      if (layersLabel) layersLabel.textContent = nLayers;
+      const vars = computeVars(nLayers, initType);
+      draw(vars);
+      const last = vars[vars.length - 1];
+      let status;
+      if (last > 10) status = 'esplode 💥';
+      else if (last < 0.01) status = 'svanisce 💀';
+      else status = 'stabile ✓';
+      readout.textContent = nLayers + ' layer, ' + initType + ': varianza finale ≈ ' + fmt(last, 4) + ' → ' + status;
+    }
+
+    initButtons.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        initButtons.forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        initType = btn.dataset.initType;
+        render();
+      });
+    });
+    slider.addEventListener('input', render);
+    render();
+  }
+
+  // --- Rif. 20: Regularization ---
+  function initRegularizationLab() {
+    const container = document.querySelector('[data-lab="regularization"]');
+    if (!container) return;
+    const slider = container.querySelector('[data-reg-lambda]');
+    const lambdaLabel = document.getElementById('regLambdaVal');
+    const regButtons = container.querySelectorAll('[data-reg-type]');
+    const barsEl = document.getElementById('regBars');
+    const readout = document.getElementById('regReadout');
+    let regType = 'none';
+    const N_BINS = 20;
+    const BASE_WEIGHTS = [];
+    for (let i = 0; i < 200; i++) BASE_WEIGHTS.push((i - 100) / 30);
+
+    function applyReg(weights, lambda, type) {
+      if (type === 'none' || lambda === 0) return weights.slice();
+      return weights.map(function(w) {
+        if (type === 'l2') return w * (1 - lambda);
+        if (type === 'l1') {
+          const shrink = lambda * 0.8;
+          return Math.abs(w) < shrink ? 0 : w - Math.sign(w) * shrink;
+        }
+        return w;
+      });
+    }
+
+    function histogram(weights) {
+      const bins = new Array(N_BINS).fill(0);
+      weights.forEach(function(w) {
+        const idx = Math.floor(((w - (-4)) / 8) * N_BINS);
+        if (idx >= 0 && idx < N_BINS) bins[idx]++;
+      });
+      return bins;
+    }
+
+    function render() {
+      const lambda = parseFloat(slider.value);
+      if (lambdaLabel) lambdaLabel.textContent = lambda.toFixed(2);
+      const regulated = applyReg(BASE_WEIGHTS, lambda, regType);
+      const bins = histogram(regulated);
+      const maxCount = Math.max.apply(null, bins.concat([1]));
+      barsEl.innerHTML = '';
+      const zeros = regulated.filter(function(w) { return Math.abs(w) < 0.01; }).length;
+      bins.forEach(function(count, i) {
+        const col = document.createElement('div');
+        const isMid = regType === 'l1' && i === Math.floor(N_BINS / 2);
+        col.className = 'reg-bar-col' + (isMid ? ' sparse' : '');
+        col.style.height = (count / maxCount * 100) + '%';
+        barsEl.appendChild(col);
+      });
+      const descs = {
+        none: 'Nessuna regolarizzazione: distribuzione gaussiana naturale.',
+        l2: 'L2 (λ=' + lambda.toFixed(2) + '): distribuzione compressa verso 0, nessun peso esattamente zero.',
+        l1: 'L1 (λ=' + lambda.toFixed(2) + '): ' + zeros + '/200 pesi azzerati (sparsià = ' + (zeros / 2).toFixed(0) + '%).'
+      };
+      readout.textContent = descs[regType] || '';
+    }
+
+    regButtons.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        regButtons.forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        regType = btn.dataset.regType;
+        render();
+      });
+    });
+    slider.addEventListener('input', render);
+    render();
+  }
+
+  // --- Rif. 21: Data Augmentation ---
+  function initDataAugLab() {
+    const container = document.querySelector('[data-lab="data-aug"]');
+    if (!container) return;
+    const augButtons = container.querySelectorAll('[data-aug-type]');
+    const grid = document.getElementById('augGrid');
+    const label = document.getElementById('augLabel');
+    if (!grid) return;
+
+    for (let r = 0; r < 10; r++) {
+      for (let c = 0; c < 10; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'aug-cell';
+        const hue = ((r * 36 + c * 15) % 360);
+        cell.style.background = 'hsl(' + hue + ',65%,' + (55 + (r + c) % 3 * 8) + '%)';
+        grid.appendChild(cell);
+      }
+    }
+
+    const augDefs = {
+      none:  { transform: 'none', filter: 'none', text: 'Originale — nessuna trasformazione.' },
+      flip:  { transform: 'scaleX(-1)', filter: 'none', text: 'Horizontal Flip — specchia l'immagine sull'asse verticale.' },
+      crop:  { transform: 'scale(1.25) translate(-8%, 5%)', filter: 'none', text: 'Random Crop — ritaglia e ridimensiona una sottoregione.' },
+      color: { transform: 'none', filter: 'saturate(2) hue-rotate(30deg) brightness(1.2)', text: 'Color Jitter — modifica luminosità, saturazione e tinta.' }
+    };
+
+    function render(type) {
+      const def = augDefs[type] || augDefs.none;
+      grid.style.transform = def.transform;
+      grid.style.filter = def.filter;
+      label.textContent = def.text;
+    }
+
+    augButtons.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        augButtons.forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        render(btn.dataset.augType);
+      });
+    });
+    render('none');
+  }
+
+  // --- Rif. 22: Perceiver IO Results ---
+  function initIoResultsLab() {
+    const container = document.querySelector('[data-lab="io-results"]');
+    if (!container) return;
+    const taskButtons = container.querySelectorAll('[data-io-task]');
+    const tableWrap = document.getElementById('ioResultsTable');
+    const readout = document.getElementById('ioResultsReadout');
+    if (!tableWrap) return;
+
+    const DATA = {
+      flow: {
+        caption: 'Optical Flow — Average Endpoint Error ↓ (pixel)',
+        headers: ['Modello', 'Sintel Clean AEE ↓', 'Sintel Final AEE ↓', 'Tipo'],
+        rows: [
+          ['Perceiver IO', '1.81', '2.42', 'Generale', true],
+          ['RAFT', '1.43', '2.71', 'Specializzato', false],
+          ['PWC-Net', '2.55', '3.93', 'Specializzato', false],
+          ['FlowNet2', '3.96', '6.02', 'Specializzato', false]
+        ],
+        readout: 'Optical flow: il Perceiver IO supera RAFT su Sintel Final (il benchmark più difficile) pur essendo un modello generale.'
+      },
+      language: {
+        caption: 'Language Modeling — Bits Per Character ↓',
+        headers: ['Modello', 'BPC ↓', 'Granularità', 'Parametri'],
+        rows: [
+          ['Perceiver IO', '1.74', 'byte', '201M', true],
+          ['BERT-base', '1.69', 'subword', '110M', false],
+          ['ByT5-base', '1.38', 'byte', '582M', false]
+        ],
+        readout: 'Language: competitivo con BERT-base nonostante lavori a livello di byte, senza tokenizzazione specializzata.'
+      },
+      multimodal: {
+        caption: 'Multimodal Autoencoding (Kinetics-700)',
+        headers: ['Modalità output', 'Metodo di query', 'Risultato'],
+        rows: [
+          ['Video (RGB)', 'coordinate frame+pixel', 'qualità competitiva', true],
+          ['Audio (raw)', 'timestamp audio', 'qualità competitiva', true],
+          ['Class label', 'token di classe', 'accuracy ImageNet-level', true]
+        ],
+        readout: 'Multimodal: stessa rete, stessi pesi — tre modalità gestite cambiando solo l'output query al decoder.'
+      }
+    };
+
+    function render(task) {
+      const d = DATA[task];
+      if (!d) return;
+      let html = '<table><caption style="text-align:left;font-size:.85rem;color:#666;margin-bottom:6px">' + d.caption + '</caption><thead><tr>';
+      d.headers.forEach(function(h) { html += '<th>' + h + '</th>'; });
+      html += '</tr></thead><tbody>';
+      d.rows.forEach(function(row) {
+        const isPerceiver = row[row.length - 1] === true;
+        const cells = isPerceiver ? row.slice(0, -1) : row;
+        html += '<tr class="' + (isPerceiver ? 'highlight' : '') + '">';
+        cells.forEach(function(c) { html += '<td>' + c + '</td>'; });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      tableWrap.innerHTML = html;
+      readout.textContent = d.readout;
+    }
+
+    taskButtons.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        taskButtons.forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        render(btn.dataset.ioTask);
+      });
+    });
+    render('flow');
+  }
+
   function initInteractiveLabs() {
     initArchitectureFlowLab();
     initByteUnrollLab();
@@ -1449,6 +1785,11 @@ const LAB_SOURCE_REFS = {
     initTransformerAnatomyLab();
     initTransformerAttentionLab();
     initVitPatchifyLab();
+    initDropoutLab();
+    initWeightInitLab();
+    initRegularizationLab();
+    initDataAugLab();
+    initIoResultsLab();
   }
 
   window.PerceiverInteractiveLabs = { initInteractiveLabs };
