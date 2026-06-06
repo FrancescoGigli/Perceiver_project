@@ -2021,6 +2021,229 @@ const LAB_SOURCE_REFS = {
     render(0);
   }
 
+  // --- ch8: self-attention tra latenti (N×N) ---
+  function initLatentSelfAttnLab() {
+    var N = 6;
+    var INTERVAL_MS = 750;
+    var container = document.querySelector('[data-lab="latent-selfattn"]');
+    if (!container) return;
+    var grid = document.getElementById("latentAttnGrid");
+    var readout = document.getElementById("latentAttnReadout");
+    var rowLabelsEl = document.getElementById("latentAttnRowLabels");
+    var colLabelsEl = document.getElementById("latentAttnColLabels");
+    if (!grid || !readout || !rowLabelsEl || !colLabelsEl) return;
+
+    for (var c = 0; c < N; c++) {
+      var cl = document.createElement("div");
+      cl.className = "latent-col-label";
+      cl.textContent = "L" + c;
+      colLabelsEl.appendChild(cl);
+    }
+    for (var r = 0; r < N; r++) {
+      var rl = document.createElement("div");
+      rl.className = "latent-row-label";
+      rl.id = "latentRowLabel" + r;
+      rl.textContent = "L" + r;
+      rowLabelsEl.appendChild(rl);
+    }
+    var cells = [];
+    for (var r2 = 0; r2 < N; r2++) {
+      var row = [];
+      for (var c2 = 0; c2 < N; c2++) {
+        var cell = document.createElement("div");
+        cell.className = "latent-attn-cell" + (r2 === c2 ? " latent-attn-diag" : "");
+        grid.appendChild(cell);
+        row.push(cell);
+      }
+      cells.push(row);
+    }
+
+    var currentRow = 0, intervalId = null;
+    function activateRow(rowIndex) {
+      for (var r = 0; r < N; r++) {
+        var rowLabel = document.getElementById("latentRowLabel" + r);
+        if (rowLabel) rowLabel.classList.toggle("latent-row-label--active", r === rowIndex);
+        for (var c = 0; c < N; c++) {
+          cells[r][c].classList.toggle("latent-attn-cell--active", r === rowIndex);
+          cells[r][c].classList.toggle("latent-attn-cell--idle", r !== rowIndex);
+        }
+      }
+      readout.textContent = "Latente " + rowIndex + " attende a tutti i 6 latenti — matrice N×N (self-attention)";
+    }
+    function step() { activateRow(currentRow); currentRow = (currentRow + 1) % N; }
+    function startLoop() { if (intervalId === null) { step(); intervalId = setInterval(step, INTERVAL_MS); } }
+    function stopLoop() { if (intervalId !== null) { clearInterval(intervalId); intervalId = null; } }
+
+    if (reduceMotion()) { activateRow(0); return; }
+    if (typeof IntersectionObserver !== "undefined") {
+      var obs = new IntersectionObserver(function(entries) { if (entries[0].isIntersecting) startLoop(); else stopLoop(); }, { threshold: 0.2 });
+      obs.observe(container);
+    } else { startLoop(); }
+  }
+
+  // --- ch18: recap pipeline animata ---
+  function initPipelineRecapLab() {
+    var container = document.querySelector('[data-lab="pipeline-recap"]');
+    var track = document.getElementById("pipelineRecapTrack");
+    var caption = document.getElementById("pipelineRecapCaption");
+    if (!container || !track || !caption) return;
+
+    var stages = [
+      { label: "Input", text: "Tutto diventa una matrice M×C, nessuna struttura domain-specific." },
+      { label: "Fourier", text: "La posizione entra concatenata: Fourier features per ogni elemento." },
+      { label: "Latenti", text: "N vettori appresi, fissi e indipendenti dal dominio, con N ≪ M." },
+      { label: "Cross-Att.", text: "I latenti leggono l'input: matrice N×M, costo O(MN)." },
+      { label: "Latent Tr.", text: "Self-attention sui soli latenti: profondità a costo O(N²)." },
+      { label: "×T", text: "Il blocco Cross-Att + Latent Tr. si ripete T volte con weight sharing." },
+      { label: "Output", text: "Pooling + classificatore, oppure decoder con output queries (Perceiver IO)." }
+    ];
+    var chips = [], currentIndex = 0, intervalId = null;
+    stages.forEach(function(stage, i) {
+      var chip = document.createElement("div");
+      chip.className = "pipeline-chip";
+      var labelSpan = document.createElement("span");
+      labelSpan.className = "pipeline-chip-label";
+      labelSpan.textContent = stage.label;
+      chip.appendChild(labelSpan);
+      if (i < stages.length - 1) {
+        var arrow = document.createElement("span");
+        arrow.className = "pipeline-chip-arrow";
+        arrow.setAttribute("aria-hidden", "true");
+        arrow.textContent = "→";
+        chip.appendChild(arrow);
+      }
+      track.appendChild(chip);
+      chips.push(chip);
+    });
+    function setActive(index) {
+      chips.forEach(function(chip, i) { chip.classList.toggle("pipeline-chip--active", i === index); });
+      caption.textContent = stages[index].text;
+    }
+    function advance() { currentIndex = (currentIndex + 1) % stages.length; setActive(currentIndex); }
+    function startLoop() { if (intervalId === null) intervalId = setInterval(advance, 850); }
+    function stopLoop() { if (intervalId !== null) { clearInterval(intervalId); intervalId = null; } }
+
+    setActive(0);
+    if (reduceMotion()) return;
+    if (typeof IntersectionObserver !== "undefined") {
+      var obs = new IntersectionObserver(function(entries) { if (entries[0].isIntersecting) startLoop(); else stopLoop(); }, { threshold: 0.2 });
+      obs.observe(container);
+    } else { startLoop(); }
+  }
+
+  // --- ch41: formulario a rotazione ---
+  function initFormulaSpotlightLab() {
+    var formulas = [
+      { eq: "O(M²) ⟶ O(MN) + O(N²)", stage: "Problema → Cross-attention", note: "Il bottleneck latente rende il costo lineare in M." },
+      { eq: "C_tot = C + d·(2K+1)", stage: "Input / Fourier", note: "Numero di feature dopo il positional encoding (261 per ImageNet)." },
+      { eq: "A = softmax(QKᵀ / √d) ; F = A·V", stage: "Cross-attention", note: "N query leggono M input senza matrice M×M." },
+      { eq: "LN(x) = γ·(x−μ)/σ + β", stage: "Pre-norm (attn & MLP)", note: "Normalizza per feature, stabilizza i blocchi profondi." },
+      { eq: "∂ℒ/∂z = p − y", stage: "Backward (dopo la testa)", note: "Gradiente pulito di softmax+cross-entropy." },
+      { eq: "r = ||W|| / ||ΔW|| ; W ← W − η·r·ΔW", stage: "Training (LAMB)", note: "Trust ratio per layer, per large batch." }
+    ];
+    var panel = document.getElementById("formulaSpotPanel");
+    var eqEl = document.getElementById("formulaSpotEq");
+    var metaEl = document.getElementById("formulaSpotMeta");
+    var dotsEl = document.getElementById("formulaSpotDots");
+    if (!panel || !eqEl || !metaEl || !dotsEl) return;
+
+    var current = 0, intervalId = null, dots = [];
+    function buildDots() {
+      dotsEl.innerHTML = "";
+      dots = [];
+      for (var i = 0; i < formulas.length; i++) {
+        var dot = document.createElement("button");
+        dot.className = "formula-spot-dot";
+        dot.setAttribute("type", "button");
+        dot.setAttribute("aria-label", "Formula " + (i + 1));
+        (function(idx) { dot.addEventListener("click", function() { goToFormula(idx); }); })(i);
+        dotsEl.appendChild(dot);
+        dots.push(dot);
+      }
+    }
+    function updateDots() {
+      for (var i = 0; i < dots.length; i++) dots[i].classList.toggle("is-active", i === current);
+    }
+    function renderFormula(idx) {
+      var f = formulas[idx];
+      eqEl.textContent = f.eq;
+      metaEl.innerHTML = "<span class=\"formula-spot-stage\">" + f.stage + "</span><span class=\"formula-spot-note\">" + f.note + "</span>";
+      updateDots();
+    }
+    function goToFormula(idx) {
+      if (reduceMotion()) { current = idx; renderFormula(current); return; }
+      panel.classList.add("is-fading");
+      setTimeout(function() { current = idx; renderFormula(current); panel.classList.remove("is-fading"); }, 185);
+    }
+    function advance() { goToFormula((current + 1) % formulas.length); }
+    function startLoop() { if (intervalId === null && !reduceMotion()) intervalId = setInterval(advance, 2600); }
+    function stopLoop() { if (intervalId !== null) { clearInterval(intervalId); intervalId = null; } }
+
+    buildDots();
+    renderFormula(0);
+    if (reduceMotion()) return;
+    var container = document.querySelector('[data-lab="formula-spotlight"]');
+    if (!container) return;
+    if (typeof IntersectionObserver !== "undefined") {
+      var obs = new IntersectionObserver(function(entries) { if (entries[0].isIntersecting) startLoop(); else stopLoop(); }, { threshold: 0.2 });
+      obs.observe(container);
+    } else { startLoop(); }
+  }
+
+  // --- ch43: gara di complessità O(M²) vs O(MN) ---
+  function initComplexityRaceLab() {
+    var container = document.querySelector('[data-lab="complexity-race"]');
+    if (!container) return;
+    var quadEl = document.getElementById("raceQuad");
+    var linEl = document.getElementById("raceLin");
+    var readout = document.getElementById("complexityRaceReadout");
+    if (!quadEl || !linEl || !readout) return;
+
+    var M_MIN = 100, M_MAX = 50176, N = 512, DURATION_MS = 4000;
+    var logMax = Math.log10(M_MAX * M_MAX);
+    function computePercents(M) {
+      var costQuad = M * M, costLin = M * N + N * N;
+      return {
+        pctQuad: clamp((Math.log10(Math.max(costQuad, 1)) / logMax) * 100, 0, 100),
+        pctLin: clamp((Math.log10(Math.max(costLin, 1)) / logMax) * 100, 0, 100),
+        costQuad: costQuad, costLin: costLin
+      };
+    }
+    function formatNum(v) {
+      if (v >= 1e9) return fmt(v / 1e9, 2) + "B";
+      if (v >= 1e6) return fmt(v / 1e6, 2) + "M";
+      if (v >= 1e3) return fmt(v / 1e3, 1) + "K";
+      return String(Math.round(v));
+    }
+    function updateUI(M) {
+      var d = computePercents(M);
+      quadEl.style.width = d.pctQuad + "%";
+      linEl.style.width = d.pctLin + "%";
+      var ratio = d.costLin > 0 ? Math.round(d.costQuad / d.costLin) : 1;
+      var mF = M >= 1000 ? fmt(M / 1000, M % 1000 === 0 ? 0 : 1) + "K" : String(Math.round(M));
+      readout.innerHTML = "M = <strong>" + mF + "</strong> &middot; O(M²) ≈ <strong>" + formatNum(d.costQuad)
+        + "</strong> &middot; O(MN)+O(N²) ≈ <strong>" + formatNum(d.costLin)
+        + "</strong> &middot; riduzione <strong>~" + formatNum(ratio) + "×</strong>";
+    }
+
+    if (reduceMotion()) { updateUI(M_MAX); return; }
+    var rafId = null, startTime = null, running = false;
+    function animate(ts) {
+      if (!running) return;
+      if (startTime === null) startTime = ts;
+      var t = ((ts - startTime) % DURATION_MS) / DURATION_MS;
+      updateUI(M_MIN + (M_MAX - M_MIN) * t);
+      rafId = requestAnimationFrame(animate);
+    }
+    function start() { if (!running) { running = true; startTime = null; rafId = requestAnimationFrame(animate); } }
+    function stop() { running = false; if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; } }
+    if (typeof IntersectionObserver !== "undefined") {
+      var obs = new IntersectionObserver(function(entries) { if (entries[0].isIntersecting) start(); else stop(); }, { threshold: 0.1 });
+      obs.observe(container);
+    } else { start(); }
+    updateUI(M_MIN);
+  }
+
   function initInteractiveLabs() {
     initArchitectureFlowLab();
     initByteUnrollLab();
@@ -2060,6 +2283,10 @@ const LAB_SOURCE_REFS = {
     initIoResultsLab();
     initLrScheduleLab();
     initFourierWavesLab();
+    initLatentSelfAttnLab();
+    initPipelineRecapLab();
+    initFormulaSpotlightLab();
+    initComplexityRaceLab();
   }
 
   window.PerceiverInteractiveLabs = { initInteractiveLabs };

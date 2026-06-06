@@ -2175,3 +2175,58 @@
   .lr-schedule-canvas,
   .fourier-waves-canvas { height: auto; }
 }
+
+/* --- ch8: latent self-attention (N×N) --- */
+.latent-selfattn-labels-row { display: flex; align-items: flex-end; gap: 4px; margin: 12px auto 4px; max-width: 380px; }
+.latent-selfattn-col-spacer { width: 28px; flex-shrink: 0; }
+.latent-attn-col-labels { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; flex: 1; }
+.latent-col-label { text-align: center; font-size: 0.68rem; font-weight: 600; color: var(--muted, #6e6e76); font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+.latent-selfattn-body { display: flex; align-items: stretch; gap: 4px; max-width: 380px; margin: 0 auto; }
+.latent-attn-row-labels { display: flex; flex-direction: column; gap: 4px; width: 28px; flex-shrink: 0; }
+.latent-row-label { display: flex; align-items: center; justify-content: center; flex: 1; font-size: 0.68rem; font-weight: 600; color: var(--muted, #6e6e76); font-family: "SFMono-Regular", Menlo, Consolas, monospace; border-radius: 4px; transition: color 200ms var(--ease-out), background-color 200ms var(--ease-out); }
+.latent-row-label--active { color: var(--primary, #1a237e); background-color: var(--primary-soft, #e8eaf6); }
+.latent-attn-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; flex: 1; }
+.latent-attn-cell { aspect-ratio: 1; border-radius: 4px; background-color: var(--bg-soft, #f3f4f8); transition: background-color 200ms var(--ease-out), transform 200ms var(--ease-out); }
+.latent-attn-cell--active { background-color: #5b8cf5; transform: scale(1.06); }
+.latent-attn-diag { box-shadow: inset 0 0 0 2px var(--accent, #e65100); }
+.latent-selfattn-lab .lab-readout { margin-top: 14px; text-align: center; font-style: italic; }
+
+/* --- ch18: pipeline recap --- */
+.pipeline-recap-track { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0 14px; align-items: center; }
+.pipeline-chip { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; border-radius: 8px; background: #eef0f6; color: var(--text-soft, #3c3c3c); font-size: 0.82rem; font-weight: 500; transition: background-color 220ms var(--ease-out), transform 220ms var(--ease-out), color 220ms var(--ease-out); }
+.pipeline-chip--active { background: var(--primary, #1a237e); color: #fff; transform: translateY(-2px); }
+.pipeline-chip-arrow { color: var(--muted, #6e6e76); font-size: 0.75rem; }
+.pipeline-chip--active .pipeline-chip-arrow { color: #5b8cf5; }
+.pipeline-recap-lab .lab-readout { min-height: 2.2em; }
+
+/* --- ch41: formula spotlight --- */
+.formula-spot-panel { background: var(--primary-softer, #f3f4fb); border-radius: 10px; padding: 18px 20px; margin: 12px 0 10px; min-height: 92px; display: flex; flex-direction: column; gap: 9px; transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out); }
+.formula-spot-panel.is-fading { opacity: 0; transform: translateY(6px); }
+.formula-spot-eq { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 1.05rem; color: var(--primary, #1a237e); line-height: 1.5; word-break: break-word; }
+.formula-spot-meta { display: flex; flex-direction: column; gap: 5px; }
+.formula-spot-stage { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent, #e65100); }
+.formula-spot-note { font-size: 0.82rem; color: var(--text-soft, #3c3c3c); line-height: 1.45; }
+.formula-spot-dots { display: flex; gap: 6px; align-items: center; }
+.formula-spot-dot { width: 10px; height: 10px; border-radius: 50%; border: none; background: #c5cae9; cursor: pointer; padding: 0; transition: background 200ms var(--ease-out), transform 150ms var(--ease-out); }
+.formula-spot-dot.is-active { background: var(--primary, #1a237e); transform: scale(1.25); }
+.formula-spot-dot:active { transform: scale(0.9); }
+
+/* --- ch43: complexity race --- */
+.race-row { display: grid; grid-template-columns: 1fr; gap: 4px; margin: 8px 0; }
+.race-label { font-size: 0.82rem; color: var(--text-soft, #3c3c3c); line-height: 1.3; }
+.race-track { background: #eef0f6; border-radius: 6px; height: 18px; overflow: hidden; width: 100%; }
+.race-fill { height: 100%; border-radius: 6px; width: 0%; transition: width 120ms linear; }
+.race-fill.quad { background: var(--accent, #e65100); }
+.race-fill.lin { background: #5b8cf5; }
+.complexity-race-lab .lab-readout strong { color: var(--primary, #1a237e); }
+
+@media (prefers-reduced-motion: reduce) {
+  .latent-attn-cell, .latent-row-label,
+  .pipeline-chip, .pipeline-chip-arrow,
+  .formula-spot-panel, .formula-spot-dot,
+  .race-fill {
+    transition: none;
+  }
+  .latent-attn-cell--active { transform: scale(1); }
+  .formula-spot-panel.is-fading { opacity: 1; transform: none; }
+}

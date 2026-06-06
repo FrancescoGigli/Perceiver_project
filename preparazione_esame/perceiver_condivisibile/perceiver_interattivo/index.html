@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260606-anim3">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260606-anim3">
-<script defer src="js/interactive-labs.js?v=20260606-anim3"></script>
+<link rel="stylesheet" href="css/style.css?v=20260606-anim4">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260606-anim4">
+<script defer src="js/interactive-labs.js?v=20260606-anim4"></script>
 </head>
 <body>
 
@@ -693,6 +693,25 @@ L̂  = L' + φ                    (residual finale)</div>
 
       <h2>Self-attention sui soli latenti</h2>
       <p>Il latent transformer è una pila di <code>ℓ = 6</code> blocchi di <strong>self-attention</strong> che operano <em>solo sui latenti</em> (N×D), senza più toccare l'input. Qui i latenti "comunicano tra loro": è il passo che <em>integra</em> l'informazione raccolta dalla cross-attention.</p>
+
+      <div class="concept-lab latent-selfattn-lab" data-lab="latent-selfattn">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">Rif. 1.4.11 · Latent Transformer</span>
+            <h3>Self-attention tra latenti (N×N)</h3>
+            <p>Ogni latente (riga) attende a tutti i latenti (colonne). La riga attiva avanza da sola: è l'all-to-all della self-attention nello spazio latente.</p>
+          </div>
+        </div>
+        <div class="latent-selfattn-labels-row">
+          <div class="latent-selfattn-col-spacer"></div>
+          <div class="latent-attn-col-labels" id="latentAttnColLabels"></div>
+        </div>
+        <div class="latent-selfattn-body">
+          <div class="latent-attn-row-labels" id="latentAttnRowLabels"></div>
+          <div class="latent-attn-grid" id="latentAttnGrid"></div>
+        </div>
+        <div class="lab-readout" id="latentAttnReadout">Latente 0 attende a tutti i 6 latenti — matrice N×N (self-attention)</div>
+      </div>
 
       <figure>
         <img src="../appunti_images/papers/perceiver_orig_fig1_full.png" alt="Latent transformer nel Perceiver">
@@ -1490,6 +1509,18 @@ Y = Y + MLP(LN(Y))</div>
       <div class="chap-meta"><span class="chap-badge">Cap. 18</span><span class="chap-time">~4 min</span></div>
       <h1>Checklist concettuale finale</h1>
       <p class="intro">Questa non è una sezione di esercizi: è una mappa compatta per controllare di avere in testa tutto il filo logico della lezione.</p>
+
+      <div class="concept-lab pipeline-recap-lab" data-lab="pipeline-recap">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">Rif. 1.4 · Forward pass</span>
+            <h3>Ripasso animato del forward pass</h3>
+            <p>L'highlight scorre da solo lungo gli stadi: a ogni passo, una frase ti ricorda cosa succede.</p>
+          </div>
+        </div>
+        <div class="pipeline-recap-track" id="pipelineRecapTrack"></div>
+        <div class="lab-readout" id="pipelineRecapCaption">Tutto diventa una matrice M×C, nessuna struttura domain-specific.</div>
+      </div>
 
       <h2>Il filo in una pagina</h2>
       <ol>
@@ -3756,6 +3787,21 @@ S_{ij} & j \le i \\
       <h1>Formulario ragionato</h1>
       <p class="intro">Non è un formulario da imparare a memoria in blocco: è una mappa. Ogni formula va collegata a dove entra nel Perceiver e a quale problema risolve.</p>
 
+      <div class="concept-lab formula-spotlight-lab" data-lab="formula-spotlight">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">Rif. Formulario</span>
+            <h3>Formule a rotazione</h3>
+            <p>Le formule chiave scorrono da sole con lo stadio dove compaiono. Clicca un puntino per saltare a una formula.</p>
+          </div>
+        </div>
+        <div class="formula-spot-panel" id="formulaSpotPanel">
+          <div class="formula-spot-eq" id="formulaSpotEq"></div>
+          <div class="formula-spot-meta" id="formulaSpotMeta"></div>
+        </div>
+        <div class="formula-spot-dots" id="formulaSpotDots"></div>
+      </div>
+
       <div class="formula-map">
         <article class="formula-row">
           <div class="display-eq">O(M^2) ⟶ O(MN) + O(N^2)</div>
@@ -3872,6 +3918,25 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
       <div class="chap-meta"><span class="chap-badge">App. 3</span><span class="chap-time">~20 min</span></div>
       <h1>Confronti e specifiche</h1>
       <p class="intro">Qui trovi i confronti da ripetere bene all'esame: non definizioni isolate, ma differenze operative tra scelte architetturali. Leggili come una mappa: prima capisci <strong>che cosa cambia nella struttura</strong>, poi <strong>che costo computazionale produce</strong>, infine <strong>perché quella scelta aiuta il Perceiver</strong>.</p>
+
+      <div class="concept-lab complexity-race-lab" data-lab="complexity-race">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">Rif. Confronti · complessità</span>
+            <h3>O(M²) vs O(MN): la gara al crescere di M</h3>
+            <p>M cresce da solo: guarda la barra quadratica del Transformer esplodere, mentre quella del Perceiver (N=512 fisso) resta bassa.</p>
+          </div>
+        </div>
+        <div class="race-row">
+          <span class="race-label">Transformer — self-attention <strong>O(M²)</strong></span>
+          <div class="race-track"><div class="race-fill quad" id="raceQuad"></div></div>
+        </div>
+        <div class="race-row">
+          <span class="race-label">Perceiver — cross-attention <strong>O(M·N) + O(N²)</strong>, N=512</span>
+          <div class="race-track"><div class="race-fill lin" id="raceLin"></div></div>
+        </div>
+        <div class="lab-readout" id="complexityRaceReadout">M = —</div>
+      </div>
 
       <h2>Confronti rapidi</h2>
       <table class="compare-table">
@@ -4207,6 +4272,6 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260606-anim3"></script>
+<script defer src="js/app.js?v=20260606-anim4"></script>
 </body>
 </html>
