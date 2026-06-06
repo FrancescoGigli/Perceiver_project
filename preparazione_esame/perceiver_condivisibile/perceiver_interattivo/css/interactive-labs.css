@@ -2009,7 +2009,7 @@
   aspect-ratio: 1;
   border-radius: 50%;
   background: #5b8cf5;
-  transition: background 0.25s, opacity 0.25s;
+  transition: background-color 140ms var(--ease-out), opacity 140ms var(--ease-out);
 }
 .dropout-neuron.dropped {
   background: #e57373;
@@ -2044,10 +2044,12 @@
 }
 .reg-bar-col {
   flex: 1;
+  height: 100%;
   background: #5b8cf5;
   border-radius: 2px 2px 0 0;
-  transition: height 0.3s var(--ease-out, ease), background 0.3s;
-  min-height: 2px;
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 150ms var(--ease-out), background-color 200ms var(--ease-out);
 }
 .reg-bar-col.sparse {
   background: #e65100;
@@ -2068,7 +2070,7 @@
   width: 100%;
   max-width: 300px;
   margin: 0 auto 8px;
-  transition: transform 0.4s var(--ease-out, ease), filter 0.4s;
+  transition: transform 280ms var(--ease-in-out), filter 240ms var(--ease-out);
 }
 .aug-cell {
   aspect-ratio: 1;
@@ -2082,6 +2084,13 @@
 }
 
 /* --- IO results table --- */
+.io-results-table-wrap {
+  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
+}
+.io-results-table-wrap.is-swapping {
+  opacity: 0;
+  transform: translateY(4px);
+}
 .io-results-table-wrap table {
   width: 100%;
   margin: 12px 0;
@@ -2100,4 +2109,13 @@
   .dropout-grid { grid-template-columns: repeat(6, 1fr); }
   .aug-grid { grid-template-columns: repeat(8, 1fr); }
   .weight-init-canvas { height: 120px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dropout-neuron,
+  .reg-bar-col,
+  .aug-grid,
+  .io-results-table-wrap {
+    transition: none;
+  }
 }

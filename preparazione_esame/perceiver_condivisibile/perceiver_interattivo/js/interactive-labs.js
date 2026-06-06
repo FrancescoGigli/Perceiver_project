@@ -1544,11 +1544,8 @@ const LAB_SOURCE_REFS = {
       ctx.fillText('L' + (vars.length - 1), pad.l + iW - 10, H - 8);
     }
 
-    function render() {
-      const nLayers = parseInt(slider.value);
-      if (layersLabel) layersLabel.textContent = nLayers;
-      const vars = computeVars(nLayers, initType);
-      draw(vars);
+    function updateReadout(vars) {
+      const nLayers = vars.length - 1;
       const last = vars[vars.length - 1];
       let status;
       if (last > 10) status = 'esplode 💥';
@@ -1557,12 +1554,46 @@ const LAB_SOURCE_REFS = {
       readout.textContent = nLayers + ' layer, ' + initType + ': varianza finale ≈ ' + fmt(last, 4) + ' → ' + status;
     }
 
+    let currentVars = computeVars(parseInt(slider.value), initType);
+    let animId = null;
+
+    function render() {
+      if (layersLabel) layersLabel.textContent = parseInt(slider.value);
+      if (animId) { cancelAnimationFrame(animId); animId = null; }
+      currentVars = computeVars(parseInt(slider.value), initType);
+      draw(currentVars);
+      updateReadout(currentVars);
+    }
+
+    function tweenTo(target) {
+      updateReadout(target);
+      if (reduceMotion() || currentVars.length !== target.length) {
+        currentVars = target.slice();
+        draw(currentVars);
+        return;
+      }
+      const from = currentVars.slice();
+      const start = performance.now();
+      const DUR = 360;
+      if (animId) cancelAnimationFrame(animId);
+      function step(now) {
+        let t = (now - start) / DUR;
+        if (t > 1) t = 1;
+        const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        currentVars = from.map(function(v, i) { return v + (target[i] - v) * e; });
+        draw(currentVars);
+        if (t < 1) { animId = requestAnimationFrame(step); }
+        else { currentVars = target.slice(); draw(currentVars); animId = null; }
+      }
+      animId = requestAnimationFrame(step);
+    }
+
     initButtons.forEach(function(btn) {
       btn.addEventListener('click', function() {
         initButtons.forEach(function(b) { b.classList.remove('active'); });
         btn.classList.add('active');
         initType = btn.dataset.initType;
-        render();
+        tweenTo(computeVars(parseInt(slider.value), initType));
       });
     });
     slider.addEventListener('input', render);
@@ -1582,6 +1613,14 @@ const LAB_SOURCE_REFS = {
     const N_BINS = 20;
     const BASE_WEIGHTS = [];
     for (let i = 0; i < 200; i++) BASE_WEIGHTS.push((i - 100) / 30);
+
+    const barCols = [];
+    for (let i = 0; i < N_BINS; i++) {
+      const col = document.createElement('div');
+      col.className = 'reg-bar-col';
+      barsEl.appendChild(col);
+      barCols.push(col);
+    }
 
     function applyReg(weights, lambda, type) {
       if (type === 'none' || lambda === 0) return weights.slice();
@@ -1610,14 +1649,12 @@ const LAB_SOURCE_REFS = {
       const regulated = applyReg(BASE_WEIGHTS, lambda, regType);
       const bins = histogram(regulated);
       const maxCount = Math.max.apply(null, bins.concat([1]));
-      barsEl.innerHTML = '';
       const zeros = regulated.filter(function(w) { return Math.abs(w) < 0.01; }).length;
       bins.forEach(function(count, i) {
-        const col = document.createElement('div');
+        const col = barCols[i];
         const isMid = regType === 'l1' && i === Math.floor(N_BINS / 2);
-        col.className = 'reg-bar-col' + (isMid ? ' sparse' : '');
-        col.style.height = (count / maxCount * 100) + '%';
-        barsEl.appendChild(col);
+        col.classList.toggle('sparse', isMid);
+        col.style.transform = 'scaleY(' + (count / maxCount) + ')';
       });
       const descs = {
         none: 'Nessuna regolarizzazione: distribuzione gaussiana naturale.',
@@ -1660,7 +1697,7 @@ const LAB_SOURCE_REFS = {
 
     const augDefs = {
       none:  { transform: 'none', filter: 'none', text: 'Originale — nessuna trasformazione.' },
-      flip:  { transform: 'scaleX(-1)', filter: 'none', text: 'Horizontal Flip — specchia l'immagine sull'asse verticale.' },
+      flip:  { transform: 'scaleX(-1)', filter: 'none', text: "Horizontal Flip — specchia l'immagine sull'asse verticale." },
       crop:  { transform: 'scale(1.25) translate(-8%, 5%)', filter: 'none', text: 'Random Crop — ritaglia e ridimensiona una sottoregione.' },
       color: { transform: 'none', filter: 'saturate(2) hue-rotate(30deg) brightness(1.2)', text: 'Color Jitter — modifica luminosità, saturazione e tinta.' }
     };
@@ -1721,13 +1758,11 @@ const LAB_SOURCE_REFS = {
           ['Audio (raw)', 'timestamp audio', 'qualità competitiva', true],
           ['Class label', 'token di classe', 'accuracy ImageNet-level', true]
         ],
-        readout: 'Multimodal: stessa rete, stessi pesi — tre modalità gestite cambiando solo l'output query al decoder.'
+        readout: "Multimodal: stessa rete, stessi pesi — tre modalità gestite cambiando solo l'output query al decoder."
       }
     };
 
-    function render(task) {
-      const d = DATA[task];
-      if (!d) return;
+    function build(d) {
       let html = '<table><caption style="text-align:left;font-size:.85rem;color:#666;margin-bottom:6px">' + d.caption + '</caption><thead><tr>';
       d.headers.forEach(function(h) { html += '<th>' + h + '</th>'; });
       html += '</tr></thead><tbody>';
@@ -1743,14 +1778,25 @@ const LAB_SOURCE_REFS = {
       readout.textContent = d.readout;
     }
 
+    function render(task, animate) {
+      const d = DATA[task];
+      if (!d) return;
+      if (!animate || reduceMotion()) { build(d); return; }
+      tableWrap.classList.add('is-swapping');
+      setTimeout(function() {
+        build(d);
+        requestAnimationFrame(function() { tableWrap.classList.remove('is-swapping'); });
+      }, 160);
+    }
+
     taskButtons.forEach(function(btn) {
       btn.addEventListener('click', function() {
         taskButtons.forEach(function(b) { b.classList.remove('active'); });
         btn.classList.add('active');
-        render(btn.dataset.ioTask);
+        render(btn.dataset.ioTask, true);
       });
     });
-    render('flow');
+    render('flow', false);
   }
 
   function initInteractiveLabs() {
