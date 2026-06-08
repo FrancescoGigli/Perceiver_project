@@ -19,7 +19,8 @@ const LAB_SOURCE_REFS = {
   ioResults:      "Rif. U",
   lrSchedule:     "Rif. 1.6",
   fourierWaves:   "Rif. B",
-  myExperiments:  "Progetto"
+  myExperiments:  "Progetto",
+  examQa:         "Rif. V"
 };
 
 (function () {
@@ -2340,6 +2341,71 @@ const LAB_SOURCE_REFS = {
     render("cifar", false);
   }
 
+  // --- ch45: Domande d'esame ---
+  function initExamQaLab() {
+    var container = document.querySelector('[data-lab="exam-qa"]');
+    if (!container) return;
+    var tabButtons = container.querySelectorAll("[data-qa-group]");
+    var panel = document.getElementById("examQaPanel");
+    if (!panel) return;
+
+    var GROUPS = {
+      progetto: [
+        { q: "Qual è il problema principale che il Perceiver risolve rispetto ai Transformer?", a: "Il Transformer ha complessità O(M²) nella self-attention sull'input: impraticabile su input grandi (ImageNet 224×224 = 50.176 pixel ⇒ matrice ~2.5 miliardi di entry). Il Perceiver introduce un bottleneck latente che porta il costo a O(MN), lineare in M. <em>Keyword</em>: quadratic bottleneck, scalabilità." },
+        { q: "Perché la complessità scende da O(M²) a O(MN)? Da dove viene la riduzione?", a: "La cross-attention sostituisce la self-attention sull'input: invece di far interagire M token tra loro (O(M²)), N ≪ M latenti interrogano l'input — la matrice QKᵀ è N×M ⇒ O(MN). <em>Keyword</em>: latent bottleneck, N ≪ M." },
+        { q: "Cosa sono i latenti? Come si inizializzano? Perché N=512?", a: "Un array di N=512 vettori appresi di dimensione D=1024, inizializzati con 𝒩(0, 0.02²) troncata e ottimizzati nel training — NON derivano dall'input, sono parametri-memoria. N=512 bilancia ricchezza rappresentativa ed efficienza. <em>Keyword</em>: learned latent array, iperparametro." },
+        { q: "Spiega il forward pass step by step.", a: "(1) byte array M×C; (2) Fourier PE concatenato ⇒ M×C_tot; (3) cross-attention latenti ← input; (4) latent transformer (self-attention sui soli latenti); (5) ripetizione ×T con weight sharing; (6) pooling + classificatore (Perceiver) oppure decoder a output query (Perceiver IO). <em>Keyword</em>: iterative cross-attention, weight sharing." },
+        { q: "Cosa succede nella cross-attention? Da dove vengono Q, K, V?", a: "Q dai latenti (N×D), K e V dall'input encodato (M×C_tot). La matrice QKᵀ è N×M, rettangolare: i pochi latenti 'leggono' i molti input. <em>Keyword</em>: Q dai latenti, K/V dall'input." },
+        { q: "Perché il weight sharing? Che effetto ha sulle prestazioni?", a: "I blocchi iterativi condividono i pesi ⇒ molti meno parametri (nel paper 326M → 44.9M) e una ricorrenza implicita (è formalmente un RNN). Nel paper riduce l'overfitting (val 72.9% → 78.0%); nei miei esperimenti CIFAR è risultato un trade-off di efficienza, non un guadagno di accuracy. <em>Keyword</em>: parameter efficiency, RNN." },
+        { q: "Qual è la differenza tra Perceiver e Perceiver IO?", a: "Il Perceiver fa pooling globale + classificatore (output fisso). Perceiver IO aggiunge un decoder a cross-attention con output query, producendo output di forma arbitraria (per pixel, token, modalità). <em>Keyword</em>: output query, generalità." },
+        { q: "Come funziona il decoder di Perceiver IO? Cosa sono le output query?", a: "Una cross-attention dove le Query sono le output query (apprese o derivate da coordinate/feature del task) e K, V vengono dai latenti finali. La matrice è O×N, con O = numero di output richiesti (qui O può essere ≫ N). <em>Keyword</em>: task-specific queries, cross-attention decoder." },
+        { q: "Come gestisce il Perceiver input multimodali (audio+video)?", a: "Ogni modalità è proiettata nello stesso spazio C con embedding separati e concatenata lungo i token; le Fourier features spaziotemporali (più indicatori di modalità) permettono di distinguere posizione e tipo. <em>Keyword</em>: modality-agnostic, shared latent space." },
+        { q: "Quali risultati su ImageNet? Confronto con ViT e ResNet?", a: "78.0% top-1 su pixel grezzi, competitivo con ViT-B/16 (77.9%) e ResNet-50 (77.6%) senza prior 2D. Non batte le ResNet di fascia alta, ma vince in generalità: la stessa rete gestisce audio, point cloud e testo. <em>Keyword</em>: 78.0% top-1, generalità vs specializzazione." }
+      ],
+      teoria: [
+        { q: "Spiega la backpropagation con la regola della catena.", a: "Il gradiente della loss rispetto a ogni parametro si calcola applicando la regola della catena dal layer di output verso l'input: ogni nodo del grafo computazionale moltiplica il gradiente ricevuto per il proprio Jacobiano locale. <em>Keyword</em>: chain rule, grafo computazionale, ∂ℒ/∂w." },
+        { q: "Cos'è il vanishing gradient? Come lo risolvono LSTM e residual?", a: "Nei prodotti di molti Jacobiani con norma < 1 il gradiente si azzera. Le LSTM usano gate con flusso additivo (cell state), le residual connection x + F(x) danno un percorso di gradiente diretto pari a 1 ('gradient highway'). <em>Keyword</em>: gradient flow, skip connection." },
+        { q: "Differenza tra self-attention e cross-attention.", a: "Nella self-attention Q, K, V vengono dalla stessa sequenza (attende a sé stessa). Nella cross-attention Q viene da una sorgente e K, V da un'altra. Il Perceiver usa cross-attention: Q dai latenti, K/V dall'input. <em>Keyword</em>: same-source vs cross-source." },
+        { q: "Perché si divide per √d_k nella scaled dot-product attention?", a: "Il prodotto q·k somma d_k termini indipendenti a varianza ~1, quindi ha varianza ~d_k e std ~√d_k. Senza scaling la softmax satura verso un one-hot e i gradienti si annullano; dividere per √d_k riporta la std a ~1. <em>Keyword</em>: softmax saturation, variance scaling." },
+        { q: "Cos'è la Layer Normalization? Differenza con BatchNorm?", a: "LayerNorm normalizza lungo le feature del singolo esempio (media/varianza su D); BatchNorm lungo il batch per ogni feature. LayerNorm è indipendente dalla batch size e adatta a sequenze variabili ⇒ usata nei Transformer e nel Perceiver. <em>Keyword</em>: feature-wise vs batch-wise." },
+        { q: "Cos'è la softmax? Proprietà e stabilità numerica.", a: "softmax(xᵢ) = e^{xᵢ} / Σⱼ e^{xⱼ}: output in (0,1) che somma a 1, differenziabile. Per stabilità si sottrae il massimo prima degli esponenziali (risultato identico, niente overflow). <em>Keyword</em>: stable softmax, log-sum-exp." },
+        { q: "Come funziona Adam? Differenza con SGD?", a: "Adam mantiene primo momento (media dei gradienti) e secondo momento (varianza), con bias correction, e usa un learning rate adattivo per parametro α/(√v̂ + ε). SGD usa lo stesso LR per tutti. Il Perceiver usa LAMB (Adam + trust ratio per layer, per large batch). <em>Keyword</em>: adaptive LR, momentum, LAMB." },
+        { q: "Cos'è il dropout? Perché il Perceiver non lo usa?", a: "Azzera ogni unità con probabilità p durante il training (ensemble implicito di sottoreti). Il Perceiver non lo usa: il latent bottleneck e il weight sharing regolarizzano già; gli autori riportano che aggiungerlo peggiora. <em>Keyword</em>: regularization, bottleneck as regularizer." },
+        { q: "Spiega le Fourier features. Perché si concatena la coordinata grezza?", a: "Codificano la posizione con seno/coseno a K frequenze linearly spaced (non esponenziali come NeRF): le basse catturano struttura globale, le alte il dettaglio. La coordinata grezza è concatenata per non perdere la posizione assoluta. Si concatena (non si somma) per tenere separati contenuto e posizione. <em>Keyword</em>: multiscale, concatenazione." },
+        { q: "Pre-norm vs post-norm: differenza e quale usa il Perceiver?", a: "Post-norm: LN dopo il residuo, LN(x + F(x)) (Transformer originale). Pre-norm: LN prima del sottoblocco, x + F(LN(x)). Il Perceiver usa pre-norm: gradienti più stabili nel training profondo, niente warm-up. <em>Keyword</em>: pre-LN, stabilità." }
+      ],
+      codice: [
+        { q: "Come hai implementato il Perceiver? Quali framework?", a: "From-scratch in PyTorch. Moduli principali: CrossAttention, SelfAttention (multi-head), FourierEncoding, e il loop iterativo con weight sharing (stessi moduli riusati, non copie). Mixed-precision (AMP) e TensorBoard per il logging. <em>Keyword</em>: PyTorch, modularità, tied weights." },
+        { q: "Come hai riprodotto i risultati? Quali iperparametri?", a: "CIFAR-10 (50k/10k), ModelNet40, WikiText-103→GLUE. CIFAR-10 (Perceiver): N=96 latenti, D=384, 4 cross-attend stages, 4 transformer blocks, H=3 teste, ottimizzatore LAMB lr=4e-3, 120 epoche, batch 64. Perceiver IO / ModelNet40 / MLM: N=128, D=512, H=8. (LAMB, non Adam.) <em>Keyword</em>: ablation, LAMB." },
+        { q: "Quali difficoltà nell'implementazione?", a: "(1) gestione delle dimensioni nei moduli multi-head; (2) scaled dot-product stabile con masking; (3) verifica del weight sharing (stessi moduli riusati, non duplicati); (4) Fourier encoding corretto per input 2D/3D. <em>Keyword</em>: debugging shapes, tied weights." },
+        { q: "Come hai gestito le risorse limitate rispetto al paper (64 TPU)?", a: "Il paper usa 64 TPU v3 con batch ≥512; io una singola GPU RTX 3060 (12GB): batch più piccoli, mixed precision (torch.cuda.amp), modelli ridotti (N/D più piccoli). Il confronto col paper è quindi sul trend qualitativo, e i gap (−1.5 su ModelNet40, ~−20% medio su GLUE) sono spiegati dal budget. <em>Keyword</em>: RTX 3060, mixed precision, budget." }
+      ]
+    };
+
+    function render(group, animate) {
+      var items = GROUPS[group];
+      if (!items) return;
+      var html = items.map(function(it, i) {
+        return "<details class=\"exam-q\"><summary><span class=\"exam-q-num\">" + (i + 1) + "</span><span class=\"exam-q-text\">" + it.q + "</span></summary><div class=\"exam-a\">" + it.a + "</div></details>";
+      }).join("");
+      if (!animate || reduceMotion()) { panel.innerHTML = html; return; }
+      panel.classList.add("is-swapping");
+      setTimeout(function() {
+        panel.innerHTML = html;
+        requestAnimationFrame(function() { panel.classList.remove("is-swapping"); });
+      }, 160);
+    }
+
+    tabButtons.forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        tabButtons.forEach(function(b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+        render(btn.getAttribute("data-qa-group"), true);
+      });
+    });
+    render("progetto", false);
+  }
+
   function initInteractiveLabs() {
     initArchitectureFlowLab();
     initByteUnrollLab();
@@ -2384,6 +2450,7 @@ const LAB_SOURCE_REFS = {
     initFormulaSpotlightLab();
     initComplexityRaceLab();
     initMyExperimentsLab();
+    initExamQaLab();
   }
 
   window.PerceiverInteractiveLabs = { initInteractiveLabs };

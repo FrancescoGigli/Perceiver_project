@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260608-exp3">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp3">
-<script defer src="js/interactive-labs.js?v=20260608-exp3"></script>
+<link rel="stylesheet" href="css/style.css?v=20260608-qa">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-qa">
+<script defer src="js/interactive-labs.js?v=20260608-qa"></script>
 </head>
 <body>
 
@@ -4287,12 +4287,46 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-44">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="44"><span class="check"></span><span class="check-label">Ho capito</span></label>
-        <button class="btn btn-primary" id="next-44" disabled>Fine</button>
+        <button class="btn btn-primary" id="next-44">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 45 — Domande d'esame ============ -->
+    <section class="chapter" data-chapter="45">
+      <div class="chap-meta"><span class="chap-badge">App. 5</span><span class="chap-time">~15 min</span></div>
+      <h1>Domande d'esame</h1>
+      <p class="intro">Le domande probabili dell'orale, con risposte modello. Schema da seguire sempre: <strong>problema → meccanismo → numeri → collegamento al progetto</strong>. Clicca una domanda per aprire la risposta.</p>
+
+      <div class="concept-lab exam-qa-lab" data-lab="exam-qa">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">Rif. V · Domande Probabili</span>
+            <h3>24 domande, 3 gruppi</h3>
+            <p>Scegli il gruppo; ogni domanda si espande con la risposta sintetica e le keyword.</p>
+          </div>
+          <div class="lab-toggle" role="tablist" aria-label="Gruppo di domande">
+            <button type="button" class="active" data-qa-group="progetto">Perceiver / progetto</button>
+            <button type="button" data-qa-group="teoria">Teoria del corso</button>
+            <button type="button" data-qa-group="codice">Codice / esperimenti</button>
+          </div>
+        </div>
+        <div class="exam-qa-panel" id="examQaPanel" aria-live="polite"></div>
+      </div>
+
+      <div class="idea">
+        <div class="idea-label">Come usarle</div>
+        <p>Non impararle a memoria: usa lo schema <strong>problema → meccanismo → numeri → progetto</strong>. La forza dell'orale è collegare la teoria ai <em>tuoi</em> risultati (App. 4): es. "il PE è essenziale" → nei miei esperimenti senza PE l'accuracy crolla a 61.34%.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-45">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="45"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-45" disabled>Fine</button>
       </div>
 
       <div id="finalRecap" class="hidden" style="margin-top:40px;padding:30px;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-radius:14px;text-align:center;">
         <h2 style="color:var(--success);margin-top:0">Lezione completata</h2>
-        <p>Hai la versione completa: Perceiver, Perceiver IO, riferimenti teorici, formulario, mappa del forward, confronti e i <strong>tuoi esperimenti</strong> con i risultati reali del progetto.</p>
+        <p>Hai la versione completa: Perceiver, Perceiver IO, riferimenti teorici, formulario, mappa del forward, confronti, i <strong>tuoi esperimenti</strong> e le <strong>domande d'esame</strong>.</p>
         <p style="font-size:14px;color:var(--muted);margin-top:18px;">Fonti: <code>appunti_ml_definitivo.tex</code> e <code>analysis_results/</code>.</p>
       </div>
     </section>
@@ -4370,6 +4404,6 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260608-exp3"></script>
+<script defer src="js/app.js?v=20260608-qa"></script>
 </body>
 </html>
