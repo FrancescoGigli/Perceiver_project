@@ -2359,7 +2359,10 @@ const LAB_SOURCE_REFS = {
       ps_exp3A: "Stile-Perceiver — Fourier control (epoca 41).",
       ps_exp3B: "Stile-Perceiver — RGB-only (epoca 101): senza PE l'attenzione e' meno localizzata.",
       ps_exp4A: "Stile-Perceiver — weight sharing control (epoca 41).",
-      ps_exp4B: "Stile-Perceiver — senza weight sharing (epoca 61)."
+      ps_exp4B: "Stile-Perceiver — senza weight sharing (epoca 61).",
+      modelnet_attn_baseline: "ModelNet40 — point cloud 3D colorato per attenzione ricevuta (baseline, 84.24%): i latenti si concentrano su spigoli ed estremità dell'oggetto.",
+      modelnet_attn_with_translation: "ModelNet40 — scale + translation (83.67%): stessa lettura 3D dell'oggetto.",
+      modelnet_attn_with_rotation: "ModelNet40 — scale + rotation (83.14%): l'attenzione resta sui punti salienti anche con rotazioni."
     };
     var labs = document.querySelectorAll(".attn-evo-lab");
     labs.forEach(function(container) {

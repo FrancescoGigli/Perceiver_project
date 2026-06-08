@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260608-exp9">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp9">
-<script defer src="js/interactive-labs.js?v=20260608-exp9"></script>
+<link rel="stylesheet" href="css/style.css?v=20260608-exp10">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp10">
+<script defer src="js/interactive-labs.js?v=20260608-exp10"></script>
 </head>
 <body>
 
@@ -4522,6 +4522,25 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
         </figure>
       </div>
 
+      <div class="concept-lab attn-evo-lab" data-lab="attention-modelnet">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">ModelNet40 · cross-attention 3D</span>
+            <h3>Attention sul point cloud 3D</h3>
+            <p>Il <strong>point cloud</strong> dell'oggetto colorato per <em>attenzione ricevuta</em> dai latenti (renderizzato dai tensori reali del training). Mostra dove il Perceiver "guarda" in 3D.</p>
+          </div>
+          <div class="lab-toggle" role="tablist" aria-label="Augmentation ModelNet40">
+            <button type="button" class="active" data-attn-exp="modelnet_attn_baseline">Baseline</button>
+            <button type="button" data-attn-exp="modelnet_attn_with_translation">+ translation</button>
+            <button type="button" data-attn-exp="modelnet_attn_with_rotation">+ rotation</button>
+          </div>
+        </div>
+        <figure class="attn-evo-figure">
+          <img class="attn-evo-img" src="../experiment_assets/modelnet_attn_baseline.png" alt="Attention 3D ModelNet40" loading="lazy">
+          <figcaption class="attn-evo-cap">ModelNet40 — point cloud 3D colorato per attenzione ricevuta (baseline, 84.24%): i latenti si concentrano su spigoli ed estremità dell'oggetto.</figcaption>
+        </figure>
+      </div>
+
       <figure>
         <img src="../experiment_assets/confusion_matrix.png" alt="Confusion matrix CIFAR-10" loading="lazy">
         <figcaption>Esempio di <strong>confusion matrix</strong> (CIFAR-10, exp2): la diagonale dominante mostra le classi predette correttamente; gli errori fuori diagonale rivelano le coppie confuse (es. gatto/cane).</figcaption>
@@ -4623,6 +4642,6 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260608-exp9"></script>
+<script defer src="js/app.js?v=20260608-exp10"></script>
 </body>
 </html>
