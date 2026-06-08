@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260608-exp3">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp3">
-<script defer src="js/interactive-labs.js?v=20260608-exp3"></script>
+<link rel="stylesheet" href="css/style.css?v=20260608-exp4">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp4">
+<script defer src="js/interactive-labs.js?v=20260608-exp4"></script>
 </head>
 <body>
 
@@ -4279,6 +4279,49 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
         <li><strong>Gruppi di controllo</strong>: ogni research question ha il suo confronto controllato a parità di iperparametri.</li>
       </ul>
 
+      <h2>Dettagli implementativi</h2>
+      <p>Tutto il training è girato su una singola <strong>GPU NVIDIA RTX 3060 (12 GB)</strong> — non sulle 64 TPU del paper. Per questo le configurazioni sono ridotte e le accuracy sistematicamente più basse del paper, ma le <em>relazioni ablative</em> restano valide.</p>
+
+      <details class="deep-dive">
+        <summary>Struttura del codice</summary>
+        <ul class="code-tree">
+          <li><code>src/perceiver/perceiver.py</code> — classe Perceiver (pooling + linear)</li>
+          <li><code>src/perceiver/attention.py</code> — CrossAttention, SelfAttention, MultiHeadAttention</li>
+          <li><code>src/perceiver/encoder.py</code> — PerceiverEncoder con iterazioni + weight sharing</li>
+          <li><code>src/perceiver_io/perceiver_io.py</code> — PerceiverIO con output query + decoder</li>
+          <li><code>src/data/{cifar10, modelnet40, wikitext103, glue_tasks}.py</code> — i DataModule per modalità</li>
+          <li><code>src/utils/positional_encoding.py</code> — Fourier PE (linearly spaced); <code>learned_pe.py</code> per l'ablation</li>
+          <li><code>train.py</code> — loop di training unico; <code>reproduce.py</code> — launcher interattivo</li>
+        </ul>
+        <p>Librerie: PyTorch 2.x, einops, torchvision, huggingface/datasets, TensorBoard, LAMB (custom).</p>
+      </details>
+
+      <details class="deep-dive">
+        <summary>Come riprodurre</summary>
+        <div class="code-block">python reproduce.py --list        # elenca gli esperimenti
+python reproduce.py --run 1       # exp1_baseline_fourier
+python reproduce.py --run 6       # modelnet40_baseline
+python reproduce.py --run 7       # mlm_wikitext103
+
+# oppure manuale:
+python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
+  --num_cross_attend_stages 4 --num_transformer_blocks 4 --num_heads 3 \
+  --optimizer lamb --lr 0.004 --epochs 120 --batch_size_cifar10 64</div>
+      </details>
+
+      <details class="deep-dive">
+        <summary>Divergenze dal paper (trasparenza metodologica)</summary>
+        <ul class="diverg-list">
+          <li><strong>Teste cross-attention</strong>: paper 1 (single-head) → mio 8 (ModelNet/MLM), 3 (CIFAR)</li>
+          <li><strong>Latent array CIFAR</strong>: paper N=512, D=1024 → mio N=96, D=384 (ridotto per GPU)</li>
+          <li><strong>Iterazioni</strong>: paper T=8 → mio 4 cross-att stages (CIFAR)</li>
+          <li><strong>Batch CIFAR</strong>: paper 1024 (64 TPU) → mio 64 (1 GPU)</li>
+          <li><strong>Dropout</strong>: paper nessuno → mio 0.1–0.2 (compensa l'overfitting del modello più piccolo)</li>
+          <li><strong>Ottimizzatore / epoche / Fourier</strong>: LAMB, 120 epoche, linearly spaced — coerenti col paper</li>
+        </ul>
+        <p>Le accuracy sono sistematicamente inferiori al paper (budget hardware), ma le <strong>relazioni ablative</strong> (PE, weight sharing, permutazione) restano valide e riproducibili.</p>
+      </details>
+
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>I miei numeri confermano la lezione: il PE è essenziale, le Fourier features danno robustezza alle permutazioni, il bottleneck con weight sharing è efficiente in parametri, e la <strong>stessa architettura</strong> funziona su immagini, 3D e testo. Dove i risultati divergono dal paper — qui il weight sharing è un <em>trade-off di efficienza</em>, non un guadagno di accuracy — lo dico esplicitamente: è il valore di averlo verificato di persona.</p>
@@ -4370,6 +4413,6 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260608-exp3"></script>
+<script defer src="js/app.js?v=20260608-exp4"></script>
 </body>
 </html>

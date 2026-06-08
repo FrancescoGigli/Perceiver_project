@@ -2259,6 +2259,14 @@
 .dataset-glue li { margin: 2px 0; }
 @media (max-width: 640px) { .dataset-cards { grid-template-columns: 1fr; } }
 
+/* Dettagli implementativi (ch44) */
+.code-tree { font-size: 0.84rem; line-height: 1.6; margin: 6px 0; padding-left: 18px; }
+.code-tree li { margin: 3px 0; }
+.code-tree code { font-size: 0.8rem; }
+.diverg-list { font-size: 0.84rem; line-height: 1.55; margin: 6px 0; padding-left: 18px; }
+.diverg-list li { margin: 4px 0; }
+.code-block { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.78rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; background: var(--bg-soft, #f3f4f8); border: 1px solid var(--border, #e6e6ec); border-radius: 6px; padding: 10px 12px; margin: 6px 0; color: var(--text-soft, #3c3c3c); }
+
 @media (prefers-reduced-motion: reduce) {
   .exp-panel { transition: none; }
 }
