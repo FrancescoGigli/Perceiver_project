@@ -6732,9 +6732,9 @@ Interpretazione: il decoder attentional è strettamente più espressivo del pool
 \toprule
 \textbf{Esperimento} & \textbf{Augmentation} & \textbf{Best accuracy} & \textbf{Epoca} \\
 \midrule
-\texttt{modelnet40\_baseline\_paper} & Scale only & $\mathbf{84.16\%}$ & last (200) \\[2pt]
-\texttt{modelnet40\_with\_rotation\_paper} & Scale + rotation & $83.06\%$ & last \\[2pt]
-\texttt{modelnet40\_with\_translation\_paper} & Scale + translation & $82.90\%$ & last \\
+\texttt{modelnet40\_baseline\_paper} & Scale only & $\mathbf{84.24\%}$ & 74 \\[2pt]
+\texttt{modelnet40\_with\_translation\_paper} & Scale + translation & $83.67\%$ & 62 \\[2pt]
+\texttt{modelnet40\_with\_rotation\_paper} & Scale + rotation & $83.14\%$ & 45 \\
 \bottomrule
 \end{tabular}
 }
@@ -6747,7 +6747,7 @@ Interpretazione: il decoder attentional è strettamente più espressivo del pool
 \label{fig:proj-modelnet}
 \end{figure}
 
-\paragraph{Discussione.} Il gap rispetto al paper ($85.7\%$ vs nostro $84.16\%$) è $-1.5$ punti, spiegabile con il batch size quattro volte più piccolo (128 vs 512). La \emph{direzione qualitativa} dell'effetto delle augmentation è però coerente col paper: rotation non aiuta perché il Perceiver con Fourier 3D è già in grado di apprendere l'invarianza rotazionale. Translation aiuta meno del previsto forse perché ModelNet40 ha già oggetti centrati.
+\paragraph{Discussione.} Il gap rispetto al paper ($85.7\%$ vs nostro $84.24\%$) è $-1.5$ punti, spiegabile con il batch size quattro volte più piccolo (128 vs 512). La \emph{direzione qualitativa} dell'effetto delle augmentation è però coerente col paper: rotation non aiuta perché il Perceiver con Fourier 3D è già in grado di apprendere l'invarianza rotazionale. Translation aiuta meno del previsto forse perché ModelNet40 ha già oggetti centrati.
 
 % -----------------------------------------------------------------------------
 \subsection{Perceiver IO su linguaggio --- MLM pretraining + GLUE}
