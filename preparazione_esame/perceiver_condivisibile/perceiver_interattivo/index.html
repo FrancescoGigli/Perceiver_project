@@ -3432,7 +3432,7 @@ V = \begin{bmatrix}1 & 0\\0 & 1\\0.5 & 0.5\end{bmatrix}
       </div>
       <p><strong>La maschera causale mette</strong> <code>−∞</code> nelle celle sopra la diagonale della matrice <code>QKᵀ</code>. Dopo la softmax quelle posizioni diventano peso 0: il modello non può "barare" leggendo parole target future.</p>
       <figure>
-        <img src="../perceiver_assets/transformer_masked_attention.svg" alt="Matrice di masked self-attention con celle future mascherate">
+        <img src="../perceiver_assets/transformer_masked_attention.svg?v=2" alt="Matrice di masked self-attention con celle future mascherate">
         <figcaption>Nel decoder la riga <code>i</code> usa solo posizioni <code>j≤i</code>: il futuro è mascherato prima della softmax.</figcaption>
       </figure>
       <div class="display-eq">
