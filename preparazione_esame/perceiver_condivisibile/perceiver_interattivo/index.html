@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260608-exp">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp">
-<script defer src="js/interactive-labs.js?v=20260608-exp"></script>
+<link rel="stylesheet" href="css/style.css?v=20260608-exp2">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp2">
+<script defer src="js/interactive-labs.js?v=20260608-exp2"></script>
 </head>
 <body>
 
@@ -56,7 +56,7 @@ window.MathJax = {
       <div class="chap-meta"><span class="chap-badge">Cap. 1</span><span class="chap-time">~6 min</span></div>
       <h1>Il problema della complessità quadratica</h1>
       <p class="intro">Il <strong>Perceiver</strong> (Jaegle et al., 2021) è un'architettura basata su Transformer progettata per elaborare <strong>modalità di input molto diverse</strong> — immagini, audio, video, point cloud — con <strong>un'unica architettura</strong>, senza componenti domain-specific.</p>
-      <p>L'idea centrale è proiettare un input di dimensione arbitraria <code>M</code> in un <strong>latent array</strong> <code>L</code> di dimensione fissa <code>N ≪ M</code> tramite cross-attention. In questo modo il costo diventa lineare in <code>M</code> invece che quadratico e, soprattutto, si ottiene una cosa fondamentale: <strong>disaccoppiando la profondità della rete dalla dimensione dell'input</strong>, possiamo impilare molti layer di self-attention nello spazio latente senza pagare ogni volta il costo dell'input enorme.</p>
+      <p>L'idea centrale è proiettare un input di dimensione arbitraria <code>M</code> in un <strong>latent array</strong> <code>L</code> di dimensione fissa <code>N ≪ M</code> tramite cross-attention. In questo modo il costo diventa lineare in <code>M</code> invece che quadratico e, soprattutto, si ottiene una cosa fondamentale: <strong>disaccoppiando la profondità della rete dalla dimensione dell'input</strong>, possiamo impilare molti layer di self-attention nello spazio latente senza pagare ogni volta il costo dell'input enorme. <em>In concreto</em>: aggiungere layer di ragionamento costa <code>O(N²)</code> sui 512 latenti, non <code>O(M²)</code> sui 50.176 pixel — la profondità diventa quasi "gratis" rispetto alla dimensione dell'input (lo vedremo al Cap. 8).</p>
       <p>Prima di capire <em>cos'è</em> il Perceiver, conviene quindi capire <em>perché esiste</em>. Il punto di partenza è un trade-off: <strong><button class="inline-summary-link" type="button" data-go-to="31" aria-label="Apri il riepilogo CNN">CNN</button> efficienti ma legate alla griglia</strong>, <strong>Transformer flessibili ma quadratici</strong>. Il Perceiver nasce per uscire da questo blocco quando il costo esplode proprio quando l'input diventa ricco: immagini ad alta risoluzione, audio lungo, video, point cloud.</p>
 
       <h2>CNN: scalabili ma specializzate</h2>
@@ -440,7 +440,7 @@ window.MathJax = {
 
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
-        <p>Le Fourier features danno al modello la <strong>posizione</strong>. È questa scelta — non l'architettura in sé — a rendere il Perceiver <strong>invariante alle permutazioni</strong> dei pixel: la posizione viaggia <em>dentro</em> l'input, non nell'ordine degli indici. Lo vedremo concretamente al capitolo 12.</p>
+        <p>Le Fourier features danno al modello la <strong>posizione</strong>. È questa scelta — non l'architettura in sé — a rendere il Perceiver <strong>invariante alle permutazioni</strong> dei pixel. <em>Perché?</em> L'attention tratta l'input come un <strong>insieme</strong>: non ha alcuna nozione dell'ordine delle righe. Se la posizione è codificata <em>dentro</em> ogni riga (Fourier), permutare le righe non distrugge nulla — riga e posizione restano accoppiate. Una CNN invece <em>deduce</em> la posizione dall'indice nella griglia: permutare gli indici la acceca. Lo vedremo concretamente al capitolo 12.</p>
       </div>
 
       <div class="nav-bar">
@@ -515,7 +515,7 @@ window.MathJax = {
         <li><strong>Stabilità dei gradienti</strong>: se i latenti partissero con valori grandi, i prodotti <code>QKᵀ</code> sarebbero enormi, la softmax saturerebbe, e i gradienti diventerebbero instabili.</li>
         <li><strong>Neutralità</strong>: media zero significa che nessun latente ha un "vantaggio" iniziale su un altro.</li>
         <li><strong>Sicurezza numerica</strong>: il troncamento a [-2, 2] esiste per sicurezza, ma con σ=0.02 è rarissimo che si producano valori oltre 0.1.</li>
-        <li><strong>Specializzazione graduale</strong>: partendo con valori piccoli e neutri, i latenti vengono "riempiti" progressivamente dall'informazione dell'input, e col tempo ciascuno si specializza (bordi, colori, texture, pattern globali...).</li>
+        <li><strong>Specializzazione graduale</strong>: partendo con valori piccoli e neutri, i latenti vengono "riempiti" progressivamente dall'informazione dell'input, e col tempo ciascuno <em>tende a</em> specializzarsi (bordi, colori, texture, pattern globali...). È un'osservazione qualitativa, visibile nelle <strong>attention maps</strong> (vedi App. 4 — I miei esperimenti).</li>
       </ul>
 
       <h2>I due array che si incontrano</h2>
@@ -592,14 +592,14 @@ window.MathJax = {
       <h2>Passo 2 — dimensione interna d_QKV</h2>
       <p>Q, K, V devono avere la stessa dimensione-feature per poter fare il prodotto <code>QKᵀ</code>. Si sceglie:</p>
       <div class="display-eq">d_QKV = min(D, C_tot) = min(1024, 261) = 261</div>
-      <p><strong>Perché il minimo?</strong> L'input ha già solo 261 canali: proiettare K e V in dimensione maggiore (es. 1024) non aggiungerebbe informazione, sarebbe spreco di parametri e FLOPs. Scegliere il minimo tiene Q, K, V in dimensione compatta e usa 1024 solo dove serve davvero (come spazio dei latenti).</p>
+      <p><strong>Perché il minimo?</strong> L'input ha già solo 261 canali: una proiezione lineare <code>261→1024</code> ha <strong>rango ≤ 261</strong>, quindi produrrebbe sì 1024 feature ma solo 261 <em>linearmente indipendenti</em> — le altre sono ridondanti. Espandere non può <em>creare</em> informazione che non c'è: sarebbe solo spreco di parametri e FLOPs. Scegliere il minimo tiene Q, K, V in dimensione compatta e usa 1024 solo dove serve davvero (lo spazio dei latenti).</p>
 
       <h2>Passo 3 — proiezioni Q, K, V</h2>
       <p>Tre matrici di pesi apprese, <strong>senza bias</strong> (paper App. C: "linear layers" senza bias):</p>
       <div class="display-eq">Q = L̃ · W_Q,    W_Q ∈ ℝ^(D × d_QKV)   = ℝ^(1024 × 261)    ⇒  Q ∈ ℝ^(512 × 261)      (dai latenti)
 K = X̃ · W_K,    W_K ∈ ℝ^(C_tot × d_QKV) = ℝ^(261 × 261)    ⇒  K ∈ ℝ^(50.176 × 261)   (dall'input)
 V = X̃ · W_V,    W_V ∈ ℝ^(C_tot × d_QKV) = ℝ^(261 × 261)    ⇒  V ∈ ℝ^(50.176 × 261)   (dall'input)</div>
-      <p>Le matrici W sono <strong>apprese</strong>: imparano a produrre query, key e value "ottimali" per il matching (riduzione di feature rumorose, ecc.). Inizializzate con Xavier Uniform.</p>
+      <p>Le matrici W sono <strong>apprese</strong>: imparano a produrre query, key e value "ottimali" per il matching (riduzione di feature rumorose, ecc.). Inizializzate con <strong>Xavier Uniform</strong>. <em>Da non confondere</em>: questi sono i <em>pesi delle proiezioni</em>; i <em>latenti</em> <code>L</code> (Cap. 6) usano invece la gaussiana stretta <code>𝒩(0, 0.02²)</code> — oggetti diversi: matrici di proiezione vs parametri-memoria.</p>
       <p><strong>L'asimmetria chiave</strong>: Q ha poche righe (N=512), K e V ne hanno tante (M=50.176). Stessa dimensione-feature (261), ma forma molto diversa. È da qui che nascerà la matrice rettangolare N×M.</p>
 
       <h2>Passo 4 — scaled dot-product attention</h2>
@@ -613,7 +613,7 @@ V = X̃ · W_V,    W_V ∈ ℝ^(C_tot × d_QKV) = ℝ^(261 × 261)    ⇒  V ∈
       <p>Misuriamo la <em>compatibilità</em> tra ogni query e ogni key. Due vettori allineati ⇒ score alto. Due vettori in direzioni diverse ⇒ score basso. La matrice risultante è 512×50.176: ogni riga è un latente, ogni colonna un pixel, e l'entry <code>(i,j)</code> dice "quanto il latente <em>i</em> trova interessante il pixel <em>j</em>".</p>
 
       <h3>(b) Perché lo scaling per √d_QKV?</h3>
-      <p>Senza scaling, gli score avrebbero deviazione standard ≈ <code>√d_QKV ≈ 16</code> (dopo LayerNorm Q e K hanno varianza 1, e sommare 261 prodotti porta la varianza a 261). La softmax saturerebbe (tutta la massa su un solo pixel) e i gradienti si annullerebbero. Dividendo per √d_QKV si riporta la varianza degli score a ~1.</p>
+      <p>Senza scaling, gli score avrebbero deviazione standard ≈ <code>√d_QKV ≈ 16</code>. <strong>Perché proprio √d?</strong> Dopo LayerNorm ogni componente di Q e K ha varianza ~1; il prodotto scalare <code>q·k = Σᵢ qᵢkᵢ</code> somma <code>d_QKV = 261</code> termini indipendenti a varianza ~1, e <em>le varianze di termini indipendenti si sommano</em> ⇒ <code>Var ≈ 261</code>, quindi <code>std ≈ √261 ≈ 16</code>. Senza correzione la softmax saturerebbe (tutta la massa su un solo pixel) e i gradienti si annullerebbero. Si divide per <code>√d_QKV</code> (non per <code>d_QKV</code>!) così la <em>deviazione standard</em> torna a ~1: la scala giusta per una softmax morbida.</p>
 
       <h3>(c) Softmax per riga</h3>
       <p>La softmax (applicata <em>indipendentemente a ciascuna riga</em>) trasforma score reali in probabilità: tutti i valori in [0,1], sommano a 1 su ogni riga. Ogni latente ottiene così un "budget di attenzione" da distribuire sui 50.176 pixel.</p>
@@ -824,6 +824,11 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
         </tbody>
       </table>
       <p>A differenza di un RNN classico, però, a <em>ogni</em> passo i latenti accedono all'<strong>intero input simultaneamente</strong>, non a un elemento alla volta. È un RNN che "rilegge tutto" ogni volta.</p>
+
+      <div class="nota">
+        <span class="nota-label">Precisazione sull'RNN</span>
+        La ricorrenza "pura" a pesi condivisi vale <strong>da t=2 in poi</strong>: la prima iterazione (cross-att + latent transformer) usa pesi <em>propri</em> — è un passo di inizializzazione. Da t=2 a t=8 si ripete la <em>stessa</em> cella. Quindi è un RNN <em>srotolato</em> preceduto da un primo layer distinto, non un RNN puro fin dall'inizio.
+      </div>
 
       <h2>L'effetto: meno parametri, più accuratezza</h2>
       <p>Il weight sharing non è solo un'ottimizzazione: è un <strong>regolarizzatore potente</strong>. Dal Tab. 7 del paper:</p>
@@ -1132,6 +1137,7 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
         </tbody>
       </table>
       <p>Con 8 cross-attend tutte all'inizio, il modello deve comprimere l'intera informazione in un'unica lettura prolungata. Con interleaved, alterna fasi di "lettura" e "ragionamento" latente: ogni re-lettura avviene con latenti già parzialmente raffinati. <strong>Il modello deve ri-leggere l'input più volte in modo adattivo.</strong></p>
+      <p><em>Attenzione ai numeri</em>: il guadagno è <strong>non-monotono</strong> — da T=1 a T=4 cambia pochissimo (76.7 → 76.5), il vero salto arriva solo a T=8 (78.0). La lezione robusta è qualitativa: <em>alternare</em> lettura e ragionamento (interleaved) batte comunque il <em>comprimere tutto in un colpo</em> — già a una sola rilettura interleaved (76.7%) si fa meglio di 8 cross-attend at-start (73.7%).</p>
 
       <h2>3. Weight sharing = regolarizzatore</h2>
       <table>
@@ -1419,6 +1425,11 @@ Y = Y + MLP(LN(Y))</div>
       <div class="esempio">
         <div class="esempio-label">Esempio intuitivo</div>
         <p>Per una classificazione globale puoi usare una sola output query. Per una segmentazione 224×224 puoi usare una query per posizione. Per un modello byte-level puoi usare query di token. L'encoder resta lo stesso: cambia la griglia di domande poste al latent space.</p>
+
+        <div class="nota">
+          <span class="nota-label">Esempio dimensionale (segmentazione 224×224)</span>
+          <code>O = 50.176</code> query (una per pixel), latenti <code>N=512 × D=1024</code>. Le query producono <code>Q_out ∈ ℝ^(50.176 × D_q)</code>; K e V vengono dai latenti, quindi la matrice di attenzione del decoder è <code>50.176 × 512</code> e l'output è <code>50.176 × n_classi</code>. Nota l'asimmetria <em>opposta</em> all'encoder: qui sono le <strong>query</strong> a essere tante (<code>O ≫ N</code>), non l'input.
+        </div>
       </div>
 
       <div class="idea">
@@ -3407,7 +3418,7 @@ S_{ij} & j \le i \\
       </div>
       <div class="nota">
         <span class="nota-label">Differenza con il Perceiver</span>
-        Il Transformer <strong>somma</strong> il PE all'embedding (<code>z = embed + PE</code>), mescolando contenuto e posizione. Il Perceiver <strong>concatena</strong> le Fourier features (<code>z = [contenuto ‖ PE]</code>), tenendole separate, e usa frequenze esponenziali multiscala invece delle sinusoidi fisse.
+        Il Transformer <strong>somma</strong> il PE all'embedding (<code>z = embed + PE</code>), mescolando contenuto e posizione. Il Perceiver <strong>concatena</strong> le Fourier features (<code>z = [contenuto ‖ PE]</code>), tenendole separate. Le frequenze sono <strong>linearly spaced</strong> (non esponenziali come NeRF — vedi Cap. 5 / Rif. 2), proprio per evitare l'instabilità di training delle frequenze esponenziali.
       </div>
 
       <h2>Transformer vs Perceiver</h2>
@@ -4324,6 +4335,6 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260608-exp"></script>
+<script defer src="js/app.js?v=20260608-exp2"></script>
 </body>
 </html>
