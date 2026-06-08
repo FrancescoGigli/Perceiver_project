@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260608-exp5">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp5">
-<script defer src="js/interactive-labs.js?v=20260608-exp5"></script>
+<link rel="stylesheet" href="css/style.css?v=20260608-exp6">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp6">
+<script defer src="js/interactive-labs.js?v=20260608-exp6"></script>
 </head>
 <body>
 
@@ -1262,6 +1262,30 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
         <li>Output projection W_o, MLP W₁, W₂</li>
       </ul>
       <p>Sono <em>chain rule applicata meccanicamente</em>. Sapere che si fanno e capire il <em>flow</em> conta più che ricordare ogni formula. Per memorizzare: forward + i tre risultati sopra bastano.</p>
+
+      <h2>Le derivazioni complete (per chi le vuole)</h2>
+      <p>Per completezza con il PDF (§1.5), ecco i due passaggi più "chiesti". Sono <strong>opzionali</strong>: aprili solo se vuoi il dettaglio — non servono per capire il flusso.</p>
+
+      <details class="deep-dive">
+        <summary>Backward della LayerNorm</summary>
+        <p>Con <code>Ĥ = (H − μ)/(σ + ε)</code> e <code>H̃ = γ·Ĥ + β</code>, il gradiente verso l'input <code>H</code> di ogni riga (dimensione D) è:</p>
+        <div class="display-eq">∂ℒ/∂H_{ij} = \frac{1}{σ_i + ε}(∂ℒ/∂Ĥ_{ij} − \frac{1}{D} Σ_k ∂ℒ/∂Ĥ_{ik} − Ĥ_{ij} · \frac{1}{D} Σ_k ∂ℒ/∂Ĥ_{ik} · Ĥ_{ik})</div>
+        <p>I due termini sottratti rimuovono la media del gradiente e la sua proiezione su <code>Ĥ</code>: è il "prezzo" dei vincoli media≈0 / varianza≈1 della normalizzazione. I parametri appresi:</p>
+        <div class="display-eq">∂ℒ/∂γ_j = Σᵢ ∂ℒ/∂H̃_{ij} · Ĥ_{ij}        ∂ℒ/∂β_j = Σᵢ ∂ℒ/∂H̃_{ij}</div>
+      </details>
+
+      <details class="deep-dive">
+        <summary>Backward della scaled dot-product attention (softmax)</summary>
+        <p>La softmax è applicata per riga; la sua jacobiana è <code>∂A_{ij}/∂S_{ik} = A_{ij}(δ_{jk} − A_{ik})</code>. Applicando la chain rule e semplificando con <code>Σⱼ A_{ij} = 1</code> si ottiene la forma compatta:</p>
+        <div class="display-eq">∂ℒ/∂S_{ik} = A_{ik}(∂ℒ/∂A_{ik} − Σⱼ A_{ij} · ∂ℒ/∂A_{ij})</div>
+        <p>Ogni gradiente su <code>S</code> è quello su <code>A</code> "corretto" sottraendo la media pesata dei gradienti della stessa riga — la correzione che tiene il gradiente ortogonale al vincolo <code>Σⱼ A_{ij} = 1</code>. Da <code>∂ℒ/∂S</code> si risale poi a:</p>
+        <div class="display-eq">∂ℒ/∂Q = (∂ℒ/∂S) K / √d_{QKV}        ∂ℒ/∂K = (∂ℒ/∂S)ᵀ Q / √d_{QKV}        ∂ℒ/∂V = Aᵀ (∂ℒ/∂F)</div>
+      </details>
+
+      <details class="deep-dive">
+        <summary>Output projection e MLP</summary>
+        <p>Sono backward lineari standard: per <code>Y = X·W + b</code> si ha <code>∂ℒ/∂W = Xᵀ(∂ℒ/∂Y)</code>, <code>∂ℒ/∂X = (∂ℒ/∂Y)Wᵀ</code>, <code>∂ℒ/∂b = somma per righe di ∂ℒ/∂Y</code>. La GELU dell'MLP aggiunge solo la propria derivata elemento-per-elemento. Niente di specifico del Perceiver.</p>
+      </details>
 
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
@@ -4426,6 +4450,6 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260608-exp5"></script>
+<script defer src="js/app.js?v=20260608-exp6"></script>
 </body>
 </html>
