@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260608-exp4">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp4">
-<script defer src="js/interactive-labs.js?v=20260608-exp4"></script>
+<link rel="stylesheet" href="css/style.css?v=20260608-exp5">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp5">
+<script defer src="js/interactive-labs.js?v=20260608-exp5"></script>
 </head>
 <body>
 
@@ -1431,6 +1431,19 @@ Y = Y + MLP(LN(Y))</div>
           <code>O = 50.176</code> query (una per pixel), latenti <code>N=512 × D=1024</code>. Le query producono <code>Q_out ∈ ℝ^(50.176 × D_q)</code>; K e V vengono dai latenti, quindi la matrice di attenzione del decoder è <code>50.176 × 512</code> e l'output è <code>50.176 × n_classi</code>. Nota l'asimmetria <em>opposta</em> all'encoder: qui sono le <strong>query</strong> a essere tante (<code>O ≫ N</code>), non l'input.
         </div>
       </div>
+
+      <details class="deep-dive">
+        <summary>Come si costruisce una query per ogni task (dal progetto)</summary>
+        <p>La forma della query e il numero <code>O</code> sono <strong>specifici del task</strong>; i latenti restano identici. Esempi concreti (Jaegle et al. 2022, Fig. 3, e dal mio progetto):</p>
+        <ul class="diverg-list">
+          <li><strong>MLM byte-level (WikiText-103)</strong>: <code>O = 2048</code> query, una per posizione byte, learned position-dependent di dim <code>E = 768</code>. Per ogni posizione mascherata il decoder produce un vettore → layer lineare → softmax sul vocabolario byte.</li>
+          <li><strong>GLUE single-task</strong>: <code>O = 1</code> query apprendibile (<code>E = 768</code>), l'equivalente del token <code>[CLS]</code> di BERT ma <em>esterno</em> ai latenti; una MLP 2-layer ne ricava i logit di classe.</li>
+          <li><strong>GLUE multi-task (8 task insieme)</strong>: <code>O = 8</code> query, ognuna con un embedding <code>task_id</code>; una MLP per task. È la configurazione migliore (81.8 avg GLUE nel paper).</li>
+          <li><strong>Optical flow</strong>: la query combina le <em>feature</em> del punto e le sue coordinate <code>(x, y)</code>.</li>
+          <li><strong>Multimodal autoencoding</strong>: un set di query per modalità (video: una per pixel; audio: una per sample; label: una) con indicatori <code>is_video/is_audio/is_label</code> → <code>O ≈ 804.737</code> totali.</li>
+        </ul>
+        <p>Morale: cambiando solo la costruzione delle query (numero <code>O</code> e dimensione <code>E</code>), lo stesso encoder-processor produce token, pixel, etichette o vettori di flusso.</p>
+      </details>
 
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
@@ -4413,6 +4426,6 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260608-exp4"></script>
+<script defer src="js/app.js?v=20260608-exp5"></script>
 </body>
 </html>
