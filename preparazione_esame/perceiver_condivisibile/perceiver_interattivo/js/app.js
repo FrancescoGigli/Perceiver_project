@@ -1,6 +1,6 @@
 ﻿"use strict";
 
-const TOTAL = 43;
+const TOTAL = 44;
 const MAIN_TOTAL = 18;
 const REFERENCE_START = 19;
 const REFERENCE_END = 40;
@@ -48,7 +48,8 @@ const CHAPTER_TITLES = [
   "Perceiver IO: risultati",
   "Formulario ragionato",
   "Mappa forward interattiva",
-  "Confronti e specifiche"
+  "Confronti e specifiche",
+  "I miei esperimenti"
 ];
 const REFERENCE_TITLES = CHAPTER_TITLES.slice(REFERENCE_START - 1, REFERENCE_END);
 const APPENDIX_TITLES = CHAPTER_TITLES.slice(APPENDIX_START - 1);
@@ -151,7 +152,8 @@ const RAIL_DATA = {
   40: { stage: 0, idea: "Perceiver IO: stesso modello → optical flow AEE 1.81, language MLM BPC 1.74, multimodal Kinetics. Generalità dimostrata." },
   41: { stage: 0, idea: "Formulario: ogni formula va legata a problema, punto del modello e significato dei simboli." },
   42: { stage: 4, idea: "Mappa forward: osserva come cambiano forme e responsabilità a ogni stadio." },
-  43: { stage: 0, idea: "Confronti: prepara differenze nette, non definizioni isolate." }
+  43: { stage: 0, idea: "Confronti: prepara differenze nette, non definizioni isolate." },
+  44: { stage: 0, idea: "I risultati reali del progetto confermano la teoria: PE essenziale, Fourier robusto alle permutazioni, weight sharing = efficienza, generalità multimodale." }
 };
 const SOURCE_DATA = {
   1: { pdfPage: 5,   pdfPages: "PDF p. 5",       section: "1.1 Il problema della complessità quadratica", texLine: 266 },
@@ -196,7 +198,8 @@ const SOURCE_DATA = {
   40: { pdfPage: 212, pdfPages: "PDF pp. 212-213", section: "U Perceiver IO — Risultati Sperimentali", texLine: 9698 },
   41: { pdfPage: 5,   pdfPages: "PDF pp. 5-157",   section: "Sintesi finale: formule ricorrenti del Perceiver", texLine: 266 },
   42: { pdfPage: 10,  pdfPages: "PDF pp. 10-42",   section: "Sintesi finale: forward pass e forme tensoriali", texLine: 369 },
-  43: { pdfPage: 77,  pdfPages: "PDF pp. 77-157",  section: "Sintesi finale: confronti, specifiche e riferimenti teorici", texLine: 4050 }
+  43: { pdfPage: 77,  pdfPages: "PDF pp. 77-157",  section: "Sintesi finale: confronti, specifiche e riferimenti teorici", texLine: 4050 },
+  44: { pdfPage: null, pdfPages: "Repo: analysis_results/", section: "Progetto Perceiver IO — risultati sperimentali", texLine: null }
 };
 const PIPE_STAGES = ["Input", "Fourier", "Latenti", "Cross-Att", "Latent Tr.", "×T", "Pooling/Decoder"];
 const QUICK_LINKS = {
@@ -376,18 +379,23 @@ function renderSourceRail() {
     : currentChapter >= REFERENCE_START
       ? `Rif. ${currentChapter - REFERENCE_START + 1}`
       : `Cap. ${currentChapter}`;
+  const hasPdf = source.pdfPage != null;
   const pdfHref = `../appunti_ml_definitivo.pdf#page=${source.pdfPage}`;
   const texHref = "../appunti_ml_definitivo.tex";
+  const links = hasPdf
+    ? `<a class="source-link" href="${pdfHref}" target="_blank" rel="noopener">Apri PDF</a>
+      <a class="source-link" href="${texHref}" target="_blank" rel="noopener" title="Riga sorgente circa ${source.texLine}">Apri .tex</a>`
+    : "";
+  const note = hasPdf
+    ? "Il PDF si apre sulla prima pagina del range; da lì puoi scorrere la sezione originale."
+    : "I dati di questa sezione vengono dai risultati reali del progetto nel repository (cartella analysis_results/).";
   rail.innerHTML = `
-    <div class="source-file">appunti_ml_definitivo.pdf</div>
+    <div class="source-file">${hasPdf ? "appunti_ml_definitivo.pdf" : "Progetto Perceiver IO"}</div>
     <div class="source-chapter">${escapeHtml(chapterLabel)} · ${escapeHtml(CHAPTER_TITLES[currentChapter - 1])}</div>
     <div class="source-pages">${escapeHtml(source.pdfPages)}</div>
     <div class="source-section-name">${escapeHtml(source.section)}</div>
-    <div class="source-links">
-      <a class="source-link" href="${pdfHref}" target="_blank" rel="noopener">Apri PDF</a>
-      <a class="source-link" href="${texHref}" target="_blank" rel="noopener" title="Riga sorgente circa ${source.texLine}">Apri .tex</a>
-    </div>
-    <div class="source-note">Il PDF si apre sulla prima pagina del range; da lì puoi scorrere la sezione originale.</div>
+    ${links ? `<div class="source-links">${links}</div>` : ""}
+    <div class="source-note">${note}</div>
   `;
 }
 
