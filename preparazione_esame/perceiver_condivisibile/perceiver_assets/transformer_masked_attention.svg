@@ -9,7 +9,7 @@
   </defs>
   <rect class="bg" width="1280" height="500" rx="22"/>
   <text class="txt title" x="54" y="58">Maschera causale: il decoder non vede il futuro</text>
-  <text class="txt small" x="54" y="90">Ogni riga i puo' usare solo colonne j <= i. Le celle future diventano -infinito prima della softmax.</text>
+  <text class="txt small" x="54" y="90">Ogni riga i puo' usare solo colonne j &lt;= i. Le celle future diventano -infinito prima della softmax.</text>
 
   <g transform="translate(90 130)">
     <text class="txt label" x="0" y="-18">QK^T masked</text>
