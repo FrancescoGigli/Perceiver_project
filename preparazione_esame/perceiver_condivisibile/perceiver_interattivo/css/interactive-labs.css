@@ -2250,3 +2250,16 @@
 @media (prefers-reduced-motion: reduce) {
   .exp-panel { transition: none; }
 }
+
+/* Su mobile la tabella risultati diventa una lista di card (niente scroll orizzontale) */
+@media (max-width: 640px) {
+  .my-experiments-lab .exp-table-wrap { overflow-x: visible; }
+  .my-experiments-lab .exp-table { font-size: 0.82rem; }
+  .my-experiments-lab .exp-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .my-experiments-lab .exp-table, .my-experiments-lab .exp-table tbody, .my-experiments-lab .exp-table tr, .my-experiments-lab .exp-table td { display: block; width: 100%; }
+  .my-experiments-lab .exp-table tr { border: 1px solid var(--border, #e6e6ec); border-radius: 8px; margin-bottom: 8px; padding: 4px 10px; }
+  .my-experiments-lab .exp-table tr.exp-best { background: var(--primary-soft, #e8eaf6); }
+  .my-experiments-lab .exp-table td { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border: none; border-bottom: 1px solid var(--border, #e6e6ec); padding: 4px 0; white-space: normal; text-align: right; }
+  .my-experiments-lab .exp-table tr td:last-child { border-bottom: none; }
+  .my-experiments-lab .exp-table td::before { content: attr(data-label); font-weight: 600; color: var(--muted, #6e6e76); text-align: left; flex-shrink: 0; }
+}

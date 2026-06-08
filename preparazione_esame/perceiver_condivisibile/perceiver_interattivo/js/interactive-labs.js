@@ -2308,13 +2308,24 @@ const LAB_SOURCE_REFS = {
         + "</div>"
     };
 
+    function applyDataLabels() {
+      var table = panel.querySelector(".exp-table");
+      if (!table) return;
+      var headers = [];
+      table.querySelectorAll("thead th").forEach(function(th) { headers.push(th.textContent); });
+      table.querySelectorAll("tbody tr").forEach(function(tr) {
+        tr.querySelectorAll("td").forEach(function(td, i) { if (headers[i]) td.setAttribute("data-label", headers[i]); });
+      });
+    }
+    function setPanel(html) { panel.innerHTML = html; applyDataLabels(); }
+
     function render(tab, animate) {
       var html = DATA[tab];
       if (!html) return;
-      if (!animate || reduceMotion()) { panel.innerHTML = html; return; }
+      if (!animate || reduceMotion()) { setPanel(html); return; }
       panel.classList.add("is-swapping");
       setTimeout(function() {
-        panel.innerHTML = html;
+        setPanel(html);
         requestAnimationFrame(function() { panel.classList.remove("is-swapping"); });
       }, 160);
     }
