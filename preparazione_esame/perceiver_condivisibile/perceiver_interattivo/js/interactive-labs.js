@@ -18,7 +18,8 @@ const LAB_SOURCE_REFS = {
   dataAug:        "Rif. T",
   ioResults:      "Rif. U",
   lrSchedule:     "Rif. 1.6",
-  fourierWaves:   "Rif. B"
+  fourierWaves:   "Rif. B",
+  myExperiments:  "Progetto"
 };
 
 (function () {
@@ -2244,6 +2245,90 @@ const LAB_SOURCE_REFS = {
     updateUI(M_MIN);
   }
 
+  // --- ch44: I miei esperimenti (risultati reali del progetto) ---
+  function initMyExperimentsLab() {
+    var container = document.querySelector('[data-lab="my-experiments"]');
+    if (!container) return;
+    var tabButtons = container.querySelectorAll("[data-exp-tab]");
+    var panel = document.getElementById("myExperimentsPanel");
+    if (!panel) return;
+    var IMG = "../experiment_assets/";
+
+    var DATA = {
+      cifar: "<div class='exp-caption'>CIFAR-10 — Ablation study (Perceiver, 120 epoche, batch 64)</div>"
+        + "<div class='exp-table-wrap'><table class='exp-table'>"
+        + "<thead><tr><th>Esperimento</th><th>PE</th><th>Permut.</th><th>W-share</th><th>Params</th><th>Accuracy</th><th>Tempo</th></tr></thead><tbody>"
+        + "<tr class='exp-best'><td>fourier_permuted</td><td>Fourier</td><td>Sì</td><td>Sì</td><td>3.35M</td><td>78.12%</td><td>7.35h</td></tr>"
+        + "<tr><td>learned_pe_permuted</td><td>Learned</td><td>Sì</td><td>Sì</td><td>3.35M</td><td>77.60%</td><td>4.45h</td></tr>"
+        + "<tr><td>no_weight_sharing</td><td>Fourier</td><td>No</td><td><strong>No</strong></td><td><strong>8.67M</strong></td><td>73.85%</td><td>4.91h</td></tr>"
+        + "<tr><td>fourier_control</td><td>Fourier</td><td>No</td><td>Sì</td><td>3.35M</td><td>72.02%</td><td>3.53h</td></tr>"
+        + "<tr><td>baseline_fourier</td><td>Fourier</td><td>No</td><td>Sì</td><td>3.35M</td><td>69.69%</td><td>2.93h</td></tr>"
+        + "<tr><td>weight_sharing_control</td><td>Fourier</td><td>No</td><td>Sì</td><td>3.35M</td><td>68.49%</td><td>2.98h</td></tr>"
+        + "<tr><td>rgb_only</td><td>None</td><td>No</td><td>Sì</td><td>3.30M</td><td>61.34%</td><td>7.52h</td></tr>"
+        + "</tbody></table></div>"
+        + "<figure><img src='" + IMG + "cifar10_chart.png' alt='Grafico accuracy CIFAR-10'></figure>"
+        + "<div class='exp-takeaway'><strong>Cosa conferma la teoria:</strong><ul>"
+        + "<li><strong>PE essenziale</strong>: Fourier 72.02% vs RGB-only 61.34% → −10.68% senza positional encoding.</li>"
+        + "<li><strong>Permutation invariance</strong>: permutando i pixel l'accuracy non degrada (78.12% vs 69.69%) → robustezza spaziale confermata (Cap. 5/12).</li>"
+        + "<li><strong>Fourier vs Learned</strong> (su dati permutati): 78.12% vs 77.60% → +0.52% per Fourier.</li>"
+        + "<li><strong>Weight sharing = trade-off</strong>: senza sharing +5.36% accuracy ma +158.7% parametri (8.67M vs 3.35M). Nel mio setup è una scelta di efficienza, non un guadagno di accuracy.</li>"
+        + "</ul></div>",
+      io: "<div class='exp-caption'>Perceiver IO — CIFAR-10 (128 latenti, 512 dim, 120 epoche)</div>"
+        + "<div class='exp-table-wrap'><table class='exp-table'>"
+        + "<thead><tr><th>Modello</th><th>Latenti</th><th>Output query</th><th>Params</th><th>Accuracy</th><th>Epoch</th></tr></thead><tbody>"
+        + "<tr class='exp-best'><td>Perceiver IO</td><td>128</td><td>1</td><td>9.5M</td><td>78.20%</td><td>120</td></tr>"
+        + "<tr><td>Perceiver (best)</td><td>96</td><td>—</td><td>3.35M</td><td>78.12%</td><td>108</td></tr>"
+        + "</tbody></table></div>"
+        + "<figure><img src='" + IMG + "convergence_chart.png' alt='Efficienza di convergenza'></figure>"
+        + "<div class='exp-takeaway'><strong>Cosa conferma la teoria:</strong> aggiungere il decoder a output query (Perceiver IO) <strong>non degrada</strong> la classificazione: 78.20%, pari al miglior Perceiver (78.12%). Il decoder generalizza l'output senza costare accuracy (Cap. 15).</div>",
+      modelnet: "<div class='exp-caption'>ModelNet40 — Point cloud 3D (Perceiver, 2048 punti, 200 epoche)</div>"
+        + "<div class='exp-table-wrap'><table class='exp-table'>"
+        + "<thead><tr><th>Augmentation</th><th>Accuracy</th><th>Best epoch</th></tr></thead><tbody>"
+        + "<tr class='exp-best'><td>Scale only (baseline)</td><td>84.24%</td><td>74</td></tr>"
+        + "<tr><td>Scale + translation</td><td>83.67%</td><td>62</td></tr>"
+        + "<tr><td>Scale + rotation</td><td>83.14%</td><td>45</td></tr>"
+        + "</tbody></table></div>"
+        + "<figure><img src='" + IMG + "modelnet40_chart.png' alt='Grafico accuracy ModelNet40'></figure>"
+        + "<div class='exp-takeaway'><strong>Cosa conferma la teoria:</strong> la <strong>stessa architettura</strong> (input xyz + Fourier, 128 latenti, 5.93M params) applicata a una modalità 3D totalmente diversa, senza componenti domain-specific, raggiunge 84.24% — a ~1.5 punti dal paper (85.7%). È la generalità del Perceiver.</div>",
+      text: "<div class='exp-caption'>Testo — MLM byte-level WikiText-103 → fine-tuning GLUE (Perceiver IO)</div>"
+        + "<div class='exp-table-wrap'><table class='exp-table'>"
+        + "<thead><tr><th>Task</th><th>Tipo</th><th>Metrica</th></tr></thead><tbody>"
+        + "<tr class='exp-best'><td>MLM WikiText-103</td><td>pre-training</td><td>82.20% acc</td></tr>"
+        + "<tr><td>QQP</td><td>paraphrase</td><td>75.65%</td></tr>"
+        + "<tr><td>CoLA</td><td>acceptability</td><td>69.13%</td></tr>"
+        + "<tr><td>MRPC</td><td>paraphrase</td><td>68.38%</td></tr>"
+        + "<tr><td>SST-2</td><td>sentiment</td><td>61.24%</td></tr>"
+        + "<tr><td>QNLI</td><td>NLI</td><td>59.93%</td></tr>"
+        + "<tr><td>RTE</td><td>NLI</td><td>52.71%</td></tr>"
+        + "<tr><td>MNLI</td><td>NLI (3 classi)</td><td>46.47%</td></tr>"
+        + "<tr><td>STS-B</td><td>regressione</td><td>MSE 2.28</td></tr>"
+        + "</tbody></table></div>"
+        + "<figure><img src='" + IMG + "glue_chart.png' alt='Grafico risultati GLUE'></figure>"
+        + "<div class='exp-takeaway'><strong>Cosa conferma la teoria:</strong> pre-training MLM (vocab byte 256, seq 1024, 10.11M params) → fine-tuning sugli 8 task GLUE. La stessa pipeline encode-process-decode passa da immagini e 3D al <strong>testo</strong> cambiando solo input/output e le query: generalità multimodale (Cap. 15)."
+        + "</div>"
+    };
+
+    function render(tab, animate) {
+      var html = DATA[tab];
+      if (!html) return;
+      if (!animate || reduceMotion()) { panel.innerHTML = html; return; }
+      panel.classList.add("is-swapping");
+      setTimeout(function() {
+        panel.innerHTML = html;
+        requestAnimationFrame(function() { panel.classList.remove("is-swapping"); });
+      }, 160);
+    }
+
+    tabButtons.forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        tabButtons.forEach(function(b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+        render(btn.getAttribute("data-exp-tab"), true);
+      });
+    });
+    render("cifar", false);
+  }
+
   function initInteractiveLabs() {
     initArchitectureFlowLab();
     initByteUnrollLab();
@@ -2287,6 +2372,7 @@ const LAB_SOURCE_REFS = {
     initPipelineRecapLab();
     initFormulaSpotlightLab();
     initComplexityRaceLab();
+    initMyExperimentsLab();
   }
 
   window.PerceiverInteractiveLabs = { initInteractiveLabs };

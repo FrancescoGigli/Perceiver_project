@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260606-anim4">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260606-anim4">
-<script defer src="js/interactive-labs.js?v=20260606-anim4"></script>
+<link rel="stylesheet" href="css/style.css?v=20260608-exp">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp">
+<script defer src="js/interactive-labs.js?v=20260608-exp"></script>
 </head>
 <body>
 
@@ -4189,13 +4189,65 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-43">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="43"><span class="check"></span><span class="check-label">Ho capito</span></label>
-        <button class="btn btn-primary" id="next-43" disabled>Fine</button>
+        <button class="btn btn-primary" id="next-43">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 44 — I miei esperimenti ============ -->
+    <section class="chapter" data-chapter="44">
+      <div class="chap-meta"><span class="chap-badge">App. 4</span><span class="chap-time">~12 min</span></div>
+      <h1>I miei esperimenti</h1>
+      <p class="intro">Il progetto d'esame: implementazione <strong>from-scratch in PyTorch</strong> di Perceiver e Perceiver IO (corso B031278, Prof. Frasconi, UniFi), riprodotta su tre modalità — immagini (CIFAR-10), point cloud 3D (ModelNet40), testo (MLM WikiText-103 → GLUE). Qui i risultati <strong>reali</strong> e come confermano la teoria della lezione.</p>
+
+      <div class="nota">
+        <span class="nota-label">Setup sperimentale</span>
+        Framework <strong>PyTorch</strong> + mixed-precision (AMP) + TensorBoard. Ottimizzatore <strong>LAMB</strong>, early stopping (patience 10), checkpoint best/last. CIFAR-10: 120 epoche, batch 64, 50k train / 10k val, permutation seed=42. Sette esperimenti CIFAR-10 completati (durate 2.93h–7.52h ciascuno).
+      </div>
+
+      <h2>Risultati per modalità</h2>
+      <div class="concept-lab my-experiments-lab" data-lab="my-experiments">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">Progetto · analysis_results/</span>
+            <h3>Risultati reali per dataset</h3>
+            <p>Seleziona una modalità: la tabella dei risultati misurati, il grafico del progetto e cosa conferma della teoria.</p>
+          </div>
+          <div class="lab-toggle" role="tablist" aria-label="Modalità sperimentale">
+            <button type="button" class="active" data-exp-tab="cifar">CIFAR-10</button>
+            <button type="button" data-exp-tab="io">Perceiver IO</button>
+            <button type="button" data-exp-tab="modelnet">ModelNet40 3D</button>
+            <button type="button" data-exp-tab="text">Testo</button>
+          </div>
+        </div>
+        <div class="exp-panel" id="myExperimentsPanel" aria-live="polite"></div>
+      </div>
+
+      <h2>Verifiche</h2>
+      <figure>
+        <img src="../experiment_assets/comparative_analysis.png" alt="Evoluzione delle attention maps tra le configurazioni di positional encoding">
+        <figcaption>Evoluzione delle <strong>attention maps</strong> nelle 7 configurazioni dell'ablation: mostrano empiricamente come i latenti si specializzano a seconda del positional encoding — il supporto visivo all'idea del Cap. 8/12.</figcaption>
+      </figure>
+      <ul>
+        <li><strong>Permutation invariance</strong>: permutando i pixel l'accuracy non degrada (78.12% permutato vs 69.69% non-permutato) — verifica empirica diretta della teoria Fourier (Cap. 5/12).</li>
+        <li><strong>Early stopping + confusion matrix</strong> per epoca: controllo dell'overfitting sul validation set da 10k, salvate per ogni run.</li>
+        <li><strong>Gruppi di controllo</strong>: ogni research question ha il suo confronto controllato a parità di iperparametri.</li>
+      </ul>
+
+      <div class="idea">
+        <div class="idea-label">Idea chiave</div>
+        <p>I miei numeri confermano la lezione: il PE è essenziale, le Fourier features danno robustezza alle permutazioni, il bottleneck con weight sharing è efficiente in parametri, e la <strong>stessa architettura</strong> funziona su immagini, 3D e testo. Dove i risultati divergono dal paper — qui il weight sharing è un <em>trade-off di efficienza</em>, non un guadagno di accuracy — lo dico esplicitamente: è il valore di averlo verificato di persona.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-44">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="44"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-44" disabled>Fine</button>
       </div>
 
       <div id="finalRecap" class="hidden" style="margin-top:40px;padding:30px;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-radius:14px;text-align:center;">
         <h2 style="color:var(--success);margin-top:0">Lezione completata</h2>
-        <p>Ora hai una versione completa: Perceiver, Perceiver IO, riferimenti teorici, formulario, mappa del forward e confronti finali.</p>
-        <p style="font-size:14px;color:var(--muted);margin-top:18px;">Fonte estesa: <code>appunti_ml_definitivo.tex</code>.</p>
+        <p>Hai la versione completa: Perceiver, Perceiver IO, riferimenti teorici, formulario, mappa del forward, confronti e i <strong>tuoi esperimenti</strong> con i risultati reali del progetto.</p>
+        <p style="font-size:14px;color:var(--muted);margin-top:18px;">Fonti: <code>appunti_ml_definitivo.tex</code> e <code>analysis_results/</code>.</p>
       </div>
     </section>
 
@@ -4272,6 +4324,6 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260606-anim4"></script>
+<script defer src="js/app.js?v=20260608-exp"></script>
 </body>
 </html>
