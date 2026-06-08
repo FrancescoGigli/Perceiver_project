@@ -2272,9 +2272,20 @@
 .attn-evo-figure img { width: 100%; max-width: 640px; display: block; margin: 0 auto; border-radius: 8px; border: 1px solid var(--border, #e6e6ec); background: #fff; transition: opacity 200ms var(--ease-out); }
 .attn-evo-figure figcaption { margin-top: 8px; }
 
+/* Scala paper vs noi (ch45) */
+.scale-rows { margin: 12px 0 6px; }
+.scale-row { display: grid; grid-template-columns: 46px 1fr auto; align-items: center; gap: 10px; margin: 8px 0; }
+.scale-label { font-size: 0.8rem; font-weight: 600; color: var(--muted, #6e6e76); }
+.scale-track { background: #eef0f6; border-radius: 6px; height: 22px; overflow: hidden; }
+.scale-fill { height: 100%; width: 0%; border-radius: 6px; transition: width 700ms var(--ease-out); }
+.scale-fill.paper { background: #9aa3c4; }
+.scale-fill.noi { background: var(--accent, #e65100); }
+.scale-val { font-size: 0.8rem; font-weight: 700; color: var(--primary, #1a237e); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
 @media (prefers-reduced-motion: reduce) {
   .exp-panel { transition: none; }
   .attn-evo-figure img { transition: none; }
+  .scale-fill { transition: none; }
 }
 
 /* Su mobile la tabella risultati diventa una lista di card (niente scroll orizzontale) */

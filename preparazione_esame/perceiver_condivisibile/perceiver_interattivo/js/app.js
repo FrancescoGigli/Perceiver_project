@@ -5,6 +5,8 @@ const MAIN_TOTAL = 18;
 const REFERENCE_START = 19;
 const REFERENCE_END = 40;
 const APPENDIX_START = 41;
+const APPENDIX_END = 43;
+const EXPERIMENTS_START = 44;
 const CHAPTER_TITLES = [
   "Il problema",
   "Self → Cross-attention",
@@ -89,16 +91,23 @@ function renderToc() {
   appendixTitle.className = "toc-section-title";
   appendixTitle.textContent = "Appendici finali";
   toc.appendChild(appendixTitle);
-  for (let i = APPENDIX_START; i <= TOTAL; i++) {
+  for (let i = APPENDIX_START; i <= APPENDIX_END; i++) {
     toc.appendChild(createTocItem(i, "appendix"));
+  }
+  const expTitle = document.createElement("li");
+  expTitle.className = "toc-section-title";
+  expTitle.textContent = "Esperimenti";
+  toc.appendChild(expTitle);
+  for (let i = EXPERIMENTS_START; i <= TOTAL; i++) {
+    toc.appendChild(createTocItem(i, "experiment"));
   }
 }
 function createTocItem(i, kind = "main") {
     const li = document.createElement("li");
     li.dataset.kind = kind;
-    const kindClass = kind === "reference" ? "reference-item " : kind === "appendix" ? "appendix-item " : "";
+    const kindClass = kind === "reference" ? "reference-item " : kind === "appendix" ? "appendix-item " : kind === "experiment" ? "experiment-item " : "";
     li.className = `${kindClass}${i === currentChapter ? "active " : ""}${state.done[i] ? "done" : ""}`;
-    const label = kind === "reference" ? `R${i - REFERENCE_START + 1}` : kind === "appendix" ? `A${i - APPENDIX_START + 1}` : i;
+    const label = kind === "reference" ? `R${i - REFERENCE_START + 1}` : kind === "appendix" ? `A${i - APPENDIX_START + 1}` : kind === "experiment" ? `E${i - EXPERIMENTS_START + 1}` : i;
     li.innerHTML = `<div class="toc-num"><span class="toc-num-text">${label}</span></div><div class="toc-title">${CHAPTER_TITLES[i-1]}</div>`;
     li.addEventListener("click", () => goTo(i));
     return li;
@@ -380,11 +389,13 @@ function renderSourceRail() {
     rail.innerHTML = '<div class="source-note">Fonte non mappata per questo capitolo.</div>';
     return;
   }
-  const chapterLabel = currentChapter >= APPENDIX_START
-    ? `Appendice ${currentChapter - APPENDIX_START + 1}`
-    : currentChapter >= REFERENCE_START
-      ? `Rif. ${currentChapter - REFERENCE_START + 1}`
-      : `Cap. ${currentChapter}`;
+  const chapterLabel = currentChapter >= EXPERIMENTS_START
+    ? `Esperimenti ${currentChapter - EXPERIMENTS_START + 1}`
+    : currentChapter >= APPENDIX_START
+      ? `Appendice ${currentChapter - APPENDIX_START + 1}`
+      : currentChapter >= REFERENCE_START
+        ? `Rif. ${currentChapter - REFERENCE_START + 1}`
+        : `Cap. ${currentChapter}`;
   const hasPdf = source.pdfPage != null;
   const pdfHref = `../appunti_ml_definitivo.pdf#page=${source.pdfPage}`;
   const texHref = "../appunti_ml_definitivo.tex";
