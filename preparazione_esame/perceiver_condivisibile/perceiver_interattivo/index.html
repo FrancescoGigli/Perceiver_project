@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260608-exp2">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp2">
-<script defer src="js/interactive-labs.js?v=20260608-exp2"></script>
+<link rel="stylesheet" href="css/style.css?v=20260608-exp3">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp3">
+<script defer src="js/interactive-labs.js?v=20260608-exp3"></script>
 </head>
 <body>
 
@@ -4215,6 +4215,41 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
         Framework <strong>PyTorch</strong> + mixed-precision (AMP) + TensorBoard. Ottimizzatore <strong>LAMB</strong>, early stopping (patience 10), checkpoint best/last. CIFAR-10: 120 epoche, batch 64, 50k train / 10k val, permutation seed=42. Sette esperimenti CIFAR-10 completati (durate 2.93h–7.52h ciascuno).
       </div>
 
+      <h2>Cosa sono i dataset</h2>
+      <p>Le tre modalità del progetto usano quattro dataset standard. In breve: cosa sono e cosa contengono.</p>
+      <div class="dataset-cards">
+        <div class="dataset-card">
+          <div class="dataset-name">CIFAR-10 <span class="dataset-tag">immagini</span></div>
+          <p><strong>60.000 immagini</strong> a colori <strong>32×32 px</strong>, in <strong>10 classi</strong> mutuamente esclusive (aereo, automobile, uccello, gatto, cervo, cane, rana, cavallo, nave, camion). Split: 50.000 train / 10.000 test, classi bilanciate.</p>
+          <p class="dataset-use"><strong>Nel progetto:</strong> input principale dell'ablation study (Fourier vs learned PE, permutazione pixel, weight sharing) e della classificazione con Perceiver IO.</p>
+        </div>
+        <div class="dataset-card">
+          <div class="dataset-name">ModelNet40 <span class="dataset-tag">point cloud 3D</span></div>
+          <p><strong>12.311 modelli CAD 3D</strong> in <strong>40 categorie</strong> di oggetti (sedia, tavolo, aereo, letto, lampada…). Ogni oggetto è campionato come <strong>nuvola di 2.048 punti</strong> con coordinate (x, y, z). Split: 9.843 train / 2.468 test.</p>
+          <p class="dataset-use"><strong>Nel progetto:</strong> classificazione 3D e studio dell'effetto delle augmentation (scale / translation / rotation) — modalità non-immagine con la stessa architettura.</p>
+        </div>
+        <div class="dataset-card">
+          <div class="dataset-name">WikiText-103 <span class="dataset-tag">testo</span></div>
+          <p><strong>~103 milioni di token</strong> estratti da articoli Wikipedia di alta qualità (categoria "Good/Featured"), con punteggiatura e numeri reali (non normalizzati). Qui usato a livello di <strong>byte</strong> (vocabolario 256), sequenze da 1024.</p>
+          <p class="dataset-use"><strong>Nel progetto:</strong> pre-training del Perceiver IO con <strong>masked language modeling</strong> (15% di byte mascherati) — il checkpoint da cui parte il fine-tuning GLUE.</p>
+        </div>
+        <div class="dataset-card dataset-card--wide">
+          <div class="dataset-name">GLUE <span class="dataset-tag">8 task NLU</span></div>
+          <p>Suite di benchmark per la <strong>comprensione del linguaggio</strong> (General Language Understanding Evaluation). Gli 8 task usati:</p>
+          <ul class="dataset-glue">
+            <li><strong>CoLA</strong> — la frase è grammaticalmente accettabile? (2 classi)</li>
+            <li><strong>SST-2</strong> — sentiment di recensioni di film (positivo/negativo)</li>
+            <li><strong>MRPC</strong> — due frasi sono parafrasi? (2 classi)</li>
+            <li><strong>STS-B</strong> — quanto sono simili due frasi? (regressione 0–5)</li>
+            <li><strong>QQP</strong> — due domande Quora sono duplicate? (2 classi)</li>
+            <li><strong>MNLI</strong> — entailment / contraddizione / neutro (3 classi)</li>
+            <li><strong>QNLI</strong> — la frase risponde alla domanda? (entailment, 2 classi)</li>
+            <li><strong>RTE</strong> — textual entailment su poco dato (2 classi)</li>
+          </ul>
+          <p class="dataset-use"><strong>Nel progetto:</strong> fine-tuning del checkpoint MLM su ciascun task, per misurare il transfer learning del Perceiver IO sul testo.</p>
+        </div>
+      </div>
+
       <h2>Risultati per modalità</h2>
       <div class="concept-lab my-experiments-lab" data-lab="my-experiments">
         <div class="lab-head">
@@ -4335,6 +4370,6 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260608-exp2"></script>
+<script defer src="js/app.js?v=20260608-exp3"></script>
 </body>
 </html>

@@ -2247,6 +2247,18 @@
 .exp-takeaway ul { margin: 6px 0 0; padding-left: 18px; }
 .exp-takeaway li { margin: 3px 0; }
 
+/* Dataset cards (ch44) */
+.dataset-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 12px 0; }
+.dataset-card { background: var(--bg-soft, #f3f4f8); border: 1px solid var(--border, #e6e6ec); border-radius: 10px; padding: 12px 14px; }
+.dataset-card.dataset-card--wide { grid-column: 1 / -1; }
+.dataset-card p { margin: 6px 0; font-size: 0.85rem; line-height: 1.5; }
+.dataset-name { font-weight: 700; color: var(--primary, #1a237e); font-size: 0.95rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dataset-tag { font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent, #e65100); background: rgba(230,81,0,0.09); border-radius: 999px; padding: 2px 8px; }
+.dataset-use { color: var(--muted, #6e6e76); }
+.dataset-glue { margin: 6px 0; padding-left: 18px; font-size: 0.82rem; line-height: 1.5; }
+.dataset-glue li { margin: 2px 0; }
+@media (max-width: 640px) { .dataset-cards { grid-template-columns: 1fr; } }
+
 @media (prefers-reduced-motion: reduce) {
   .exp-panel { transition: none; }
 }
