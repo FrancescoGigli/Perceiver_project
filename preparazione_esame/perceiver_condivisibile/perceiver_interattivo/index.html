@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260608-exp8">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp8">
-<script defer src="js/interactive-labs.js?v=20260608-exp8"></script>
+<link rel="stylesheet" href="css/style.css?v=20260608-exp9">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp9">
+<script defer src="js/interactive-labs.js?v=20260608-exp9"></script>
 </head>
 <body>
 
@@ -4460,8 +4460,12 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
 
       <h2>Grafici del progetto</h2>
       <figure>
+        <img src="../experiment_assets/experiment_results_visualization.png" alt="Visualizzazione complessiva dei risultati degli esperimenti" loading="lazy">
+        <figcaption>Quadro d'insieme dei risultati: accuracy per esperimento e per modalità, generato automaticamente da <code>analysis_results/</code>.</figcaption>
+      </figure>
+      <figure>
         <img src="../experiment_assets/accuracy_chart.png" alt="Confronto accuracy tra gli esperimenti" loading="lazy">
-        <figcaption>Accuracy finale dei vari esperimenti (CIFAR-10, Perceiver IO, ModelNet40, MLM).</figcaption>
+        <figcaption>Accuracy finale dei vari esperimenti (CIFAR-10 Perceiver vs Perceiver IO, ModelNet40, MLM, GLUE).</figcaption>
       </figure>
       <figure>
         <img src="../experiment_assets/convergence_chart.png" alt="Efficienza di convergenza" loading="lazy">
@@ -4469,24 +4473,52 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       </figure>
 
       <h2>Verifiche &amp; attention maps</h2>
+      <p>Le <strong>attention maps</strong> dei latenti, salvate durante il training, sono la verifica visiva della teoria: con le Fourier features l'attenzione si <em>localizza</em> e resta strutturata anche sotto permutazione; senza positional encoding (RGB-only) resta diffusa.</p>
+
       <div class="concept-lab attn-evo-lab" data-lab="attention-evolution">
         <div class="lab-head">
           <div>
-            <span class="lab-source">attention_analysis/</span>
-            <h3>Evoluzione delle attention maps</h3>
-            <p>Scegli un esperimento: come si specializzano le mappe di attenzione dei latenti durante il training.</p>
+            <span class="lab-source">attention_analysis/ · evoluzione</span>
+            <h3>Evoluzione nel training (per esperimento)</h3>
+            <p>Scegli un esperimento: come si specializzano le mappe di attenzione dei latenti epoca dopo epoca.</p>
           </div>
           <div class="lab-toggle" role="tablist" aria-label="Esperimento">
             <button type="button" class="active" data-attn-exp="comparative_analysis">Confronto</button>
-            <button type="button" data-attn-exp="exp1_baseline_fourier_evolution">Baseline Fourier</button>
-            <button type="button" data-attn-exp="exp6_fourier_permuted_evolution">Fourier permutato</button>
+            <button type="button" data-attn-exp="exp1_baseline_fourier_evolution">Baseline</button>
+            <button type="button" data-attn-exp="exp3A_fourier_control_evolution">Fourier ctrl</button>
+            <button type="button" data-attn-exp="exp6_fourier_permuted_evolution">Fourier perm.</button>
             <button type="button" data-attn-exp="exp2_learned_pe_permuted_evolution">Learned PE</button>
+            <button type="button" data-attn-exp="exp4A_weight_sharing_control_evolution">W-share</button>
+            <button type="button" data-attn-exp="exp4B_no_weight_sharing_evolution">No W-share</button>
             <button type="button" data-attn-exp="exp3B_rgb_only_evolution">RGB-only</button>
           </div>
         </div>
         <figure class="attn-evo-figure">
-          <img id="attnEvoImg" src="../experiment_assets/comparative_analysis.png" alt="Attention maps" loading="lazy">
-          <figcaption id="attnEvoCaption">Confronto delle 7 configurazioni dell'ablation: i latenti si specializzano in modo diverso a seconda del positional encoding.</figcaption>
+          <img class="attn-evo-img" src="../experiment_assets/comparative_analysis.png" alt="Evoluzione attention maps" loading="lazy">
+          <figcaption class="attn-evo-cap">Confronto delle 7 configurazioni dell'ablation: i latenti si specializzano in modo diverso a seconda del positional encoding.</figcaption>
+        </figure>
+      </div>
+
+      <div class="concept-lab attn-evo-lab" data-lab="attention-perceiver-style">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">perceiver_visualizations/ · stile-Perceiver</span>
+            <h3>Mappe in stile Perceiver (singola epoca)</h3>
+            <p>Le stesse attenzioni rese nello stile delle figure del paper. Confronta com'è strutturata l'attenzione tra le configurazioni.</p>
+          </div>
+          <div class="lab-toggle" role="tablist" aria-label="Esperimento (stile Perceiver)">
+            <button type="button" class="active" data-attn-exp="ps_exp6">Fourier perm.</button>
+            <button type="button" data-attn-exp="ps_exp1">Baseline</button>
+            <button type="button" data-attn-exp="ps_exp3A">Fourier ctrl</button>
+            <button type="button" data-attn-exp="ps_exp2">Learned PE</button>
+            <button type="button" data-attn-exp="ps_exp4A">W-share</button>
+            <button type="button" data-attn-exp="ps_exp4B">No W-share</button>
+            <button type="button" data-attn-exp="ps_exp3B">RGB-only</button>
+          </div>
+        </div>
+        <figure class="attn-evo-figure">
+          <img class="attn-evo-img" src="../experiment_assets/ps_exp6.png" alt="Attention map stile Perceiver" loading="lazy">
+          <figcaption class="attn-evo-cap">Stile-Perceiver — Fourier permutato (epoca 101): attenzione strutturata nonostante la permutazione dei pixel.</figcaption>
         </figure>
       </div>
 
@@ -4591,6 +4623,6 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260608-exp8"></script>
+<script defer src="js/app.js?v=20260608-exp9"></script>
 </body>
 </html>
