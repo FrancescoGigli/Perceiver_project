@@ -2259,14 +2259,14 @@ const LAB_SOURCE_REFS = {
     var DATA = {
       cifar: "<div class='exp-caption'>CIFAR-10 — Ablation study (Perceiver, 120 epoche, batch 64)</div>"
         + "<div class='exp-table-wrap'><table class='exp-table'>"
-        + "<thead><tr><th>Esperimento</th><th>PE</th><th>Permut.</th><th>W-share</th><th>Params</th><th>Accuracy</th><th>Tempo</th></tr></thead><tbody>"
-        + "<tr class='exp-best'><td>fourier_permuted</td><td>Fourier</td><td>Sì</td><td>Sì</td><td>3.35M</td><td>78.12%</td><td>7.35h</td></tr>"
-        + "<tr><td>learned_pe_permuted</td><td>Learned</td><td>Sì</td><td>Sì</td><td>3.35M</td><td>77.60%</td><td>4.45h</td></tr>"
-        + "<tr><td>no_weight_sharing</td><td>Fourier</td><td>No</td><td><strong>No</strong></td><td><strong>8.67M</strong></td><td>73.85%</td><td>4.91h</td></tr>"
-        + "<tr><td>fourier_control</td><td>Fourier</td><td>No</td><td>Sì</td><td>3.35M</td><td>72.02%</td><td>3.53h</td></tr>"
-        + "<tr><td>baseline_fourier</td><td>Fourier</td><td>No</td><td>Sì</td><td>3.35M</td><td>69.69%</td><td>2.93h</td></tr>"
-        + "<tr><td>weight_sharing_control</td><td>Fourier</td><td>No</td><td>Sì</td><td>3.35M</td><td>68.49%</td><td>2.98h</td></tr>"
-        + "<tr><td>rgb_only</td><td>None</td><td>No</td><td>Sì</td><td>3.30M</td><td>61.34%</td><td>7.52h</td></tr>"
+        + "<thead><tr><th>Esperimento</th><th>PE</th><th>Permut.</th><th>W-share</th><th>Params</th><th>Accuracy</th><th>Loss</th><th>Best ep.</th><th>Tempo</th></tr></thead><tbody>"
+        + "<tr class='exp-best'><td>fourier_permuted</td><td>Fourier</td><td>Sì</td><td>Sì</td><td>3.35M</td><td>78.12%</td><td>0.750</td><td>108</td><td>7.35h</td></tr>"
+        + "<tr><td>learned_pe_permuted</td><td>Learned</td><td>Sì</td><td>Sì</td><td>3.35M</td><td>77.60%</td><td>0.765</td><td>89</td><td>4.45h</td></tr>"
+        + "<tr><td>no_weight_sharing</td><td>Fourier</td><td>No</td><td><strong>No</strong></td><td><strong>8.67M</strong></td><td>73.85%</td><td>0.761</td><td>63</td><td>4.91h</td></tr>"
+        + "<tr><td>fourier_control</td><td>Fourier</td><td>No</td><td>Sì</td><td>3.35M</td><td>72.02%</td><td>0.804</td><td>44</td><td>3.53h</td></tr>"
+        + "<tr><td>baseline_fourier</td><td>Fourier</td><td>No</td><td>Sì</td><td>3.35M</td><td>69.69%</td><td>0.879</td><td>44</td><td>2.93h</td></tr>"
+        + "<tr><td>weight_sharing_control</td><td>Fourier</td><td>No</td><td>Sì</td><td>3.35M</td><td>68.49%</td><td>0.899</td><td>36</td><td>2.98h</td></tr>"
+        + "<tr><td>rgb_only</td><td>None</td><td>No</td><td>Sì</td><td>3.30M</td><td>61.34%</td><td>1.152</td><td>106</td><td>7.52h</td></tr>"
         + "</tbody></table></div>"
         + "<figure><img src='" + IMG + "cifar10_chart.png' alt='Grafico accuracy CIFAR-10'></figure>"
         + "<div class='exp-takeaway'><strong>Cosa conferma la teoria:</strong><ul>"
@@ -2294,16 +2294,16 @@ const LAB_SOURCE_REFS = {
         + "<div class='exp-takeaway'><strong>Cosa conferma la teoria:</strong> la <strong>stessa architettura</strong> (input xyz + Fourier, 128 latenti, 5.93M params) applicata a una modalità 3D totalmente diversa, senza componenti domain-specific, raggiunge 84.24% — a ~1.5 punti dal paper (85.7%). È la generalità del Perceiver.</div>",
       text: "<div class='exp-caption'>Testo — MLM byte-level WikiText-103 → fine-tuning GLUE (Perceiver IO)</div>"
         + "<div class='exp-table-wrap'><table class='exp-table'>"
-        + "<thead><tr><th>Task</th><th>Tipo</th><th>Metrica</th></tr></thead><tbody>"
-        + "<tr class='exp-best'><td>MLM WikiText-103</td><td>pre-training</td><td>82.20% acc</td></tr>"
-        + "<tr><td>QQP</td><td>paraphrase</td><td>75.65%</td></tr>"
-        + "<tr><td>CoLA</td><td>acceptability</td><td>69.13%</td></tr>"
-        + "<tr><td>MRPC</td><td>paraphrase</td><td>68.38%</td></tr>"
-        + "<tr><td>SST-2</td><td>sentiment</td><td>61.24%</td></tr>"
-        + "<tr><td>QNLI</td><td>NLI</td><td>59.93%</td></tr>"
-        + "<tr><td>RTE</td><td>NLI</td><td>52.71%</td></tr>"
-        + "<tr><td>MNLI</td><td>NLI (3 classi)</td><td>46.47%</td></tr>"
-        + "<tr><td>STS-B</td><td>regressione</td><td>MSE 2.28</td></tr>"
+        + "<thead><tr><th>Task</th><th>Tipo</th><th>Metrica</th><th>Best ep.</th></tr></thead><tbody>"
+        + "<tr class='exp-best'><td>MLM WikiText-103</td><td>pre-training</td><td>82.20% acc</td><td>49</td></tr>"
+        + "<tr><td>QQP</td><td>paraphrase</td><td>75.65%</td><td>24</td></tr>"
+        + "<tr><td>CoLA</td><td>acceptability</td><td>69.13%</td><td>1</td></tr>"
+        + "<tr><td>MRPC</td><td>paraphrase</td><td>68.38%</td><td>1</td></tr>"
+        + "<tr><td>SST-2</td><td>sentiment</td><td>61.24%</td><td>13</td></tr>"
+        + "<tr><td>QNLI</td><td>NLI</td><td>59.93%</td><td>17</td></tr>"
+        + "<tr><td>RTE</td><td>NLI</td><td>52.71%</td><td>4</td></tr>"
+        + "<tr><td>MNLI</td><td>NLI (3 classi)</td><td>46.47%</td><td>22</td></tr>"
+        + "<tr><td>STS-B</td><td>regressione</td><td>MSE 2.28</td><td>4</td></tr>"
         + "</tbody></table></div>"
         + "<figure><img src='" + IMG + "glue_chart.png' alt='Grafico risultati GLUE'></figure>"
         + "<div class='exp-takeaway'><strong>Cosa conferma la teoria:</strong> pre-training MLM (vocab byte 256, seq 1024, 10.11M params) → fine-tuning sugli 8 task GLUE. La stessa pipeline encode-process-decode passa da immagini e 3D al <strong>testo</strong> cambiando solo input/output e le query: generalità multimodale (Cap. 15)."
@@ -2342,40 +2342,51 @@ const LAB_SOURCE_REFS = {
     render("cifar", false);
   }
 
-  // --- ch46: selettore evoluzione attention maps ---
+  // --- ch46: selettori di attention maps (evolution + stile-Perceiver) ---
   function initAttentionEvolutionLab() {
-    var container = document.querySelector('[data-lab="attention-evolution"]');
-    if (!container) return;
-    var buttons = container.querySelectorAll("[data-attn-exp]");
-    var img = document.getElementById("attnEvoImg");
-    var cap = document.getElementById("attnEvoCaption");
-    if (!img || !cap) return;
     var CAPTIONS = {
       comparative_analysis: "Confronto delle 7 configurazioni dell'ablation: i latenti si specializzano in modo diverso a seconda del positional encoding.",
       exp1_baseline_fourier_evolution: "Baseline Fourier (non permutato): evoluzione delle attention maps durante il training.",
+      exp3A_fourier_control_evolution: "Fourier control (non permutato): andamento delle attention maps.",
       exp6_fourier_permuted_evolution: "Fourier + permutazione pixel: nonostante l'input permutato, l'attenzione resta strutturata (invarianza).",
       exp2_learned_pe_permuted_evolution: "Learned PE + permutazione: le posizioni apprese si scombinano, attenzione meno coerente.",
-      exp3B_rgb_only_evolution: "RGB-only (senza positional encoding): l'attenzione fatica a localizzare, accuracy piu' bassa (61.34%)."
+      exp4A_weight_sharing_control_evolution: "Weight sharing control: attenzione con pesi condivisi (config base).",
+      exp4B_no_weight_sharing_evolution: "Senza weight sharing (8.67M par): blocchi indipendenti, piu' parametri.",
+      exp3B_rgb_only_evolution: "RGB-only (senza positional encoding): l'attenzione fatica a localizzare, accuracy piu' bassa (61.34%).",
+      ps_exp1: "Stile-Perceiver — baseline Fourier (epoca 41).",
+      ps_exp6: "Stile-Perceiver — Fourier permutato (epoca 101): attenzione strutturata nonostante la permutazione dei pixel.",
+      ps_exp2: "Stile-Perceiver — learned PE permutato (epoca 81).",
+      ps_exp3A: "Stile-Perceiver — Fourier control (epoca 41).",
+      ps_exp3B: "Stile-Perceiver — RGB-only (epoca 101): senza PE l'attenzione e' meno localizzata.",
+      ps_exp4A: "Stile-Perceiver — weight sharing control (epoca 41).",
+      ps_exp4B: "Stile-Perceiver — senza weight sharing (epoca 61)."
     };
-    function swap(name) {
-      var src = "../experiment_assets/" + name + ".png";
-      cap.textContent = CAPTIONS[name] || "";
-      if (reduceMotion()) { img.src = src; img.style.opacity = "1"; return; }
-      img.style.opacity = "0";
-      var settled = false;
-      function showIn() { if (settled) return; settled = true; img.style.opacity = "1"; }
-      setTimeout(function() {
-        img.onload = showIn;
-        img.src = src;
-        if (img.complete) showIn();
-        setTimeout(showIn, 600);
-      }, 150);
-    }
-    buttons.forEach(function(btn) {
-      btn.addEventListener("click", function() {
-        buttons.forEach(function(b) { b.classList.remove("active"); });
-        btn.classList.add("active");
-        swap(btn.getAttribute("data-attn-exp"));
+    var labs = document.querySelectorAll(".attn-evo-lab");
+    labs.forEach(function(container) {
+      var buttons = container.querySelectorAll("[data-attn-exp]");
+      var img = container.querySelector(".attn-evo-img");
+      var cap = container.querySelector(".attn-evo-cap");
+      if (!img || !cap) return;
+      function swap(name) {
+        var src = "../experiment_assets/" + name + ".png";
+        cap.textContent = CAPTIONS[name] || "";
+        if (reduceMotion()) { img.src = src; img.style.opacity = "1"; return; }
+        img.style.opacity = "0";
+        var settled = false;
+        function showIn() { if (settled) return; settled = true; img.style.opacity = "1"; }
+        setTimeout(function() {
+          img.onload = showIn;
+          img.src = src;
+          if (img.complete) showIn();
+          setTimeout(showIn, 600);
+        }, 150);
+      }
+      buttons.forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          buttons.forEach(function(b) { b.classList.remove("active"); });
+          btn.classList.add("active");
+          swap(btn.getAttribute("data-attn-exp"));
+        });
       });
     });
   }
