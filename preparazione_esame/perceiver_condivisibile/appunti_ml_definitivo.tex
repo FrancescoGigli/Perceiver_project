@@ -697,7 +697,7 @@ Byte array $X$ & $M \times C_{\text{tot}}$ & $50\,176 \times 261$ & RGB ($3$) $+
 \medskip
 \textbf{Perché restiamo a $261$ e non saliamo a $1024$?}
 
-La tentazione sarebbe di ``uniformare'' subito il byte array alla dimensione dei latenti ($D = 1024$), ma \emph{il paper non lo fa}. Il motivo è che la cross-attention che segue userà come dimensione interna il minimo tra le due sorgenti, $d_{QKV} = \min(D, C_{\text{tot}}) = \min(1024, 261) = 261$ (cfr.\ App.\ C del paper). Espandere l'input a $1024$ solo per poi ricomprimerlo a $261$ dentro la cross-attention sarebbe uno spreco di parametri e di FLOPs: i $261$ valori per pixel contengono già tutta l'informazione utile (colore + posizione), aumentare la dimensione non aggiunge nulla.
+La tentazione sarebbe di ``uniformare'' subito il byte array alla dimensione dei latenti ($D = 1024$), ma \emph{il paper non lo fa}. Il motivo è che la cross-attention che segue userà come dimensione interna il minimo tra le due sorgenti, $d_{QKV} = \min(D, C_{\text{tot}}) = \min(1024, 261) = 261$ (cfr.\ App.\ C del paper). Espandere l'input a $1024$ solo per poi ricomprimerlo a $261$ dentro la cross-attention sarebbe uno spreco di parametri e di FLOPs: i $261$ valori per pixel contengono già tutta l'informazione utile (colore + posizione), aumentare la dimensione non aggiunge nulla. Formalmente, una proiezione lineare $261 \to 1024$ ha \emph{rango} $\le 261$: produrrebbe $1024$ feature ma solo $261$ linearmente indipendenti (le altre ridondanti). Espandere non può \emph{creare} informazione che non c'è.
 
 Il nostro codice fa invece una proiezione a $H \cdot d_{\text{head}} = 512$ perché adotta multi-head ($H=8, d_{\text{head}}=64$) anche nella cross-attention: in quel caso $d_{QKV}$ è forzato dalla scelta delle teste, non dal minimo degli input. Ma è una divergenza implementativa, non una necessità del paper.
 
@@ -6550,6 +6550,14 @@ $N = 256$ latenti, $D = 1280$ dim latente, $h = 8$ teste, $d_k = d_v = D/h = 160
 
 Il progetto riproduce \textbf{from-scratch in PyTorch} le architetture Perceiver (Jaegle et al., 2021) e Perceiver IO (Jaegle et al., 2022), con una pipeline sperimentale estesa a tre modalità di dati: immagini (CIFAR-10), point cloud 3D (ModelNet40), testo (WikiText-103 + 8 task GLUE). L'obiettivo è duplice: (i) verificare empiricamente le proprietà teoriche dell'architettura descritte nel Capitolo~\ref{sec:perceiver-cap} e quantificare il contributo di ciascun componente tramite un ablation study rigoroso; (ii) applicare il Perceiver IO su task NLP realistici (pretraining MLM + fine-tuning GLUE) come estensione naturale al di là del paper originale.
 
+\paragraph{I dataset.} Le tre modalità usano quattro dataset standard:
+\begin{itemize}
+\item \textbf{CIFAR-10} (immagini): 60.000 immagini a colori $32\times32$ in 10 classi (aereo, automobile, uccello, gatto, cervo, cane, rana, cavallo, nave, camion); 50k train / 10k test. Usato per l'ablation study (PE, permutazione, weight sharing) e la classificazione con Perceiver IO.
+\item \textbf{ModelNet40} (point cloud 3D): 12.311 modelli CAD in 40 categorie di oggetti, campionati come nuvole di 2.048 punti $(x,y,z)$; 9.843 train / 2.468 test. Usato per la classificazione 3D e lo studio delle augmentation.
+\item \textbf{WikiText-103} (testo): $\sim$103M token da articoli Wikipedia di alta qualità, usati a livello di \emph{byte} (vocabolario 256), sequenze da 1024. Usato per il pretraining MLM del Perceiver IO.
+\item \textbf{GLUE} (8 task NLU): CoLA (accettabilità grammaticale), SST-2 (sentiment), MRPC e QQP (paraphrase), STS-B (similarità semantica, regressione), MNLI/QNLI/RTE (entailment). Usato per il fine-tuning del checkpoint MLM.
+\end{itemize}
+
 \paragraph{Setup hardware.} Gli esperimenti sono stati condotti su una \textbf{GPU NVIDIA RTX 3060 (12\,GB VRAM)}. Questo limita la dimensione dei batch e costringe a usare configurazioni di modello più piccole rispetto al paper originale (che impiega 64 TPU con batch $\geq 512$). Quando pertinente, i gap di accuracy rispetto ai risultati del paper sono giustificati dal budget computazionale ridotto.
 
 \paragraph{Struttura del codice.}
@@ -9796,7 +9804,7 @@ Nessun componente domain-specific è stato aggiunto: l'adattamento avviene inter
   \textit{Vedi Sezione sull'encoding multimodale: ogni modalità viene proiettata nello stesso spazio dimensionale $C$ tramite embedding lineari separati, poi concatenata lungo l'asse dei token. Le Fourier features delle coordinate spaziotemporali permettono al modello di distinguere posizione e modalità. Keyword: modalità-agnostic backbone, shared latent space.}
 
   \item \textbf{Quali risultati ha ottenuto su ImageNet? Come si confronta con ViT e ResNet?}
-  \textit{Vedi Sezione sui risultati sperimentali: con Fourier features, il Perceiver raggiunge prestazioni competitive con ViT-B/16 su ImageNet senza assumere struttura a griglia. Non supera ResNet specializzati sull'immagine, ma il vantaggio è la generalità su input diversi. Keyword: 79\% top-1, generalità vs specializzazione.}
+  \textit{Vedi Sezione sui risultati sperimentali: con Fourier features, il Perceiver raggiunge $78.0\%$ top-1 su ImageNet, competitivo con ViT-B/16 ($77.9\%$) e ResNet-50 ($77.6\%$) senza assumere struttura a griglia. Non supera ResNet specializzati di fascia alta, ma il vantaggio è la generalità su input diversi. Keyword: 78.0\% top-1, generalità vs specializzazione.}
 
 \end{itemize}
 
@@ -9844,7 +9852,7 @@ Nessun componente domain-specific è stato aggiunto: l'adattamento avviene inter
   \textit{Implementazione in PyTorch, seguendo la struttura del paper originale (Jaegle et al.\ 2021). I moduli principali sono: \texttt{CrossAttention}, \texttt{SelfAttention} (con multi-head), \texttt{FourierEncoding}, e il loop iterativo con weight sharing. Keyword: PyTorch, modularità, weight sharing loop.}
 
   \item \textbf{Come hai riprodotto i risultati? Quali iperparametri hai usato?}
-  \textit{Training su dataset ridotti (CIFAR-10 / subset ImageNet) per verificare la convergenza. Iperparametri principali: $N=512$ latenti, $D=1024$ dimensione latente, $L=8$ iterazioni, cross-attention a 1 testa, self-attention a 8 teste, Adam con $\text{lr}=1\text{e-}4$, weight decay $1\text{e-}4$. Keyword: ablation, hyperparameters, convergence.}
+  \textit{Training su CIFAR-10 (50k/10k), ModelNet40 e WikiText-103$\to$GLUE. Iperparametri CIFAR-10 (Perceiver): $N=96$ latenti, $D=384$, 4 cross-attend stages, 4 transformer blocks, $H=3$ teste, ottimizzatore \textbf{LAMB} con $\text{lr}=4\text{e-}3$, 120 epoche, batch 64. Perceiver IO / ModelNet40 / MLM: $N=128$, $D=512$, $H=8$. (NON Adam: sia il paper sia il progetto usano LAMB.) Keyword: ablation, hyperparameters, LAMB.}
 
   \item \textbf{Quali difficoltà hai incontrato nell'implementazione?}
   \textit{Principali sfide: (1) gestione corretta delle dimensioni nei moduli di attenzione multi-head; (2) implementazione stabile della scaled dot-product attention con masking; (3) verifica del weight sharing (stessi moduli Python riutilizzati nel loop, non copie); (4) encoding Fourier corretto per input 2D/3D con frequenze logaritmiche. Keyword: debugging shapes, tied weights.}
