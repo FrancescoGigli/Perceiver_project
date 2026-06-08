@@ -2259,21 +2259,6 @@
 .dataset-glue li { margin: 2px 0; }
 @media (max-width: 640px) { .dataset-cards { grid-template-columns: 1fr; } }
 
-/* Esame Q&A (ch45) */
-.exam-qa-panel { transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out); }
-.exam-qa-panel.is-swapping { opacity: 0; transform: translateY(4px); }
-.exam-q { border: 1px solid var(--border, #e6e6ec); border-radius: 8px; margin: 8px 0; background: var(--card, #fff); overflow: hidden; }
-.exam-q > summary { list-style: none; cursor: pointer; padding: 10px 12px; display: flex; align-items: flex-start; gap: 10px; font-weight: 600; color: var(--text, #1a1a1a); font-size: 0.88rem; transition: background-color 160ms var(--ease-out); }
-.exam-q > summary::-webkit-details-marker { display: none; }
-.exam-q > summary::after { content: "+"; margin-left: auto; color: var(--muted, #6e6e76); font-weight: 700; flex-shrink: 0; }
-.exam-q[open] > summary::after { content: "−"; }
-.exam-q-num { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--primary-soft, #e8eaf6); color: var(--primary, #1a237e); font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
-.exam-q-text { flex: 1; }
-.exam-q[open] > summary { background: var(--primary-softer, #f3f4fb); color: var(--primary, #1a237e); }
-.exam-a { padding: 6px 12px 12px 44px; font-size: 0.85rem; line-height: 1.55; color: var(--text-soft, #3c3c3c); }
-.exam-a em { color: var(--accent, #e65100); font-style: normal; font-weight: 600; }
-@media (prefers-reduced-motion: reduce) { .exam-qa-panel { transition: none; } }
-
 @media (prefers-reduced-motion: reduce) {
   .exp-panel { transition: none; }
 }

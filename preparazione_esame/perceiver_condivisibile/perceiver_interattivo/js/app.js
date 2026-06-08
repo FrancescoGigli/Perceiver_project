@@ -1,6 +1,6 @@
 ﻿"use strict";
 
-const TOTAL = 45;
+const TOTAL = 44;
 const MAIN_TOTAL = 18;
 const REFERENCE_START = 19;
 const REFERENCE_END = 40;
@@ -49,8 +49,7 @@ const CHAPTER_TITLES = [
   "Formulario ragionato",
   "Mappa forward interattiva",
   "Confronti e specifiche",
-  "I miei esperimenti",
-  "Domande d'esame"
+  "I miei esperimenti"
 ];
 const REFERENCE_TITLES = CHAPTER_TITLES.slice(REFERENCE_START - 1, REFERENCE_END);
 const APPENDIX_TITLES = CHAPTER_TITLES.slice(APPENDIX_START - 1);
@@ -154,8 +153,7 @@ const RAIL_DATA = {
   41: { stage: 0, idea: "Formulario: ogni formula va legata a problema, punto del modello e significato dei simboli." },
   42: { stage: 4, idea: "Mappa forward: osserva come cambiano forme e responsabilità a ogni stadio." },
   43: { stage: 0, idea: "Confronti: prepara differenze nette, non definizioni isolate." },
-  44: { stage: 0, idea: "I risultati reali del progetto confermano la teoria: PE essenziale, Fourier robusto alle permutazioni, weight sharing = efficienza, generalità multimodale." },
-  45: { stage: 0, idea: "Le domande probabili d'esame, con risposte modello: parti sempre da problema → meccanismo → numeri → collegamento al progetto." }
+  44: { stage: 0, idea: "I risultati reali del progetto confermano la teoria: PE essenziale, Fourier robusto alle permutazioni, weight sharing = efficienza, generalità multimodale." }
 };
 const SOURCE_DATA = {
   1: { pdfPage: 5,   pdfPages: "PDF p. 5",       section: "1.1 Il problema della complessità quadratica", texLine: 266 },
@@ -201,8 +199,7 @@ const SOURCE_DATA = {
   41: { pdfPage: 5,   pdfPages: "PDF pp. 5-157",   section: "Sintesi finale: formule ricorrenti del Perceiver", texLine: 266 },
   42: { pdfPage: 10,  pdfPages: "PDF pp. 10-42",   section: "Sintesi finale: forward pass e forme tensoriali", texLine: 369 },
   43: { pdfPage: 77,  pdfPages: "PDF pp. 77-157",  section: "Sintesi finale: confronti, specifiche e riferimenti teorici", texLine: 4050 },
-  44: { pdfPage: null, pdfPages: "Repo: analysis_results/", section: "Progetto Perceiver IO — risultati sperimentali", texLine: null },
-  45: { pdfPage: 214, pdfPages: "PDF pp. 214-218", section: "V Domande Probabili per l'Esame", texLine: 9764 }
+  44: { pdfPage: null, pdfPages: "Repo: analysis_results/", section: "Progetto Perceiver IO — risultati sperimentali", texLine: null }
 };
 const PIPE_STAGES = ["Input", "Fourier", "Latenti", "Cross-Att", "Latent Tr.", "×T", "Pooling/Decoder"];
 const QUICK_LINKS = {
