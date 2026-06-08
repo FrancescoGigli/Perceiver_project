@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260608-exp6">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp6">
-<script defer src="js/interactive-labs.js?v=20260608-exp6"></script>
+<link rel="stylesheet" href="css/style.css?v=20260608-exp7">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp7">
+<script defer src="js/interactive-labs.js?v=20260608-exp7"></script>
 </head>
 <body>
 
@@ -4287,38 +4287,7 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
         </div>
       </div>
 
-      <h2>Risultati per modalità</h2>
-      <div class="concept-lab my-experiments-lab" data-lab="my-experiments">
-        <div class="lab-head">
-          <div>
-            <span class="lab-source">Progetto · analysis_results/</span>
-            <h3>Risultati reali per dataset</h3>
-            <p>Seleziona una modalità: la tabella dei risultati misurati, il grafico del progetto e cosa conferma della teoria.</p>
-          </div>
-          <div class="lab-toggle" role="tablist" aria-label="Modalità sperimentale">
-            <button type="button" class="active" data-exp-tab="cifar">CIFAR-10</button>
-            <button type="button" data-exp-tab="io">Perceiver IO</button>
-            <button type="button" data-exp-tab="modelnet">ModelNet40 3D</button>
-            <button type="button" data-exp-tab="text">Testo</button>
-          </div>
-        </div>
-        <div class="exp-panel" id="myExperimentsPanel" aria-live="polite"></div>
-      </div>
-
-      <h2>Verifiche</h2>
-      <figure>
-        <img src="../experiment_assets/comparative_analysis.png" alt="Evoluzione delle attention maps tra le configurazioni di positional encoding">
-        <figcaption>Evoluzione delle <strong>attention maps</strong> nelle 7 configurazioni dell'ablation: mostrano empiricamente come i latenti si specializzano a seconda del positional encoding — il supporto visivo all'idea del Cap. 8/12.</figcaption>
-      </figure>
-      <ul>
-        <li><strong>Permutation invariance</strong>: permutando i pixel l'accuracy non degrada (78.12% permutato vs 69.69% non-permutato) — verifica empirica diretta della teoria Fourier (Cap. 5/12).</li>
-        <li><strong>Early stopping + confusion matrix</strong> per epoca: controllo dell'overfitting sul validation set da 10k, salvate per ogni run.</li>
-        <li><strong>Gruppi di controllo</strong>: ogni research question ha il suo confronto controllato a parità di iperparametri.</li>
-      </ul>
-
-      <h2>Dettagli implementativi</h2>
-      <p>Tutto il training è girato su una singola <strong>GPU NVIDIA RTX 3060 (12 GB)</strong> — non sulle 64 TPU del paper. Per questo le configurazioni sono ridotte e le accuracy sistematicamente più basse del paper, ma le <em>relazioni ablative</em> restano valide.</p>
-
+      <h2>Come è fatto il progetto</h2>
       <details class="deep-dive">
         <summary>Struttura del codice</summary>
         <ul class="code-tree">
@@ -4346,33 +4315,183 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   --optimizer lamb --lr 0.004 --epochs 120 --batch_size_cifar10 64</div>
       </details>
 
-      <details class="deep-dive">
-        <summary>Divergenze dal paper (trasparenza metodologica)</summary>
-        <ul class="diverg-list">
-          <li><strong>Teste cross-attention</strong>: paper 1 (single-head) → mio 8 (ModelNet/MLM), 3 (CIFAR)</li>
-          <li><strong>Latent array CIFAR</strong>: paper N=512, D=1024 → mio N=96, D=384 (ridotto per GPU)</li>
-          <li><strong>Iterazioni</strong>: paper T=8 → mio 4 cross-att stages (CIFAR)</li>
-          <li><strong>Batch CIFAR</strong>: paper 1024 (64 TPU) → mio 64 (1 GPU)</li>
-          <li><strong>Dropout</strong>: paper nessuno → mio 0.1–0.2 (compensa l'overfitting del modello più piccolo)</li>
-          <li><strong>Ottimizzatore / epoche / Fourier</strong>: LAMB, 120 epoche, linearly spaced — coerenti col paper</li>
-        </ul>
-        <p>Le accuracy sono sistematicamente inferiori al paper (budget hardware), ma le <strong>relazioni ablative</strong> (PE, weight sharing, permutazione) restano valide e riproducibili.</p>
-      </details>
-
       <div class="idea">
-        <div class="idea-label">Idea chiave</div>
-        <p>I miei numeri confermano la lezione: il PE è essenziale, le Fourier features danno robustezza alle permutazioni, il bottleneck con weight sharing è efficiente in parametri, e la <strong>stessa architettura</strong> funziona su immagini, 3D e testo. Dove i risultati divergono dal paper — qui il weight sharing è un <em>trade-off di efficienza</em>, non un guadagno di accuracy — lo dico esplicitamente: è il valore di averlo verificato di persona.</p>
+        <div class="idea-label">Dove andiamo</div>
+        <p>Qui la panoramica e i dati. Nel <strong>prossimo capitolo</strong> confronto la mia architettura con quella del paper (Perceiver e Perceiver IO); in quello dopo, i <strong>risultati a confronto</strong> con grafici e attention maps.</p>
       </div>
 
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-44">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="44"><span class="check"></span><span class="check-label">Ho capito</span></label>
-        <button class="btn btn-primary" id="next-44" disabled>Fine</button>
+        <button class="btn btn-primary" id="next-44">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 45 — Architettura: noi vs paper ============ -->
+    <section class="chapter" data-chapter="45">
+      <div class="chap-meta"><span class="chap-badge">App. 5</span><span class="chap-time">~10 min</span></div>
+      <h1>Architettura &amp; implementazione: noi vs il paper</h1>
+      <p class="intro">Abbiamo riprodotto Perceiver e Perceiver IO <strong>from-scratch in PyTorch</strong> su una sola <strong>GPU RTX 3060 (12 GB)</strong>, non sulle 64 TPU del paper. Questo ha imposto configurazioni più piccole: ecco cosa cambia, componente per componente, e perché.</p>
+
+      <h2>Perceiver — la nostra config vs il paper</h2>
+      <div class="dataset-cards">
+        <div class="dataset-card">
+          <div class="dataset-name">Paper (ImageNet) <span class="dataset-tag">Jaegle 2021</span></div>
+          <p><code>N=512</code> latenti · <code>D=1024</code> · <code>T=8</code> iterazioni (weight sharing) · cross-attention <strong>single-head</strong> (d_QKV=261) · self-attention <strong>8 teste</strong> (d_head=128) · batch <strong>1024</strong> su 64 TPU · ~45M parametri.</p>
+          <p class="dataset-use">Input: 50.176 pixel grezzi (224×224).</p>
+        </div>
+        <div class="dataset-card">
+          <div class="dataset-name">Nostro (CIFAR-10) <span class="dataset-tag">RTX 3060</span></div>
+          <p><code>N=96</code> latenti · <code>D=384</code> · <strong>4</strong> cross-attend stages + 4 transformer blocks · cross/self-attention <strong>3 teste</strong> (CIFAR) · batch <strong>64</strong> su 1 GPU · ~3.35M parametri · dropout 0.1–0.2.</p>
+          <p class="dataset-use">Input: 1.024 pixel (32×32). Stesso schema, capacità ridotta.</p>
+        </div>
+      </div>
+
+      <h2>Perceiver IO — la nostra config vs il paper</h2>
+      <div class="dataset-cards">
+        <div class="dataset-card">
+          <div class="dataset-name">Paper (testo/flow) <span class="dataset-tag">Jaegle 2022</span></div>
+          <p>Encoder-process-<strong>decode</strong> con output query. Per il linguaggio: 26–40 layer di latent transformer, <strong>201–425M</strong> parametri, decoder a cross-attention con query per posizione/token/modalità. Pre-training MLM su Wikipedia+C4.</p>
+          <p class="dataset-use">GLUE byte-level a parità di FLOPs con BERT.</p>
+        </div>
+        <div class="dataset-card">
+          <div class="dataset-name">Nostro (CIFAR/MLM/GLUE) <span class="dataset-tag">RTX 3060</span></div>
+          <p><code>N=128</code> latenti · <code>D=512</code> · <strong>8 teste</strong> · 1 cross-attend stage + 4 transformer blocks · ~9.5–10M parametri · decoder a output query (1 per classificazione, 1 per posizione byte nel MLM). Pre-training MLM su <strong>solo</strong> WikiText-103.</p>
+          <p class="dataset-use">Stessa idea encode-process-decode, scala molto minore.</p>
+        </div>
+      </div>
+
+      <h2>Divergenze dal paper (trasparenza metodologica)</h2>
+      <ul class="diverg-list">
+        <li><strong>Teste cross-attention</strong>: paper 1 (single-head) → noi 8 (ModelNet/MLM), 3 (CIFAR)</li>
+        <li><strong>Latent array (CIFAR)</strong>: paper N=512, D=1024 → noi N=96, D=384 (ridotto per la GPU)</li>
+        <li><strong>Iterazioni</strong>: paper T=8 con weight sharing → noi 4 cross-attend stages (CIFAR)</li>
+        <li><strong>Batch</strong>: paper 1024 (64 TPU) → noi 64 (1 GPU)</li>
+        <li><strong>Dropout</strong>: paper nessuno → noi 0.1–0.2 (compensa l'overfitting del modello più piccolo)</li>
+        <li><strong>Pre-training MLM</strong>: paper Wikipedia+C4 (enorme) → noi solo WikiText-103</li>
+        <li><strong>Coerenti col paper</strong>: ottimizzatore LAMB, 120 epoche (CIFAR), Fourier features linearly spaced</li>
+      </ul>
+      <div class="nota">
+        <span class="nota-label">Implicazione</span>
+        Le accuracy sono <strong>sistematicamente inferiori</strong> al paper per via del budget (1 GPU vs 64 TPU, modelli più piccoli, pre-training ridotto). Ma le <strong>relazioni ablative</strong> — importanza del PE, robustezza alle permutazioni con Fourier, effetto del weight sharing — restano valide e riproducibili. È questo che conta scientificamente.
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-45">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="45"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-45">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 46 — Risultati: paper vs nostri ============ -->
+    <section class="chapter" data-chapter="46">
+      <div class="chap-meta"><span class="chap-badge">App. 6</span><span class="chap-time">~14 min</span></div>
+      <h1>Risultati: paper vs i nostri</h1>
+      <p class="intro">I numeri reali del progetto, a confronto con quelli del paper. I gap assoluti sono spiegati dal budget (modelli più piccoli, 1 GPU, pre-training ridotto); ciò che conta è che le <strong>tendenze</strong> e le proprietà architetturali si confermano.</p>
+
+      <h2>I nostri risultati per modalità</h2>
+      <div class="concept-lab my-experiments-lab" data-lab="my-experiments">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">Progetto · analysis_results/</span>
+            <h3>Risultati reali per dataset</h3>
+            <p>Seleziona una modalità: la tabella dei risultati misurati, il grafico del progetto e cosa conferma della teoria.</p>
+          </div>
+          <div class="lab-toggle" role="tablist" aria-label="Modalità sperimentale">
+            <button type="button" class="active" data-exp-tab="cifar">CIFAR-10</button>
+            <button type="button" data-exp-tab="io">Perceiver IO</button>
+            <button type="button" data-exp-tab="modelnet">ModelNet40 3D</button>
+            <button type="button" data-exp-tab="text">Testo</button>
+          </div>
+        </div>
+        <div class="exp-panel" id="myExperimentsPanel" aria-live="polite"></div>
+      </div>
+
+      <h2>Paper vs noi — confronto diretto</h2>
+      <div class="dataset-cards">
+        <div class="dataset-card">
+          <div class="dataset-name">Immagini</div>
+          <p><strong>Paper</strong> (ImageNet, 50.176 px): <strong>78.0%</strong> top-1, vs ResNet-50 77.6 e ViT-B/16 77.9.<br><strong>Noi</strong> (CIFAR-10, 1.024 px): <strong>78.20%</strong> (Perceiver IO) / 78.12% (Perceiver).</p>
+          <p class="dataset-use">Dataset diverso, ma in entrambi i casi il Perceiver è competitivo coi baseline con prior 2D.</p>
+        </div>
+        <div class="dataset-card">
+          <div class="dataset-name">Permutation invariance ✓</div>
+          <p><strong>Paper</strong>: Fourier 78.0→78.0 (zero calo); learned PE 78.0→70.9.<br><strong>Noi</strong>: Fourier 78.12% (permutato) ≥ 69.69% (non perm.); Fourier 78.12 &gt; learned 77.60.</p>
+          <p class="dataset-use">Confermato: è la scelta delle Fourier features a dare l'invarianza, non l'architettura.</p>
+        </div>
+        <div class="dataset-card">
+          <div class="dataset-name">Weight sharing ⚠️</div>
+          <p><strong>Paper</strong>: <em>migliora</em> +5.1% (72.9→78.0) riducendo i parametri 7× (326M→44.9M).<br><strong>Noi</strong>: <em>trade-off</em> — senza sharing +5.36% accuracy ma +158% parametri (8.67M vs 3.35M).</p>
+          <p class="dataset-use">Divergenza onesta: sui nostri modelli piccoli il sharing è efficienza, non guadagno di accuracy.</p>
+        </div>
+        <div class="dataset-card">
+          <div class="dataset-name">Point cloud 3D</div>
+          <p><strong>Paper</strong> (ModelNet40): <strong>85.7%</strong> (vs PointNet++ 91.9).<br><strong>Noi</strong>: <strong>84.24%</strong> — gap −1.5, dovuto a batch 128 vs 512.</p>
+          <p class="dataset-use">Stessa architettura su input 3D senza feature geometriche specializzate.</p>
+        </div>
+        <div class="dataset-card dataset-card--wide">
+          <div class="dataset-name">Testo (Perceiver IO)</div>
+          <p><strong>Paper</strong>: GLUE byte-level <strong>81.2</strong> a parità di FLOPs con BERT (81.0); IO++ <strong>81.8</strong> (425M, 40 layer); BERT-UTF8 crolla a 71.5.<br><strong>Noi</strong>: pre-training MLM su WikiText-103 <strong>82.20%</strong> byte-accuracy; fine-tuning GLUE single-task (QQP 75.65 … MNLI 46.47).</p>
+          <p class="dataset-use">Il gap su GLUE è grande perché il nostro pre-training è minuscolo (solo WikiText-103 vs Wikipedia+C4) e usiamo 1 query single-task, non la config multitask del paper.</p>
+        </div>
+      </div>
+
+      <h2>Grafici del progetto</h2>
+      <figure>
+        <img src="../experiment_assets/accuracy_chart.png" alt="Confronto accuracy tra gli esperimenti" loading="lazy">
+        <figcaption>Accuracy finale dei vari esperimenti (CIFAR-10, Perceiver IO, ModelNet40, MLM).</figcaption>
+      </figure>
+      <figure>
+        <img src="../experiment_assets/convergence_chart.png" alt="Efficienza di convergenza" loading="lazy">
+        <figcaption>Efficienza di convergenza: accuracy raggiunta in funzione del tempo/epoche di training.</figcaption>
+      </figure>
+
+      <h2>Verifiche &amp; attention maps</h2>
+      <div class="concept-lab attn-evo-lab" data-lab="attention-evolution">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">attention_analysis/</span>
+            <h3>Evoluzione delle attention maps</h3>
+            <p>Scegli un esperimento: come si specializzano le mappe di attenzione dei latenti durante il training.</p>
+          </div>
+          <div class="lab-toggle" role="tablist" aria-label="Esperimento">
+            <button type="button" class="active" data-attn-exp="comparative_analysis">Confronto</button>
+            <button type="button" data-attn-exp="exp1_baseline_fourier_evolution">Baseline Fourier</button>
+            <button type="button" data-attn-exp="exp6_fourier_permuted_evolution">Fourier permutato</button>
+            <button type="button" data-attn-exp="exp2_learned_pe_permuted_evolution">Learned PE</button>
+            <button type="button" data-attn-exp="exp3B_rgb_only_evolution">RGB-only</button>
+          </div>
+        </div>
+        <figure class="attn-evo-figure">
+          <img id="attnEvoImg" src="../experiment_assets/comparative_analysis.png" alt="Attention maps" loading="lazy">
+          <figcaption id="attnEvoCaption">Confronto delle 7 configurazioni dell'ablation: i latenti si specializzano in modo diverso a seconda del positional encoding.</figcaption>
+        </figure>
+      </div>
+
+      <figure>
+        <img src="../experiment_assets/confusion_matrix.png" alt="Confusion matrix CIFAR-10" loading="lazy">
+        <figcaption>Esempio di <strong>confusion matrix</strong> (CIFAR-10, exp2): la diagonale dominante mostra le classi predette correttamente; gli errori fuori diagonale rivelano le coppie confuse (es. gatto/cane).</figcaption>
+      </figure>
+      <ul>
+        <li><strong>Permutation invariance</strong>: 78.12% permutato vs 69.69% non-permutato — verifica empirica della teoria Fourier (Cap. 5/12).</li>
+        <li><strong>Early stopping + confusion matrix</strong> per epoca: controllo dell'overfitting sul validation set da 10k.</li>
+        <li><strong>Gruppi di controllo</strong>: ogni research question ha il suo confronto a parità di iperparametri.</li>
+      </ul>
+
+      <div class="idea">
+        <div class="idea-label">Idea chiave</div>
+        <p>I numeri assoluti sono più bassi del paper — è il prezzo di 1 GPU contro 64 TPU. Ma <strong>ogni proprietà architetturale si conferma</strong>: PE essenziale, Fourier robusto alle permutazioni (e migliore del learned), bottleneck efficiente, stessa rete su immagini/3D/testo. All'orale, il punto di forza è proprio questo: <em>ho verificato di persona la teoria, e ho documentato onestamente dove i miei risultati divergono</em> (il weight sharing).</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-46">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="46"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-46" disabled>Fine</button>
       </div>
 
       <div id="finalRecap" class="hidden" style="margin-top:40px;padding:30px;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-radius:14px;text-align:center;">
         <h2 style="color:var(--success);margin-top:0">Lezione completata</h2>
-        <p>Hai la versione completa: Perceiver, Perceiver IO, riferimenti teorici, formulario, mappa del forward, confronti e i <strong>tuoi esperimenti</strong> con i risultati reali del progetto.</p>
+        <p>Hai la versione completa: Perceiver, Perceiver IO, riferimenti teorici, formulario, mappa del forward, confronti e la <strong>parte esperimenti</strong> (panoramica, architettura nostra vs paper, risultati a confronto).</p>
         <p style="font-size:14px;color:var(--muted);margin-top:18px;">Fonti: <code>appunti_ml_definitivo.tex</code> e <code>analysis_results/</code>.</p>
       </div>
     </section>
@@ -4450,6 +4569,6 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260608-exp6"></script>
+<script defer src="js/app.js?v=20260608-exp7"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 ﻿"use strict";
 
-const TOTAL = 44;
+const TOTAL = 46;
 const MAIN_TOTAL = 18;
 const REFERENCE_START = 19;
 const REFERENCE_END = 40;
@@ -49,7 +49,9 @@ const CHAPTER_TITLES = [
   "Formulario ragionato",
   "Mappa forward interattiva",
   "Confronti e specifiche",
-  "I miei esperimenti"
+  "Esperimenti: panoramica",
+  "Architettura: noi vs paper",
+  "Risultati: paper vs nostri"
 ];
 const REFERENCE_TITLES = CHAPTER_TITLES.slice(REFERENCE_START - 1, REFERENCE_END);
 const APPENDIX_TITLES = CHAPTER_TITLES.slice(APPENDIX_START - 1);
@@ -153,7 +155,9 @@ const RAIL_DATA = {
   41: { stage: 0, idea: "Formulario: ogni formula va legata a problema, punto del modello e significato dei simboli." },
   42: { stage: 4, idea: "Mappa forward: osserva come cambiano forme e responsabilità a ogni stadio." },
   43: { stage: 0, idea: "Confronti: prepara differenze nette, non definizioni isolate." },
-  44: { stage: 0, idea: "I risultati reali del progetto confermano la teoria: PE essenziale, Fourier robusto alle permutazioni, weight sharing = efficienza, generalità multimodale." }
+  44: { stage: 0, idea: "Esperimenti: il progetto from-scratch su 3 modalità (immagini, 3D, testo), con setup e dataset." },
+  45: { stage: 0, idea: "Architettura: la nostra config ridotta (1 GPU RTX 3060) vs quella del paper (64 TPU) — per Perceiver e Perceiver IO." },
+  46: { stage: 0, idea: "Risultati a confronto: i numeri del paper vs i nostri, con grafici, attention maps e gap spiegati dal budget computazionale." }
 };
 const SOURCE_DATA = {
   1: { pdfPage: 5,   pdfPages: "PDF p. 5",       section: "1.1 Il problema della complessità quadratica", texLine: 266 },
@@ -199,7 +203,9 @@ const SOURCE_DATA = {
   41: { pdfPage: 5,   pdfPages: "PDF pp. 5-157",   section: "Sintesi finale: formule ricorrenti del Perceiver", texLine: 266 },
   42: { pdfPage: 10,  pdfPages: "PDF pp. 10-42",   section: "Sintesi finale: forward pass e forme tensoriali", texLine: 369 },
   43: { pdfPage: 77,  pdfPages: "PDF pp. 77-157",  section: "Sintesi finale: confronti, specifiche e riferimenti teorici", texLine: 4050 },
-  44: { pdfPage: null, pdfPages: "Repo: analysis_results/", section: "Progetto Perceiver IO — risultati sperimentali", texLine: null }
+  44: { pdfPage: 130, pdfPages: "Repo + PDF §3", section: "3 Implementazione e Risultati — panoramica", texLine: 6545 },
+  45: { pdfPage: 131, pdfPages: "PDF §3.1-3.2", section: "3.1-3.2 Architettura e divergenze dal paper", texLine: 6592 },
+  46: { pdfPage: 78, pdfPages: "PDF §1.7 + §3.3+", section: "Risultati paper (§1.7) vs progetto (§3)", texLine: 4079 }
 };
 const PIPE_STAGES = ["Input", "Fourier", "Latenti", "Cross-Att", "Latent Tr.", "×T", "Pooling/Decoder"];
 const QUICK_LINKS = {

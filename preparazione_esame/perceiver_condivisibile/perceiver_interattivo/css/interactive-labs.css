@@ -2267,8 +2267,14 @@
 .diverg-list li { margin: 4px 0; }
 .code-block { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.78rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; background: var(--bg-soft, #f3f4f8); border: 1px solid var(--border, #e6e6ec); border-radius: 6px; padding: 10px 12px; margin: 6px 0; color: var(--text-soft, #3c3c3c); }
 
+/* Selettore attention maps (ch46) */
+.attn-evo-figure { margin: 12px 0 0; }
+.attn-evo-figure img { width: 100%; max-width: 640px; display: block; margin: 0 auto; border-radius: 8px; border: 1px solid var(--border, #e6e6ec); background: #fff; transition: opacity 200ms var(--ease-out); }
+.attn-evo-figure figcaption { margin-top: 8px; }
+
 @media (prefers-reduced-motion: reduce) {
   .exp-panel { transition: none; }
+  .attn-evo-figure img { transition: none; }
 }
 
 /* Su mobile la tabella risultati diventa una lista di card (niente scroll orizzontale) */

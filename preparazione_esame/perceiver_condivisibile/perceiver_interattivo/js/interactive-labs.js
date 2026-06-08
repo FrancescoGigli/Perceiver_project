@@ -19,7 +19,8 @@ const LAB_SOURCE_REFS = {
   ioResults:      "Rif. U",
   lrSchedule:     "Rif. 1.6",
   fourierWaves:   "Rif. B",
-  myExperiments:  "Progetto"
+  myExperiments:  "Progetto",
+  attentionEvolution: "attention_analysis/"
 };
 
 (function () {
@@ -2340,6 +2341,44 @@ const LAB_SOURCE_REFS = {
     render("cifar", false);
   }
 
+  // --- ch46: selettore evoluzione attention maps ---
+  function initAttentionEvolutionLab() {
+    var container = document.querySelector('[data-lab="attention-evolution"]');
+    if (!container) return;
+    var buttons = container.querySelectorAll("[data-attn-exp]");
+    var img = document.getElementById("attnEvoImg");
+    var cap = document.getElementById("attnEvoCaption");
+    if (!img || !cap) return;
+    var CAPTIONS = {
+      comparative_analysis: "Confronto delle 7 configurazioni dell'ablation: i latenti si specializzano in modo diverso a seconda del positional encoding.",
+      exp1_baseline_fourier_evolution: "Baseline Fourier (non permutato): evoluzione delle attention maps durante il training.",
+      exp6_fourier_permuted_evolution: "Fourier + permutazione pixel: nonostante l'input permutato, l'attenzione resta strutturata (invarianza).",
+      exp2_learned_pe_permuted_evolution: "Learned PE + permutazione: le posizioni apprese si scombinano, attenzione meno coerente.",
+      exp3B_rgb_only_evolution: "RGB-only (senza positional encoding): l'attenzione fatica a localizzare, accuracy piu' bassa (61.34%)."
+    };
+    function swap(name) {
+      var src = "../experiment_assets/" + name + ".png";
+      cap.textContent = CAPTIONS[name] || "";
+      if (reduceMotion()) { img.src = src; img.style.opacity = "1"; return; }
+      img.style.opacity = "0";
+      var settled = false;
+      function showIn() { if (settled) return; settled = true; img.style.opacity = "1"; }
+      setTimeout(function() {
+        img.onload = showIn;
+        img.src = src;
+        if (img.complete) showIn();
+        setTimeout(showIn, 600);
+      }, 150);
+    }
+    buttons.forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        buttons.forEach(function(b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+        swap(btn.getAttribute("data-attn-exp"));
+      });
+    });
+  }
+
   function initInteractiveLabs() {
     initArchitectureFlowLab();
     initByteUnrollLab();
@@ -2384,6 +2423,7 @@ const LAB_SOURCE_REFS = {
     initFormulaSpotlightLab();
     initComplexityRaceLab();
     initMyExperimentsLab();
+    initAttentionEvolutionLab();
   }
 
   window.PerceiverInteractiveLabs = { initInteractiveLabs };
