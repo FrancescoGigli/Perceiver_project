@@ -20,7 +20,8 @@ const LAB_SOURCE_REFS = {
   lrSchedule:     "Rif. 1.6",
   fourierWaves:   "Rif. B",
   myExperiments:  "Progetto",
-  attentionEvolution: "attention_analysis/"
+  attentionEvolution: "attention_analysis/",
+  scaleCompare:   "PDF §3.2"
 };
 
 (function () {
@@ -2379,6 +2380,58 @@ const LAB_SOURCE_REFS = {
     });
   }
 
+  // --- ch45: scala paper vs noi (barre animate) ---
+  function initScaleCompareLab() {
+    var container = document.querySelector('[data-lab="scale-compare"]');
+    if (!container) return;
+    var buttons = container.querySelectorAll("[data-scale-metric]");
+    var paperBar = document.getElementById("scalePaper");
+    var noiBar = document.getElementById("scaleNoi");
+    var paperVal = document.getElementById("scalePaperVal");
+    var noiVal = document.getElementById("scaleNoiVal");
+    var readout = document.getElementById("scaleReadout");
+    if (!paperBar || !noiBar) return;
+    var DATA = {
+      parametri:  { paper: 45, noi: 3.35, unit: "M par", ratio: "~13× meno parametri" },
+      latenti:    { paper: 512, noi: 96, unit: " latenti", ratio: "5.3× meno latenti" },
+      dimensione: { paper: 1024, noi: 384, unit: " (D)", ratio: "2.7× più stretto" },
+      batch:      { paper: 1024, noi: 64, unit: "", ratio: "16× più piccolo (1 GPU vs 64 TPU)" }
+    };
+    var current = "parametri";
+    function fmtN(v) { return (v % 1 === 0) ? String(v) : v.toFixed(2); }
+    function render(animate) {
+      var d = DATA[current];
+      var noiPct = Math.max(2, (d.noi / d.paper) * 100);
+      paperVal.textContent = fmtN(d.paper) + d.unit;
+      noiVal.textContent = fmtN(d.noi) + d.unit;
+      readout.textContent = "Stessa architettura, " + d.ratio + ".";
+      if (animate && !reduceMotion()) {
+        paperBar.style.width = "0%"; noiBar.style.width = "0%";
+        requestAnimationFrame(function() { requestAnimationFrame(function() {
+          paperBar.style.width = "100%"; noiBar.style.width = noiPct + "%";
+        }); });
+      } else {
+        paperBar.style.width = "100%"; noiBar.style.width = noiPct + "%";
+      }
+    }
+    buttons.forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        buttons.forEach(function(b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+        current = btn.getAttribute("data-scale-metric");
+        render(true);
+      });
+    });
+    var seen = false;
+    if (typeof IntersectionObserver !== "undefined") {
+      var obs = new IntersectionObserver(function(entries) {
+        if (entries[0].isIntersecting && !seen) { seen = true; render(true); }
+      }, { threshold: 0.3 });
+      obs.observe(container);
+    }
+    render(false);
+  }
+
   function initInteractiveLabs() {
     initArchitectureFlowLab();
     initByteUnrollLab();
@@ -2424,6 +2477,7 @@ const LAB_SOURCE_REFS = {
     initComplexityRaceLab();
     initMyExperimentsLab();
     initAttentionEvolutionLab();
+    initScaleCompareLab();
   }
 
   window.PerceiverInteractiveLabs = { initInteractiveLabs };

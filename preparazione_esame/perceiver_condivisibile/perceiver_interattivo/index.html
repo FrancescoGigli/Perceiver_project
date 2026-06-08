@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260608-exp7">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp7">
-<script defer src="js/interactive-labs.js?v=20260608-exp7"></script>
+<link rel="stylesheet" href="css/style.css?v=20260608-exp8">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp8">
+<script defer src="js/interactive-labs.js?v=20260608-exp8"></script>
 </head>
 <body>
 
@@ -4243,8 +4243,8 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
 
     <!-- ============ CAP 44 — I miei esperimenti ============ -->
     <section class="chapter" data-chapter="44">
-      <div class="chap-meta"><span class="chap-badge">App. 4</span><span class="chap-time">~12 min</span></div>
-      <h1>I miei esperimenti</h1>
+      <div class="chap-meta"><span class="chap-badge">Esp. 1</span><span class="chap-time">~10 min</span></div>
+      <h1>I miei esperimenti — panoramica</h1>
       <p class="intro">Il progetto d'esame: implementazione <strong>from-scratch in PyTorch</strong> di Perceiver e Perceiver IO (corso B031278, Prof. Frasconi, UniFi), riprodotta su tre modalità — immagini (CIFAR-10), point cloud 3D (ModelNet40), testo (MLM WikiText-103 → GLUE). Qui i risultati <strong>reali</strong> e come confermano la teoria della lezione.</p>
 
       <div class="nota">
@@ -4329,7 +4329,7 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
 
     <!-- ============ CAP 45 — Architettura: noi vs paper ============ -->
     <section class="chapter" data-chapter="45">
-      <div class="chap-meta"><span class="chap-badge">App. 5</span><span class="chap-time">~10 min</span></div>
+      <div class="chap-meta"><span class="chap-badge">Esp. 2</span><span class="chap-time">~10 min</span></div>
       <h1>Architettura &amp; implementazione: noi vs il paper</h1>
       <p class="intro">Abbiamo riprodotto Perceiver e Perceiver IO <strong>from-scratch in PyTorch</strong> su una sola <strong>GPU RTX 3060 (12 GB)</strong>, non sulle 64 TPU del paper. Questo ha imposto configurazioni più piccole: ecco cosa cambia, componente per componente, e perché.</p>
 
@@ -4361,6 +4361,28 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
         </div>
       </div>
 
+      <h2>Quanto è più piccolo il nostro modello?</h2>
+      <div class="concept-lab scale-compare-lab" data-lab="scale-compare">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">Perceiver · ImageNet vs CIFAR</span>
+            <h3>Scala: paper vs noi</h3>
+            <p>Le barre si animano: a parità di architettura, la nostra config è molto più piccola (vincolo della singola GPU).</p>
+          </div>
+          <div class="lab-toggle" role="tablist" aria-label="Metrica">
+            <button type="button" class="active" data-scale-metric="parametri">Parametri</button>
+            <button type="button" data-scale-metric="latenti">Latenti N</button>
+            <button type="button" data-scale-metric="dimensione">Dim. D</button>
+            <button type="button" data-scale-metric="batch">Batch</button>
+          </div>
+        </div>
+        <div class="scale-rows">
+          <div class="scale-row"><span class="scale-label">Paper</span><div class="scale-track"><div class="scale-fill paper" id="scalePaper"></div></div><span class="scale-val" id="scalePaperVal"></span></div>
+          <div class="scale-row"><span class="scale-label">Noi</span><div class="scale-track"><div class="scale-fill noi" id="scaleNoi"></div></div><span class="scale-val" id="scaleNoiVal"></span></div>
+        </div>
+        <div class="lab-readout" id="scaleReadout"></div>
+      </div>
+
       <h2>Divergenze dal paper (trasparenza metodologica)</h2>
       <ul class="diverg-list">
         <li><strong>Teste cross-attention</strong>: paper 1 (single-head) → noi 8 (ModelNet/MLM), 3 (CIFAR)</li>
@@ -4385,7 +4407,7 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
 
     <!-- ============ CAP 46 — Risultati: paper vs nostri ============ -->
     <section class="chapter" data-chapter="46">
-      <div class="chap-meta"><span class="chap-badge">App. 6</span><span class="chap-time">~14 min</span></div>
+      <div class="chap-meta"><span class="chap-badge">Esp. 3</span><span class="chap-time">~14 min</span></div>
       <h1>Risultati: paper vs i nostri</h1>
       <p class="intro">I numeri reali del progetto, a confronto con quelli del paper. I gap assoluti sono spiegati dal budget (modelli più piccoli, 1 GPU, pre-training ridotto); ciò che conta è che le <strong>tendenze</strong> e le proprietà architetturali si confermano.</p>
 
@@ -4569,6 +4591,6 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260608-exp7"></script>
+<script defer src="js/app.js?v=20260608-exp8"></script>
 </body>
 </html>
