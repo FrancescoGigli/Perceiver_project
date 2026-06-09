@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260609-exam2">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260609-exam2">
-<script defer src="js/interactive-labs.js?v=20260609-exam2"></script>
+<link rel="stylesheet" href="css/style.css?v=20260609-exam3">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260609-exam3">
+<script defer src="js/interactive-labs.js?v=20260609-exam3"></script>
 </head>
 <body>
 
@@ -4708,31 +4708,31 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
           <div class="prio-card-head"><h3>Reti convoluzionali (CNN, ResNet, U-Net)</h3><span class="prio-badge prio--alta">Alta</span></div>
           <p class="prio-args">Equivarianza traslazionale, convoluzione multidim, canali/stride/pooling, conv 1×1/dilatate/transposte, skip connection, ResNet, U-Net, DenseNet.</p>
           <p class="prio-why"><strong>Perché:</strong> il Perceiver nasce come alternativa general-purpose alle CNN: il confronto CNN vs Perceiver (bias di equivarianza vs permutation invariance appresa) è un classico. Le skip/residual delle ResNet sono lo stesso meccanismo dei tuoi blocchi attention. Argomenta "perché non una CNN" sul tuo CIFAR-10.</p>
-          <p class="prio-rev"><strong>Ripassa qui:</strong> Appendici → CNN (cap.31); Riferimenti → ConvNet (cap.32), ResNet (cap.33), Residual Connections (cap.24).</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Appendici → CNN (cap.31); Riferimenti → ConvNet (cap.32), ResNet (cap.33), Residual Connections (cap.24); Approfondimenti → <strong>Sequenze &amp; visione (X4)</strong> per U-Net/segmentazione.</p>
         </article>
         <article class="prio-card prio--media">
           <div class="prio-card-head"><h3>Sequenze, RNN, LSTM/GRU</h3><span class="prio-badge prio--media">Media</span></div>
           <p class="prio-args">Elaborazione di sequenze, embedding, RNN, vanishing/exploding gradient, RNN bidirezionali, LSTM/GRU, seq2seq, decoding.</p>
           <p class="prio-why"><strong>Perché:</strong> due ponti col progetto — (1) il weight sharing rende il Perceiver analogo a una RNN srotolata (analogia da saper difendere); (2) il vanishing gradient motiva residual+LayerNorm. L'NLP/embedding inquadra il tuo MLM su WikiText.</p>
-          <p class="prio-rev"><strong>Ripassa qui:</strong> Appendici → RNN (cap.28), LSTM (cap.29), GRU (cap.30); Percorso → Weight sharing (cap.9).</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Appendici → RNN (cap.28), LSTM (cap.29), GRU (cap.30); Approfondimenti → <strong>Sequenze &amp; visione (X4)</strong> per seq2seq/decoding; Percorso → Weight sharing (cap.9).</p>
         </article>
         <article class="prio-card prio--media">
           <div class="prio-card-head"><h3>BERT, contrastive, domain adaptation</h3><span class="prio-badge prio--media">Media</span></div>
           <p class="prio-args">BERT pretraining/fine-tuning, triplet loss, contrastive learning (SimCLR), domain adaptation.</p>
           <p class="prio-why"><strong>Perché:</strong> il tuo MLM su WikiText-103 è esattamente il pretraining stile BERT, e il fine-tuning GLUE è il downstream. Devi spiegare il masked language modeling e perché è self-supervised. Contrastive/SimCLR e domain adaptation sono più lontani ma il legame BERT-MLM rende questo blocco facilmente interrogabile.</p>
-          <p class="prio-rev"><strong>Ripassa qui:</strong> Percorso → Perceiver IO e output queries (cap.15-16); Esperimenti per MLM/GLUE. Libro [JM24].</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Approfondimenti corso → <strong>Self-supervised &amp; BERT (X1)</strong>; Percorso → Perceiver IO e output queries (cap.15-16); Esperimenti per MLM/GLUE.</p>
         </article>
         <article class="prio-card prio--media">
           <div class="prio-card-head"><h3>Fondamenti e teoria statistica</h3><span class="prio-badge prio--media">Media</span></div>
           <p class="prio-args">Forme di apprendimento (supervised/unsupervised/RL), storia, empirical risk minimization, classificatori ottimi, generativo vs discriminativo, LDA.</p>
           <p class="prio-why"><strong>Perché:</strong> cornice teorica per inquadrare qualsiasi modello (anche il Perceiver è un classificatore supervisionato addestrato per ERM). Classico apri-orale: collocare il tuo lavoro nel quadro supervised/self-supervised (il tuo MLM è self-supervised).</p>
-          <p class="prio-rev"><strong>Ripassa qui:</strong> intro del Percorso Perceiver e parte Esperimenti per l'inquadramento del task. Libro [BB24].</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Approfondimenti corso → <strong>Fondamenti statistici (X3)</strong>; intro del Percorso Perceiver per l'inquadramento del task. Libro [BB24].</p>
         </article>
         <article class="prio-card prio--bassa">
           <div class="prio-card-head"><h3>Iperparametri e meta-learning</h3><span class="prio-badge prio--bassa">Bassa</span></div>
           <p class="prio-args">Gaussian process, expected improvement, multi-fidelity, successive halving, Hyperband, ASHA, meta-learning, domain adaptation.</p>
           <p class="prio-why"><strong>Perché:</strong> nel programma ma lontani dal progetto (1 GPU, ricerca iperparametri manuale, non Bayesian/ASHA). Ripassali a livello di idea (GP come surrogato, expected improvement come acquisition, successive halving = stop precoce dei run scadenti). Bastano i concetti.</p>
-          <p class="prio-rev"><strong>Ripassa qui:</strong> fuori scope Perceiver — studia da [BB24]/[P24]; collega il successive halving al tuo early stopping. Libro [RW06] per i GP.</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Approfondimenti corso → <strong>Iperparametri &amp; HPO (X2)</strong>; collega il successive halving al tuo early stopping. Libro [RW06] per i GP.</p>
         </article>
       </div>
 
@@ -4919,6 +4919,245 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       </div>
     </section>
 
+    <!-- ============ CAP 48 — Self-supervised & BERT ============ -->
+    <section class="chapter exam-chapter" data-chapter="48">
+      <div class="chap-meta"><span class="chap-badge chap-badge--extra">Approfondimento · corso</span><span class="chap-time">~9 min</span></div>
+      <h1>Self-supervised learning, BERT e rappresentazioni</h1>
+      <p class="intro">L'<strong>apprendimento self-supervised (SSL)</strong> pre-addestra grandi modelli su enormi quantità di dati <em>non etichettati</em>, costruendo le etichette dai dati stessi. È il cuore dei modelli di rappresentazione moderni: prima si impara una rappresentazione generale con un compito "pretesto", poi la si trasferisce (fine-tuning) al compito reale con poche etichette. Qui: SSL in generale, il suo esempio nel linguaggio (BERT/MLM), due metodi per immagini/embedding (contrastive learning e triplet loss) e il domain adaptation.</p>
+
+      <h2>Self-supervised learning: cos'è e perché</h2>
+      <p>Il <strong>self-supervised learning</strong> è una forma di apprendimento non supervisionato in cui il segnale di supervisione è <em>generato automaticamente dai dati stessi</em>. Si nasconde o trasforma parte dell'input e si chiede al modello di ricostruirla/predirla: questo è il <strong>pretext task</strong>, un compito "finto" il cui solo scopo è forzare la rete a imparare rappresentazioni utili.</p>
+      <p>Perché serve: le etichette sono costose e scarse, mentre i dati grezzi sono praticamente illimitati. SSL sfrutta questo oceano di dati non etichettati per imparare una rappresentazione generale, che poi richiede pochissimi dati etichettati per il compito finale (<strong>downstream task</strong>). È il motore dei foundation model.</p>
+      <ul>
+        <li>Esempi di pretext task: predire token mascherati (MLM), predire la rotazione di un'immagine, colorizzazione, jigsaw, instance discrimination.</li>
+        <li>Schema: <code>pretraining (dati non etichettati, pretext) → fine-tuning (pochi dati etichettati, downstream)</code>.</li>
+      </ul>
+
+      <h2>BERT: encoder Transformer bidirezionale e MLM</h2>
+      <p><strong>BERT</strong> (Bidirectional Encoder Representations from Transformers) è un <em>encoder</em> Transformer (niente decoder) addestrato in modo self-supervised sul testo. La novità è la <strong>bidirezionalità</strong>: ogni token vede insieme il contesto a sinistra e a destra, a differenza dei modelli autoregressivi tipo GPT che vedono solo il passato.</p>
+      <p>Il pretext task principale è il <strong>Masked Language Modeling (MLM)</strong>: si maschera casualmente ~15% dei token e si predicono dal contesto bidirezionale. Dettaglio chiave: di quel 15%, l'<strong>80% diventa <code>[MASK]</code>, il 10% un token casuale, il 10% resta invariato</strong> — questo riduce il <em>mismatch</em> tra training e fine-tuning, dove <code>[MASK]</code> non compare mai. La loss è una cross-entropy sui soli token mascherati.</p>
+      <p>Il secondo task originale è la <strong>Next Sentence Prediction (NSP)</strong>: date due frasi A e B, predire se B segue A (binaria sul token <code>[CLS]</code>), costruita bilanciata <strong>50% IsNext / 50% frase casuale (NotNext)</strong>. Studi successivi (RoBERTa) l'hanno mostrata poco utile, ma fa parte del BERT originale.</p>
+      <ul>
+        <li>Token speciali: <code>[CLS]</code> (riassunto della sequenza, per classificazione), <code>[SEP]</code> (separatore), <code>[MASK]</code>.</li>
+        <li>Bidirezionale (vede tutto il contesto) vs autoregressivo unidirezionale (GPT).</li>
+      </ul>
+
+      <h2>Pretraining → fine-tuning</h2>
+      <p><strong>Pretraining</strong>: una volta, costoso, su grandi corpora non etichettati con MLM (+NSP) → modello generale. <strong>Fine-tuning</strong>: si aggiunge una piccola <em>testa task-specific</em> (di solito un layer lineare sull'output di <code>[CLS]</code>) e si addestra su dati etichettati del compito reale, con learning rate basso. La stessa backbone serve molti task (sentiment, NLI, QA) cambiando solo testa e dati.</p>
+      <div class="comparison-note"><strong>Legame col progetto:</strong> la modalità testo replica il paradigma BERT: il <strong>pretraining MLM su WikiText-103</strong> è il pretext self-supervised, il <strong>fine-tuning su GLUE</strong> è il downstream. La differenza: Perceiver IO lavora su byte UTF-8 grezzi (niente tokenizer) e usa il decoder a query invece del <code>[CLS]</code> interno — in classificazione basta 1 output query (l'equivalente esterno del [CLS]); in MLM servono molte query (una per posizione mascherata). Il paper confronta proprio Perceiver IO vs BERT a parità di FLOPs su GLUE.</div>
+
+      <h2>Contrastive learning e SimCLR</h2>
+      <p>Il <strong>contrastive learning</strong> impara confrontando esempi: <strong>avvicina nello spazio delle feature le "viste" positive dello stesso esempio e allontana i negativi</strong>. Le viste positive nascono da due <em>augmentation</em> diverse della stessa immagine; gli altri elementi del batch sono negativi (quindi è self-supervised, niente etichette).</p>
+      <p><strong>SimCLR</strong> è il metodo canonico: (1) augmentation forti e composte (crop+resize, color jitter, blur); (2) un encoder (es. ResNet); (3) una <strong>testa di proiezione</strong> (MLP) verso lo spazio dove si applica la loss — poi si scarta e si usano le feature dell'encoder; (4) loss <strong>NT-Xent</strong> (softmax sulle similarità coseno con temperatura). Serve <strong>batch molto grandi</strong> perché i negativi sono gli altri elementi del batch.</p>
+      <ul>
+        <li>NT-Xent: <code>L = −log[ exp(sim(z_i,z_j)/τ) / Σ_{k≠i} exp(sim(z_i,z_k)/τ) ]</code>, sim = coseno, τ = temperatura.</li>
+        <li>NT-Xent è una forma di <strong>InfoNCE</strong>; alternative come <strong>MoCo</strong> (momentum encoder + memory bank) e <strong>BYOL/SimSiam</strong> evitano i batch grandi o i negativi espliciti.</li>
+      </ul>
+
+      <h2>Triplet loss</h2>
+      <p>La <strong>triplet loss</strong> impara uno spazio di embedding con triple <code>(anchor, positive, negative)</code>: l'anchor dev'essere <em>più vicino</em> al positive (stessa classe) che al negative (classe diversa) di almeno un <strong>margine</strong> m. Formula: <code>L = max(0, d(a,p) − d(a,n) + m)</code>. Se la condizione è già soddisfatta la loss è zero (tripla facile). Usi: ranking, verifica di volti/identità (FaceNet), retrieval.</p>
+      <ul>
+        <li>Con embedding L2-normalizzati vale <code>d²(a,b) = 2 − 2·cos(a,b)</code>: il margine ha interpretazione geometrica precisa.</li>
+        <li>vs NT-Xent: triplet usa <em>1</em> negativo per tripla; il contrastive ne usa molti dal batch. <em>Hard negative mining</em> = scegliere triple difficili.</li>
+      </ul>
+
+      <h2>Domain adaptation</h2>
+      <p>Affronta il <em>domain shift</em>: il modello è addestrato su un dominio <strong>source</strong> (etichettato) ma deve funzionare su un <strong>target</strong> con distribuzione diversa (spesso poco/non etichettato). L'idea è <strong>allineare le distribuzioni</strong> delle feature: (1) <strong>feature alignment</strong> — minimizzare una discrepanza (MMD, o allineare le covarianze come CORAL); (2) <strong>adversariale</strong> — un <em>domain discriminator</em> prova a distinguere source da target, l'encoder è addestrato (gradient reversal, DANN) a ingannarlo → feature domain-invariant.</p>
+
+      <h2>Domande d'orale</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Cos'è un pretext task e perché si usa?</summary><p class="qa-a">È un compito "finto" le cui etichette si ricavano dai dati stessi (es. predire token mascherati); serve a forzare la rete a imparare rappresentazioni trasferibili sfruttando dati non etichettati abbondanti.</p></details>
+        <details class="qa-item"><summary>Perché BERT è bidirezionale e GPT no?</summary><p class="qa-a">BERT è un encoder addestrato con MLM, quindi ogni token vede contesto sinistro e destro insieme; GPT è autoregressivo (predice il token successivo) e può vedere solo il passato.</p></details>
+        <details class="qa-item"><summary>Com'è fatto il mascheramento in BERT?</summary><p class="qa-a">Si seleziona ~15% dei token; di questi 80% → <code>[MASK]</code>, 10% → token casuale, 10% invariati. Serve a ridurre il mismatch col fine-tuning, dove <code>[MASK]</code> non appare.</p></details>
+        <details class="qa-item"><summary>Cosa fa la projection head in SimCLR e che fine fa?</summary><p class="qa-a">È un MLP che mappa le feature nello spazio dove si applica NT-Xent; migliora il pretraining ma viene scartata dopo, usando come rappresentazione l'output dell'encoder.</p></details>
+        <details class="qa-item"><summary>Differenza tra triplet loss e NT-Xent?</summary><p class="qa-a">La triplet usa un solo negativo per tripla con margine esplicito; NT-Xent usa molti negativi (tutto il batch) in una softmax sulle similarità con temperatura.</p></details>
+        <details class="qa-item"><summary>Come funziona il domain adaptation adversariale?</summary><p class="qa-a">Un domain discriminator cerca di distinguere se una feature è source o target; l'encoder è addestrato (gradient reversal, DANN) a ingannarlo, producendo feature domain-invariant che allineano le distribuzioni.</p></details>
+      </div>
+
+      <div class="idea"><div class="idea-label">In una frase</div><p>Il self-supervised learning costruisce le etichette dai dati stessi (pretext task) per imparare rappresentazioni generali da dati non etichettati, da trasferire poi con fine-tuning: il MLM di BERT ne è l'esempio nel linguaggio.</p></div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-48">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="48"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-48">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 49 — Iperparametri & HPO ============ -->
+    <section class="chapter exam-chapter" data-chapter="49">
+      <div class="chap-meta"><span class="chap-badge chap-badge--extra">Approfondimento · corso</span><span class="chap-time">~9 min</span></div>
+      <h1>Ottimizzazione degli iperparametri (HPO)</h1>
+      <p class="intro">Gli <strong>iperparametri</strong> (learning rate, weight decay, dropout, n. di latent, dimensione del modello, batch size) non si apprendono col gradiente: vanno scelti prima. Cercare la configurazione che minimizza l'errore di validazione è un problema <em>black-box</em>, <em>costoso</em> (ogni valutazione = un training intero) e <em>non differenziabile</em>. Dalle baseline (grid/random) ai metodi model-based (GP + Bayesian optimization), ai multi-fidelity (successive halving/Hyperband/ASHA), fino a meta-learning e mixup.</p>
+
+      <h2>Il problema HPO: black-box e costoso</h2>
+      <p>Vogliamo <code>x* = argmin_x f(x)</code>, con <code>x</code> = configurazione di iperparametri e <code>f(x)</code> = errore di validazione. Difficoltà: (1) <strong>black-box</strong> — niente forma analitica, solo valutazioni puntuali; (2) <strong>non differenziabile</strong> (alcuni iperparametri sono discreti/categorici); (3) <strong>valutazioni costose e rumorose</strong> (ogni <code>f(x)</code> è un training completo). L'obiettivo non è solo trovare il minimo, ma trovarlo col <em>minor numero di valutazioni</em>: i metodi si distinguono per come spendono un budget limitato.</p>
+
+      <h2>Baseline: grid vs random search</h2>
+      <p>La <strong>grid search</strong> prova tutte le combinazioni di una griglia: semplice ma con <code>k</code> iperparametri e <code>m</code> valori servono <code>m^k</code> run (maledizione della dimensionalità). La <strong>random search</strong> campiona <code>N</code> configurazioni a caso e <strong>spesso batte la grid</strong>: in pratica solo pochi iperparametri contano, e il random esplora più valori distinti sulle dimensioni rilevanti invece di sprecare prove su quelle irrilevanti (Bergstra &amp; Bengio). Entrambi però sono <em>non adattivi</em>: non imparano dai risultati già osservati.</p>
+
+      <h2>Gaussian Process: il surrogato probabilistico</h2>
+      <p>Idea model-based: costruisco un <strong>modello surrogato</strong> economico di <code>f</code> che mi dice dove conviene provare. Il surrogato classico è il <strong>Gaussian Process (GP)</strong>: dati i punti osservati, in ogni nuovo <code>x</code> dà una <strong>predizione gaussiana</strong> — media <code>μ(x)</code> (errore atteso) e varianza <code>σ²(x)</code> (incertezza). È definito da una media e da un <strong>kernel</strong> <code>k(x,x')</code> che codifica la regolarità (configurazioni vicine → performance simili). Proprio l'incertezza, assente in grid/random, guida la scelta del punto successivo.</p>
+      <ul>
+        <li>Vicino ai punti osservati <code>σ²</code> è bassa, lontano è alta.</li>
+        <li>Limiti del GP: costo <code>O(n³)</code> (inversione della covarianza), difficoltà con molte dimensioni e variabili categoriche/condizionali.</li>
+      </ul>
+
+      <h2>Bayesian Optimization e Expected Improvement</h2>
+      <p>La <strong>Bayesian Optimization (BO)</strong> è il ciclo: (1) fit del GP sui punti osservati; (2) si massimizza una <strong>acquisition function</strong> per scegliere il prossimo <code>x</code> (economico, sul surrogato); (3) si valuta <code>f(x)</code> (training vero); (4) si aggiorna il GP. L'acquisition bilancia <strong>exploration</strong> (alta <code>σ</code>, zone inesplorate) ed <strong>exploitation</strong> (bassa <code>μ</code>, zone già buone). La più usata è l'<strong>Expected Improvement</strong>: <code>EI(x) = E[max(0, f* − f(x))]</code>, con <code>f*</code> = miglior errore finora. EI premia sia media promettente sia alta incertezza, in un'unica formula.</p>
+      <ul>
+        <li>Alternativa: <strong>LCB</strong> (Lower Confidence Bound) <code>μ(x) − β·σ(x)</code> per la minimizzazione.</li>
+        <li>Surrogati alternativi al GP: <strong>TPE</strong> (modella <code>p(x|y)</code>, usato in Optuna/Hyperopt, migliore sui categorici) e <strong>SMAC</strong> (random forest).</li>
+      </ul>
+
+      <h2>Multi-fidelity: Successive Halving, Hyperband, ASHA</h2>
+      <p>I metodi <strong>multi-fidelity</strong> usano valutazioni economiche (poche epoche, bassa fedeltà) per scartare presto i candidati scarsi. <strong>Successive Halving (SHA)</strong>: parti con tante configurazioni e poco budget ciascuna; tieni solo la frazione migliore (in generale <code>1/η</code>, es. la metà con η=2) e <em>moltiplichi per η</em> il budget alle sopravvissute, mantenendo ~costante il budget per round; ripeti (in pratica η=3 o 4).</p>
+      <p>SHA soffre il trade-off "quante config vs quanto budget ciascuna". <strong>Hyperband</strong> lo risolve eseguendo più <strong>bracket</strong> di SHA con punti di partenza diversi, coprendo lo spettro senza indovinarlo. <strong>ASHA</strong> è la versione <em>asincrona</em>: promuove una configurazione appena ce ne sono abbastanza pronte, senza attese sincrone → scala molto meglio in parallelo.</p>
+
+      <h2>Meta-learning e Mixup</h2>
+      <p>Il <strong>meta-learning</strong> ("imparare a imparare") impara <em>come</em> adattarsi in fretta a nuovi task da una distribuzione di task affini; per l'HPO serve a fare <em>warm-start</em> con storici di esperimenti. <strong>MAML</strong> cerca un'<em>inizializzazione</em> dei pesi da cui <strong>pochi passi di gradiente</strong> bastano su un nuovo task (few-shot): inner loop (adatta al task) + outer loop (ottimizza l'init).</p>
+      <p>Il <strong>mixup</strong> è una regolarizzazione sui <em>dati</em>: crea esempi virtuali come combinazioni convesse <code>x̃ = λ·x_i + (1−λ)·x_j</code>, <code>ỹ = λ·y_i + (1−λ)·y_j</code>, con <code>λ ~ Beta(α,α)</code>. Forza il modello a comportarsi <strong>linearmente tra gli esempi</strong>: predizioni più lisce, meno overfitting e meno overconfidence (etichette soft).</p>
+      <div class="comparison-note"><strong>Legame col progetto:</strong> la tua ricerca di iperparametri è stata <strong>manuale</strong> (7 esperimenti CIFAR-10 scelti a ragionamento): un grid/random artigianale a budget minimo, obbligato da 1 sola RTX 3060 — proprio lo scenario "valutazioni costose" che motiva i metodi automatici. La BO avrebbe scelto la prossima configurazione in modo informato (learning rate di LAMB, weight decay, dropout, n. di latent). Soprattutto, il tuo <strong>early stopping</strong> è il parente del <strong>successive halving</strong>: entrambi tagliano presto i run poco promettenti (l'early stopping ferma <em>un</em> training, SHA confronta e scarta <em>tra più</em> configurazioni). Il <strong>mixup</strong> era applicabile direttamente a CIFAR-10.</div>
+
+      <h2>Domande d'orale</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Perché non si usa la discesa del gradiente per gli iperparametri?</summary><p class="qa-a">Perché l'errore di validazione in funzione degli iperparametri è black-box e non differenziabile (alcuni sono discreti/categorici); si può solo valutarlo per punti, e ogni valutazione è un training costoso.</p></details>
+        <details class="qa-item"><summary>Perché random search batte spesso grid search?</summary><p class="qa-a">Perché solo pochi iperparametri sono davvero influenti: il random campiona più valori distinti sulle dimensioni che contano, mentre la griglia spreca prove esplorando finemente dimensioni irrilevanti.</p></details>
+        <details class="qa-item"><summary>Cosa fornisce un GP e a cosa serve l'incertezza?</summary><p class="qa-a">Per ogni punto dà media μ(x) e varianza σ²(x). L'incertezza guida l'esplorazione: l'acquisition function prova anche zone non esplorate (alta σ), non solo quelle già buone.</p></details>
+        <details class="qa-item"><summary>Cos'è l'Expected Improvement e che trade-off gestisce?</summary><p class="qa-a"><code>EI(x)=E[max(0, f*−f(x))]</code>: miglioramento atteso sul miglior valore f*. Bilancia exploitation (media promettente) ed exploration (alta varianza) in un'unica formula.</p></details>
+        <details class="qa-item"><summary>Differenza tra successive halving, Hyperband e ASHA?</summary><p class="qa-a">SHA tiene la frazione 1/η migliore e moltiplica il budget per η. Hyperband esegue più bracket di SHA per coprire il trade-off n-vs-budget. ASHA è la versione asincrona: promuove le config appena pronte, scalando in parallelo.</p></details>
+        <details class="qa-item"><summary>Come funziona mixup e perché regolarizza?</summary><p class="qa-a">Combinazioni convesse di due campioni ed etichette (<code>λ~Beta(α,α)</code>). Forza comportamento lineare tra gli esempi: predizioni più lisce, meno overfitting e overconfidence.</p></details>
+      </div>
+
+      <div class="idea"><div class="idea-label">In una frase</div><p>Poiché ogni valutazione costa un training intero, l'HPO è l'arte di spendere bene un budget: dalle baseline non adattive (grid/random), ai surrogati che scelgono il punto migliore (GP + Bayesian optimization con EI), ai multi-fidelity che scartano presto i candidati scarsi (SHA/Hyperband/ASHA).</p></div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-49">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="49"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-49">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 50 — Fondamenti statistici ============ -->
+    <section class="chapter exam-chapter" data-chapter="50">
+      <div class="chap-meta"><span class="chap-badge chap-badge--extra">Approfondimento · corso</span><span class="chap-time">~9 min</span></div>
+      <h1>Fondamenti statistici dell'apprendimento</h1>
+      <p class="intro">Le basi dell'apprendimento supervisionato: <em>cosa</em> minimizziamo (il rischio), <em>quale</em> classificatore è ottimo (Bayes), <em>come</em> modellare i dati (generativo vs discriminativo) e <em>con quale</em> loss. È la cornice che giustifica l'addestramento di qualsiasi rete — Perceiver incluso, che è un classificatore discriminativo addestrato per ERM con cross-entropy.</p>
+
+      <h2>Empirical Risk Minimization (ERM)</h2>
+      <p>Vogliamo un predittore che sbagli poco su dati <em>futuri</em>. Misuriamo l'errore con una <strong>loss</strong> <code>L(f(x), y)</code> e l'obiettivo ideale è il <strong>rischio vero (atteso)</strong> <code>R(f) = E_{(x,y)~p}[L(f(x), y)]</code>. Ma <code>p(x,y)</code> è ignota, quindi <code>R(f)</code> non è calcolabile: lo approssimiamo col <strong>rischio empirico</strong> <code>R_emp(f) = (1/N) Σ_i L(f(x_i), y_i)</code>. L'addestramento <em>è</em> la minimizzazione di <code>R_emp</code>.</p>
+      <p>Per un <em>f fisso</em>, <code>R_emp → R</code> quando <code>N→∞</code>; ma per l'<em>f ottimizzato</em> sugli stessi dati i due differiscono — è il <strong>generalization gap</strong> <code>R(f) − R_emp(f) ≥ 0</code>. Minimizzare troppo il rischio empirico (modello molto flessibile, pochi dati) porta a <strong>overfitting</strong>: per questo servono regolarizzazione, validation set ed early stopping.</p>
+
+      <h2>Classificatore ottimo di Bayes</h2>
+      <p>Con loss 0-1, il classificatore che <strong>minimizza il rischio vero</strong> sceglie la classe a posteriori più probabile: <code>f*(x) = argmax_y p(y|x)</code> (scommetti sull'esito più probabile). Il suo errore residuo è il <strong>Bayes error</strong>, irriducibile (sovrapposizione intrinseca delle classi). È il <em>benchmark teorico</em>: ogni metodo (LDA, logistica, rete) è un tentativo di stimare bene <code>p(y|x)</code> per avvicinarsi a questa regola.</p>
+
+      <h2>Generativo vs Discriminativo</h2>
+      <p>Due strade verso <code>p(y|x)</code>. <strong>Generativo</strong>: modella le <em>class-conditional</em> <code>p(x|y)</code> e i prior <code>p(y)</code>, poi inverte con Bayes <code>p(y|x) = p(x|y)p(y)/p(x)</code> (può anche generare nuovi <code>x</code>). Esempi: LDA, Naive Bayes. <strong>Discriminativo</strong>: stima direttamente <code>p(y|x)</code> senza modellare <code>p(x)</code>. Esempi: regressione logistica, SVM, <em>reti neurali (Perceiver incluso)</em>.</p>
+      <ul>
+        <li>Discriminativo: meno assunzioni, di norma più accurato con molti dati. Generativo: più assunzioni, più data-efficient con pochi dati, ma soffre se le assunzioni sono sbagliate.</li>
+        <li>Il classico risultato asintotico (Ng &amp; Jordan) vale per la <em>coppia</em> Naive Bayes vs logistica: il discriminativo ha errore asintotico ≤, ma il generativo raggiunge prima il <em>proprio</em> asintoto (più alto se le assunzioni sono violate). Non è una legge generale.</li>
+      </ul>
+
+      <h2>Linear Discriminant Analysis (LDA)</h2>
+      <p>Classificatore <strong>generativo</strong> che assume gaussiane class-conditional con media <code>μ_k</code> propria ma <strong>covarianza condivisa</strong> <code>Σ</code>: <code>p(x|y=k) = N(x; μ_k, Σ)</code>. Conseguenza: nel rapporto a posteriori i termini quadratici in <code>x</code> si <em>cancellano</em> (stessa <code>Σ</code> per tutte le classi), restando una funzione <strong>lineare</strong> → il <strong>confine è un iperpiano</strong>. (Con <code>Σ_k</code> distinte si ottiene QDA, confine quadratico.) Parametri stimati via MLE in forma chiusa:</p>
+      <ul>
+        <li>Prior <code>π_k = N_k/N</code>; medie <code>μ_k</code> = media campionaria; <code>Σ</code> = covarianza <em>pooled</em>.</li>
+      </ul>
+
+      <h2>Maximum Likelihood e cross-entropy</h2>
+      <p>La <strong>MLE</strong> sceglie i parametri che massimizzano la verosimiglianza dei dati: <code>θ* = argmax_θ Σ_i log p(y_i|x_i;θ)</code>. Massimizzare la log-verosimiglianza equivale a <em>minimizzare la negative log-likelihood (NLL)</em>, che è esattamente la <strong>cross-entropy</strong> tra distribuzione empirica e modello (≈ minimizzare la KL tra le due). Da qui la catena che unifica tutto: <strong>MLE = ERM con loss NLL = minimizzazione della cross-entropy</strong>.</p>
+
+      <h2>Modelli Lineari Generalizzati (GLM)</h2>
+      <p>Estendono la regressione lineare a target non gaussiani. Tre ingredienti: (1) il target appartiene alla <strong>famiglia esponenziale</strong>; (2) un <strong>predittore lineare</strong> <code>η = wᵀx + b</code>; (3) una <strong>funzione di link</strong> <code>g</code> con <code>g(E[y|x]) = η</code>, che mappa la media (anche in un intervallo limitato) sull'intera retta reale. In forma canonica: <code>p(y|θ) = h(y)·exp(θ·T(y) − A(θ))</code>, con <code>T(y)</code> statistica sufficiente e <code>A(θ)</code> <em>log-partition</em>, le cui derivate danno i momenti: <code>A'(θ)=E[T(y)]</code>, <code>A''(θ)=Var[T(y)]</code>.</p>
+      <p>Caso Bernoulli → <strong>regressione logistica</strong>: link canonica = logit, la cui inversa è la <strong>sigmoide</strong>, quindi <code>p(y=1|x) = σ(wᵀx + b)</code>. Lo stesso schema con la softmax (link multinomiale) dà la classificazione multiclasse usata nel Perceiver.</p>
+
+      <h2>Tassonomia delle loss</h2>
+      <p><strong>Regressione:</strong> <code>L2/MSE</code> liscia ma sensibile agli outlier (ottimo = media condizionata); <code>L1/MAE</code> robusta (ottimo = mediana) ma non liscia in 0; <strong>Huber</strong> = ibrido (quadratica vicino a 0, lineare lontano). <strong>Classificazione:</strong> la <code>0-1</code> è ideale ma non differenziabile → si usano surrogati: <strong>hinge</strong> <code>max(0, 1 − y·ŷ)</code> (SVM, massimo margine) e <strong>cross-entropy</strong> <code>−log p_y</code> (da MLE, probabilità calibrate, standard per le reti).</p>
+      <ul>
+        <li>Regressione con outlier → Huber/L1; pulita → L2. Classificazione con softmax → cross-entropy; margine → hinge.</li>
+        <li>Altre: <strong>KL divergence</strong> (soft label, distillation, VAE) e <strong>focal loss</strong> (cross-entropy ripesata per il class imbalance, pendant della Dice loss della segmentazione).</li>
+      </ul>
+      <div class="comparison-note"><strong>Legame col progetto:</strong> il Perceiver/Perceiver IO è un classificatore <strong>discriminativo</strong> (stima <code>p(y|x)</code> con softmax) addestrato per <strong>ERM</strong> minimizzando la <strong>cross-entropy</strong>. Lo schema è identico sulle 3 modalità: CIFAR-10 (10 classi), ModelNet40 (40 classi) con cross-entropy multiclasse, e MLM su WikiText-103 (cross-entropy sul token mascherato). La ricerca manuale degli iperparametri e l'early stopping servono a ridurre il <em>generalization gap</em> tra rischio empirico (train) e rischio vero (validation).</div>
+
+      <h2>Domande d'orale</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Differenza tra rischio vero ed empirico, e perché minimizziamo il secondo?</summary><p class="qa-a">Il rischio vero è la loss attesa sulla distribuzione reale (non calcolabile, p è ignota); minimizziamo il rischio empirico (media sul training set) come stima. La loro differenza è il generalization gap.</p></details>
+        <details class="qa-item"><summary>Cos'è il classificatore ottimo di Bayes?</summary><p class="qa-a">La regola <code>argmax_y p(y|x)</code>, che minimizza l'errore con loss 0-1. È il benchmark teorico; il suo errore residuo (Bayes error) è irriducibile.</p></details>
+        <details class="qa-item"><summary>Perché la regressione logistica è un GLM e qual è la sua link?</summary><p class="qa-a">È il GLM con target Bernoulli (famiglia esponenziale) e link canonica logit; l'inversa è la sigmoide, quindi <code>p(y=1|x)=σ(wᵀx+b)</code>.</p></details>
+        <details class="qa-item"><summary>Perché LDA produce un confine lineare?</summary><p class="qa-a">Assume gaussiane class-conditional con covarianza Σ condivisa: i termini quadratici in x si cancellano nel rapporto a posteriori, lasciando una funzione lineare. Con Σ_k distinte (QDA) il confine è quadratico.</p></details>
+        <details class="qa-item"><summary>Che legame c'è tra MLE, NLL e cross-entropy?</summary><p class="qa-a">Massimizzare la verosimiglianza = minimizzare la negative log-likelihood = minimizzare la cross-entropy tra dati e modello. Quindi addestrare con cross-entropy è fare MLE via ERM.</p></details>
+        <details class="qa-item"><summary>Generativo vs discriminativo: quale con pochi dati?</summary><p class="qa-a">Spesso il generativo (es. LDA): le assunzioni distributive lo rendono più data-efficient e converge prima. Con molti dati il discriminativo (rete) tende a essere più accurato perché modella direttamente <code>p(y|x)</code>.</p></details>
+      </div>
+
+      <div class="idea"><div class="idea-label">In una frase</div><p>Addestrare = minimizzare il rischio empirico (ERM) con una loss adatta al task per approssimare la regola di Bayes <code>argmax p(y|x)</code>; i discriminativi (reti, logistica) stimano <code>p(y|x)</code> direttamente, i generativi (LDA) lo derivano da <code>p(x|y)</code>.</p></div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-50">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="50"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-50">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 51 — Sequenze & visione avanzate ============ -->
+    <section class="chapter exam-chapter" data-chapter="51">
+      <div class="chap-meta"><span class="chap-badge chap-badge--extra">Approfondimento · corso</span><span class="chap-time">~9 min</span></div>
+      <h1>Sequenze e visione: argomenti avanzati</h1>
+      <p class="intro">Strumenti "classici ma fondamentali": come si genera una sequenza in uscita (seq2seq e decoding), come si fa segmentazione densa pixel-per-pixel (U-Net, FCN, Dice loss) e come si scala un modello a basso costo (Mixture of Experts). Concetti che illuminano scelte ricorrenti — encoder-decoder, skip connection, computazione condizionale — che ritrovi nel Perceiver IO.</p>
+
+      <h2>Seq2Seq: encoder-decoder e vettore di contesto</h2>
+      <p>Un modello <strong>seq2seq</strong> mappa una sequenza di input a una di output di lunghezza variabile (traduzione, riassunto). L'architettura classica è un <strong>encoder-decoder</strong>: un RNN/LSTM <em>encoder</em> comprime la sorgente in un <strong>vettore di contesto</strong> c (l'ultimo stato); un decoder <strong>autoregressivo</strong> genera l'output token per token da c, finché non emette <code>&lt;EOS&gt;</code>.</p>
+      <p>Il collo di bottiglia è c: comprimere tutta la sorgente in un vettore perde informazione su frasi lunghe. La soluzione è l'<strong>attention</strong> (Bahdanau): a ogni passo il decoder guarda <em>tutti</em> gli stati dell'encoder con pesi <code>α = softmax</code> degli score tra stato del decoder e stati dell'encoder, e usa il contesto <code>Σ α·h</code>. Da qui nascono i Transformer.</p>
+      <ul>
+        <li><strong>Teacher forcing</strong> in training: si dà al decoder il token vero <code>y_{t-1}</code>, non quello predetto, per stabilizzare l'apprendimento.</li>
+        <li><strong>Exposure bias</strong>: in training il decoder vede sempre il token corretto, in inference i propri output (anche errati) → discrepanza train/inference.</li>
+      </ul>
+
+      <h2>Decoding: greedy, beam search, sampling</h2>
+      <p>Lo spazio delle sequenze è esponenziale (<code>V^L</code>): le strategie di <strong>decoding</strong> sono euristiche. <strong>Greedy</strong>: argmax a ogni passo, veloce ma miope. <strong>Beam search</strong>: mantiene le <code>k</code> ipotesi più probabili (score = somma dei log p); k=1 è greedy, k maggiore = qualità migliore ma più costo. Senza <em>length normalization</em> il beam preferisce sequenze <strong>corte</strong> (più token = più log p negativi sommati), quindi si normalizza per lunghezza.</p>
+      <p><strong>Sampling</strong> con <strong>temperatura</strong>: <code>p_i ∝ exp(z_i/T)</code>; T&lt;1 più deterministico, T&gt;1 più diversità, T→0 = greedy. Il sampling puro degenera (la coda accumula massa → token incoerenti/ripetizioni): per questo si tronca con <strong>top-k</strong> o <strong>top-p (nucleus)</strong>.</p>
+
+      <h2>Decoding ottimo con Viterbi</h2>
+      <p>Per i modelli a <strong>stati discreti</strong> (HMM, CRF lineari) la sequenza ottima si trova <em>esattamente</em> con <strong>Viterbi</strong> (programmazione dinamica): sfrutta la struttura di Markov per evitare l'enumerazione. Complessità <code>O(L·V²)</code>, ottimo globale garantito — ma richiede l'assunzione markoviana. Beam search invece è approssimato ma funziona con decoder ricchi (Transformer). Si usa in POS tagging, NER con CRF, speech con HMM.</p>
+      <ul>
+        <li>DP: <code>δ_t(j) = max_i [ δ_{t-1}(i) + log A_{ij} ] + log B_j(x_t)</code>, init <code>δ_1(j)=log π_j + log B_j(x_1)</code>; backpointer per ricostruire il percorso.</li>
+      </ul>
+
+      <h2>U-Net e Fully Convolutional Networks</h2>
+      <p>La <strong>segmentazione semantica</strong> assegna una classe a <em>ogni pixel</em>. Le <strong>FCN</strong> tolgono i layer fully-connected e usano solo convoluzioni → l'output è una mappa 2D. <strong>U-Net</strong> è un encoder-decoder simmetrico a U: l'<em>encoder</em> riduce la risoluzione (cattura il "cosa"), il <em>decoder</em> risale con up-convolution (ricostruisce il "dove"). Il pezzo cruciale sono le <strong>skip connection</strong>: concatenano le feature ad alta risoluzione dell'encoder al decoder, recuperando i dettagli spaziali persi nel downsampling (bordi netti).</p>
+
+      <h2>Dice loss vs cross-entropy per-pixel</h2>
+      <p>Nella segmentazione c'è forte <strong>class imbalance</strong> (l'oggetto può essere l'1% dei pixel). La <strong>cross-entropy per-pixel</strong> è dominata dallo sfondo: il modello può avere loss bassa predicendo "tutto sfondo". La <strong>Dice loss</strong> misura l'<strong>overlap</strong> tra predizione e ground truth (coefficiente di Dice = F1 sui pixel), normalizzato sull'area dell'oggetto, quindi robusto allo sbilanciamento.</p>
+      <ul>
+        <li>Dice soft con smoothing ε: <code>(2·Σ p·g + ε)/(Σ p + Σ g + ε)</code>, per gradiente stabile quando l'oggetto è assente.</li>
+        <li>Best practice: loss combinata <strong>Dice + cross-entropy</strong>; alternativa per lo sbilanciamento è la <strong>focal loss</strong>.</li>
+      </ul>
+
+      <h2>Mixture of Experts (MoE)</h2>
+      <p>Una <strong>MoE</strong> sostituisce un grande layer con N sotto-reti specializzate (gli <strong>esperti</strong>) più una <strong>gating network</strong> che decide quali attivare. Con il <strong>Top-k gating</strong> si attivano solo <em>k</em> esperti su N per token (Top-1 nello Switch Transformer, Top-2 nei MoE classici): i <strong>parametri</strong> totali crescono moltissimo (più capacità), ma il <strong>costo per token</strong> resta quasi costante → scaling efficiente, perché disaccoppia capacità e FLOPs.</p>
+      <ul>
+        <li><strong>Load balancing</strong> (loss ausiliaria) + <strong>expert capacity</strong>/token dropping per evitare il collasso su pochi esperti; nei setup distribuiti pesa la comunicazione all-to-all.</li>
+        <li>Conv <strong>1×1</strong> e <strong>bottleneck</strong> (1×1 riduci → 3×3 → 1×1 riespandi) sono l'analogo "spaziale": stessa capacità con molti meno FLOPs.</li>
+      </ul>
+      <div class="comparison-note"><strong>Legame col progetto:</strong> il <strong>Perceiver IO</strong> è un encoder-decoder generalizzato: l'encoder fa cross-attention dall'input ai latenti (come l'encoder seq2seq comprime in un contesto), e il <strong>decoder con output query</strong> ricostruisce output di forma arbitraria interrogando i latenti via cross-attention — come un decoder seq2seq «interroga» la sorgente. Le <strong>skip/residual</strong> dei tuoi blocchi rispecchiano la logica di U-Net. Le strategie di decoding sono per la generazione testuale; nel tuo task testo, però, MLM e GLUE sono <em>classificazione</em>, quindi il decoding sequenziale non entra nel training (buon contrasto da far notare).</div>
+
+      <h2>Domande d'orale</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Perché il vettore di contesto è un collo di bottiglia nel seq2seq?</summary><p class="qa-a">Comprime tutta la sorgente in un vettore fisso: su frasi lunghe perde informazione. Si risolve con l'attention, che lascia il decoder guardare tutti gli stati dell'encoder con pesi appresi.</p></details>
+        <details class="qa-item"><summary>Differenza tra beam search e Viterbi?</summary><p class="qa-a">Beam search è un'euristica (k ipotesi) usabile con qualsiasi decoder; Viterbi dà l'ottimo globale esatto via DP, ma richiede l'assunzione markoviana (HMM/CRF).</p></details>
+        <details class="qa-item"><summary>Cosa fa la temperatura nel sampling?</summary><p class="qa-a">Scala i logit prima della softmax (<code>p ∝ exp(z/T)</code>): T&lt;1 più conservativo, T&gt;1 più diverso, T→0 ≈ greedy. Il sampling puro si tronca con top-k/top-p per evitare la degenerazione.</p></details>
+        <details class="qa-item"><summary>A cosa servono le skip connection in U-Net?</summary><p class="qa-a">Portano le feature ad alta risoluzione dell'encoder al decoder, recuperando i dettagli spaziali persi nel downsampling e producendo bordi netti nella segmentazione.</p></details>
+        <details class="qa-item"><summary>Perché Dice loss invece (o oltre) della cross-entropy per-pixel?</summary><p class="qa-a">La CE è dominata dallo sfondo nei dataset sbilanciati; la Dice misura l'overlap normalizzato sull'area dell'oggetto, quindi è robusta al class imbalance. Spesso si combinano.</p></details>
+        <details class="qa-item"><summary>Perché una MoE sparsa scala bene?</summary><p class="qa-a">Attiva solo k esperti su N per token: i parametri totali (capacità) crescono molto, ma i FLOPs per token restano quasi costanti, disaccoppiando capacità e costo.</p></details>
+      </div>
+
+      <div class="idea"><div class="idea-label">In una frase</div><p>Encoder-decoder, skip connection, sparsità e ricerca strutturata sono le leve ricorrenti: comprimere il significato (encoder), ricostruire l'output preservando i dettagli (decoder + skip), spendere calcolo solo dove serve (MoE/1×1) e scegliere bene la sequenza generata (beam/Viterbi/temperatura).</p></div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-51">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="51"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-51" disabled>Fine</button>
+      </div>
+    </section>
+
   </main>
 
   <aside class="rail" id="rail">
@@ -4992,6 +5231,6 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260609-exam2"></script>
+<script defer src="js/app.js?v=20260609-exam3"></script>
 </body>
 </html>
