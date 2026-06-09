@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260608-exp10">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260608-exp10">
-<script defer src="js/interactive-labs.js?v=20260608-exp10"></script>
+<link rel="stylesheet" href="css/style.css?v=20260609-exp11">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260609-exp11">
+<script defer src="js/interactive-labs.js?v=20260609-exp11"></script>
 </head>
 <body>
 
@@ -4541,10 +4541,26 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
         </figure>
       </div>
 
-      <figure>
-        <img src="../experiment_assets/confusion_matrix.png" alt="Confusion matrix CIFAR-10" loading="lazy">
-        <figcaption>Esempio di <strong>confusion matrix</strong> (CIFAR-10, exp2): la diagonale dominante mostra le classi predette correttamente; gli errori fuori diagonale rivelano le coppie confuse (es. gatto/cane).</figcaption>
-      </figure>
+      <div class="concept-lab attn-evo-lab" data-lab="confusion-gallery">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">logs/ · confusion matrix per epoca</span>
+            <h3>Confusion matrix: il modello impara nel tempo</h3>
+            <p>Segui la progressione del training (exp6, Fourier permutato): da matrice diffusa a diagonale dominante. La diagonale = classi corrette; fuori diagonale = confusioni.</p>
+          </div>
+          <div class="lab-toggle" role="tablist" aria-label="Epoca confusion matrix">
+            <button type="button" class="active" data-attn-exp="cm_exp6_ep1">Inizio (ep.1)</button>
+            <button type="button" data-attn-exp="cm_exp6_ep20">ep.20</button>
+            <button type="button" data-attn-exp="cm_exp6_ep60">ep.60</button>
+            <button type="button" data-attn-exp="cm_exp6_ep108">Best (ep.108)</button>
+            <button type="button" data-attn-exp="cm_exp2_ep89">Learned PE</button>
+          </div>
+        </div>
+        <figure class="attn-evo-figure">
+          <img class="attn-evo-img" src="../experiment_assets/cm_exp6_ep1.png" alt="Confusion matrix CIFAR-10" loading="lazy">
+          <figcaption class="attn-evo-cap">exp6 (Fourier permutato) — epoca 1: matrice quasi diffusa, il modello non distingue ancora le classi.</figcaption>
+        </figure>
+      </div>
       <ul>
         <li><strong>Permutation invariance</strong>: 78.12% permutato vs 69.69% non-permutato — verifica empirica della teoria Fourier (Cap. 5/12).</li>
         <li><strong>Early stopping + confusion matrix</strong> per epoca: controllo dell'overfitting sul validation set da 10k.</li>
@@ -4642,6 +4658,6 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260608-exp10"></script>
+<script defer src="js/app.js?v=20260609-exp11"></script>
 </body>
 </html>

@@ -2362,7 +2362,12 @@ const LAB_SOURCE_REFS = {
       ps_exp4B: "Stile-Perceiver — senza weight sharing (epoca 61).",
       modelnet_attn_baseline: "ModelNet40 — point cloud 3D colorato per attenzione ricevuta (baseline, 84.24%): i latenti si concentrano su spigoli ed estremità dell'oggetto.",
       modelnet_attn_with_translation: "ModelNet40 — scale + translation (83.67%): stessa lettura 3D dell'oggetto.",
-      modelnet_attn_with_rotation: "ModelNet40 — scale + rotation (83.14%): l'attenzione resta sui punti salienti anche con rotazioni."
+      modelnet_attn_with_rotation: "ModelNet40 — scale + rotation (83.14%): l'attenzione resta sui punti salienti anche con rotazioni.",
+      cm_exp6_ep1: "exp6 (Fourier permutato) — epoca 1: matrice quasi diffusa, il modello non distingue ancora le classi.",
+      cm_exp6_ep20: "exp6 — epoca 20: la diagonale inizia a emergere, l'accuracy cresce.",
+      cm_exp6_ep60: "exp6 — epoca 60: diagonale netta, restano poche confusioni.",
+      cm_exp6_ep108: "exp6 — epoca 108 (best, 78.12%): diagonale dominante; le confusioni residue sono tra animali simili (gatto/cane, cervo/cavallo).",
+      cm_exp2_ep89: "exp2 (learned PE) — epoca 89 (best, 77.60%): risultato molto simile a Fourier sotto permutazione."
     };
     var labs = document.querySelectorAll(".attn-evo-lab");
     labs.forEach(function(container) {
