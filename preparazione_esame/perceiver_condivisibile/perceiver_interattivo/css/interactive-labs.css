@@ -2419,3 +2419,18 @@
 @media (prefers-reduced-motion: reduce) {
   .qa-item summary::before, .book-card, .exam-link { transition: none; }
 }
+
+/* Programma del corso (tabella lezione -> letture) */
+.exam-chapter .prog-legend { font-size: 12.5px; color: var(--text-soft); margin: 6px 0 12px; line-height: 1.8; }
+.exam-chapter .prog-legend code { background: var(--bg-soft, #f1f1f5); padding: 1px 5px; border-radius: 4px; font-size: 11.5px; }
+.exam-chapter .prog-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--border); border-radius: 10px; margin: 6px 0 8px; }
+.exam-chapter .prog-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.exam-chapter .prog-table th, .exam-chapter .prog-table td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); line-height: 1.45; }
+.exam-chapter .prog-table tbody tr:last-child td { border-bottom: none; }
+.exam-chapter .prog-table th { color: var(--muted); font-weight: 700; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; background: var(--bg-soft, #f7f7fa); position: sticky; top: 0; }
+.exam-chapter .prog-table td:first-child { white-space: nowrap; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.exam-chapter .prog-table tr.prog-video td:nth-child(2) { color: var(--text-soft); font-style: italic; }
+.exam-chapter .prog-books { font-weight: 600; color: var(--text); }
+.exam-chapter .prog-opt { color: var(--muted); font-size: 11.5px; }
+@media (hover: hover) and (pointer: fine) { .exam-chapter .prog-table tbody tr:hover { background: var(--bg-soft, #f7f7fa); } }
+@media (max-width: 640px) { .exam-chapter .prog-table { font-size: 12px; } .exam-chapter .prog-table th, .exam-chapter .prog-table td { padding: 7px 9px; } }

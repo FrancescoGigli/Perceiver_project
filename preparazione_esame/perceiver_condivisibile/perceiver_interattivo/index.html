@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260609-exam">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260609-exam">
-<script defer src="js/interactive-labs.js?v=20260609-exam"></script>
+<link rel="stylesheet" href="css/style.css?v=20260609-exam2">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260609-exam2">
+<script defer src="js/interactive-labs.js?v=20260609-exam2"></script>
 </head>
 <body>
 
@@ -4736,6 +4736,47 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
         </article>
       </div>
 
+      <h2>Programma del corso (lezione per lezione)</h2>
+      <p>Dal sito ufficiale: <strong>argomenti e letture consigliate</strong> per ogni lezione. Le sigle sono i libri (vedi <em>Materiali</em> qui sotto); i nomi tipo <em>(Vaswani et al. 2017)</em> sono paper. <span aria-hidden="true">📹</span> = video-lezione su Moodle.</p>
+      <div class="prog-legend">
+        <strong>Sigle:</strong> <code>BB24</code> Bishop &amp; Bishop · <code>GBC16</code> Goodfellow · <code>P24</code> Prince · <code>ZLLS23</code> d2l.ai · <code>JM24</code> Jurafsky &amp; Martin · <code>B06</code> PRML · <code>RW06</code> Gaussian Processes &nbsp;·&nbsp; <strong>Rich</strong> = lettura richiesta, <strong>Opz</strong> = opzionale.
+      </div>
+      <div class="prog-table-wrap">
+        <table class="prog-table">
+          <thead><tr><th>Data</th><th>Argomenti</th><th>Letture consigliate</th></tr></thead>
+          <tbody>
+            <tr><td>17/09</td><td>Forme di apprendimento (supervised/unsupervised/RL), outline del corso, cenni storici</td><td><span class="prog-books">BB24 cap. 1, GBC16 5.1</span> <span class="prog-opt">· Opz: Schmidhuber 2015</span></td></tr>
+            <tr><td>19/09</td><td>Supervised learning ed empirical risk minimization; classificatore binario ottimo</td><td><span class="prog-books">BB24 4.1-4.2, 5.2-5.3, GBC16 5.5</span> <span class="prog-opt">· Opz: Ng &amp; Jordan 2001</span></td></tr>
+            <tr><td>24/09</td><td>Direzione generativa, LDA, MLE, ottimalità degli iperpiani; direzione discriminativa, reti a singolo strato, ruolo della logistica, MLE↔ERM</td><td><span class="prog-books">BB24 3.2, 5.1, GBC16 5.5, 5.7</span> <span class="prog-opt">· Opz: Li et al. 2023; Clark &amp; Jaini 2023</span></td></tr>
+            <tr><td>26/09</td><td>Loss per regressione (L2/L1/Huber), least squares; loss per classificazione (0-1/hinge/log); GLM, Bernoulli in famiglia esponenziale, link canonici</td><td><span class="prog-books">BB24 4.1, 5.4</span> <span class="prog-opt">· Opz: Girshick 2015; Huber 1963</span></td></tr>
+            <tr><td>01/10</td><td>GLM: regressione logistica, log-loss e conditional likelihood; cenni Gaussian/Poisson; classificazione multiclasse e softmax regression</td><td><span class="prog-books">BB24 5.4, 5.1, ZLLS23 4</span></td></tr>
+            <tr><td>03/10</td><td>Interpretazione geometrica della softmax, log-sum-exp; gradient descent e SGD</td><td><span class="prog-books">BB24 7.1-7.2, ZLLS23 4, 12</span> <span class="prog-opt">· Rich: Bottou &amp; Bousquet 2007 · Opz: Shalev-Shwartz &amp; Ben-David 2014; Bottou et al. 2018</span></td></tr>
+            <tr><td>08/10</td><td>GD vs SGD, convergenza, large-scale learning, errori ottim/stima/approx; minibatch e batch size; momentum; metodi adattivi (Adagrad/RMSProp/Adam)</td><td><span class="prog-books">BB24 7.2-7.3</span> <span class="prog-opt">· Rich: Bottou &amp; Bousquet 2007; Hinton 2012; Kingma &amp; Ba 2014 · Opz: Shallue et al. 2019; Duchi et al. 2011</span></td></tr>
+            <tr><td>15/10</td><td>Feature biologicamente ispirate, feature/end-to-end learning, composizionalità, training layerwise, denoising autoencoder, MLP, rectifier</td><td><span class="prog-books">BB24 6, GBC16 6, 6.1, 6.3, 6.4, 14.2</span> <span class="prog-opt">· Rich: Bengio et al. 2013 · Opz: Lee et al. 2009; Ringach 2002; Hinton &amp; Salakhutdinov 2006; Serre et al. 2005; Hinton et al. 2006; Vincent et al. 2008; Glorot et al. 2011; Nair &amp; Hinton 2010</span></td></tr>
+            <tr class="prog-video"><td>16/10</td><td>📹 Video — framework di DL, ambiente di sviluppo, tensori, lavoro remoto</td><td><span class="prog-books">ZLLS23 2.1-2.3</span> <span class="prog-opt">· Rich: Video lecture 1</span></td></tr>
+            <tr><td>17/10</td><td>Espressività delle feedforward, basis function, RBF, Leaky/Parametric ReLU, MLP come funzioni lineari a tratti, grafi computazionali e autodiff</td><td><span class="prog-books">BB24 8, 9.1</span> <span class="prog-opt">· Rich: Baydin et al. 2017 · Opz: Poggio &amp; Girosi 1990; Maas et al. 2013; He et al. 2015; Montúfar et al. 2014</span></td></tr>
+            <tr><td>22/10</td><td>Autodiff forward/reverse-mode, inizializzazione (LeCun/Glorot/He), regolarizzazione per penalità, ridge</td><td><span class="prog-books">BB24 8, 7.2.5, 9.1; GBC16 6.5, 7.1, 8.4; ZLLS23 2.5, 5.4.2, 5.5</span> <span class="prog-opt">· Rich: Gebremedhin &amp; Walther 2020 · Opz: Rumelhart et al. 1986; Belkin et al. 2019</span></td></tr>
+            <tr class="prog-video"><td>23/10</td><td>📹 Video — regressione logistica in TensorFlow puro, TensorBoard, logistica in PyTorch</td><td><span class="prog-books">ZLLS23 4</span> <span class="prog-opt">· Rich: Video lecture 2 (+ src)</span></td></tr>
+            <tr><td>24/10</td><td>Interpretazioni del ridge (L2), bias-variance e double descent, MAP bayesiano, L1/lasso/elastic net</td><td><span class="prog-books">BB24 9.1, 9.2, 9.3.2; GBC16 7.1, 7.2, 7.8, 7.9</span> <span class="prog-opt">· Opz: BB24 11</span></td></tr>
+            <tr><td>25/10</td><td>Weight decay, AdamW, weight sharing, early stopping, dropout, GELU e relazione col dropout</td><td><span class="prog-books">BB24 7.2.5, 7.4, 9.1.3; GBC16 7.4, 8.4, 8.7.1</span> <span class="prog-opt">· Rich: Srivastava et al. 2014 · Opz: Loshchilov &amp; Hutter 2018; Baldi &amp; Sadowski 2014; Wager et al. 2013; Hendrycks &amp; Gimpel 2020</span></td></tr>
+            <tr><td>31/10</td><td>Data augmentation, batch/layer normalization, reti convoluzionali Nd e loro inductive bias</td><td><span class="prog-books">BB24 9.1.3, 7.4, 10.1; GBC16 9.1, 9.2</span> <span class="prog-opt">· Rich: Ioffe &amp; Szegedy 2015 · Opz: Ba et al. 2016; Salimans et al. 2016; Ioffe 2017</span></td></tr>
+            <tr class="prog-video"><td>04/11</td><td>📹 Video — autodiff in TensorFlow e PyTorch, MLP in TF/Keras</td><td><span class="prog-books">ZLLS23 2.5, 5</span> <span class="prog-opt">· Rich: Video lecture 3 (+ src)</span></td></tr>
+            <tr><td>05/11</td><td>Equivarianza traslazionale, convoluzione Nd, canali, stacking conv, testa di classificazione, stride e pooling, conv dilatate/transposte</td><td><span class="prog-books">BB24 10.1-10.2; GBC16 9.3-9.5; ZLLS23 7.2-7.6</span> <span class="prog-opt">· Rich: Dumoulin &amp; Visin 2016 · Opz: Ngiam et al. 2010; Yu &amp; Koltun 2015; Radford et al. 2015</span></td></tr>
+            <tr><td>07/11</td><td>Bottleneck (conv 1×1), normalizzazione CNN (batch/layer/instance/group), gate, mixture of experts, skip (highway/residual), EfficientNet, segmentazione e U-net, FCN, Dice loss</td><td><span class="prog-books">BB24 10.4-10.5; ZLLS23 9.4</span> <span class="prog-opt">· Rich: Wu &amp; He 2018; Ronneberger et al. 2015 · Opz: He et al. 2015; Tan &amp; Le 2019; Jacobs et al. 1991; Srivastava et al. 2018; Milletari et al. 2016</span></td></tr>
+            <tr class="prog-video"><td>11/11</td><td>📹 Video — dataloader in PyTorch, CNN e DenseNet in PyTorch</td><td><span class="prog-books">ZLLS23 7</span> <span class="prog-opt">· Rich: Video lecture 4 (+ src); Huang et al. 2017 · Opz: Walmsley et al. 2021; Hui et al. 2022</span></td></tr>
+            <tr><td>12/11</td><td>Sequenze, task NLP di base, embedding, RNN e grafo computazionale, vanishing/exploding gradient</td><td><span class="prog-books">BB24 12.2; JM24 9; GBC16 10.1-10.2</span> <span class="prog-opt">· Opz: Hochreiter et al. 2001</span></td></tr>
+            <tr><td>14/11</td><td>RNN stacked/bidirezionali, gate (LSTM/GRU), seq2seq, encoder-decoder, decoding (greedy, Viterbi, beam search, sampling)</td><td><span class="prog-books">BB24 11.3, 12.2; ZLLS23 10; JM24 8.4, 9.1</span> <span class="prog-opt">· Rich: Chung et al. 2014; Hochreiter &amp; Schmidhuber 1997; Sutskever et al. 2014</span></td></tr>
+            <tr><td>19/11</td><td>Attention originale, soft dictionaries, LM ricorrenti con attention, traduzione automatica, attention per classificazione, intro ai Transformer</td><td><span class="prog-books">BB24 12.2</span> <span class="prog-opt">· Rich: Bahdanau et al. 2014 · Opz: Graves et al. 2014; Yang et al. 2016; Sukhbaatar et al. 2015</span></td></tr>
+            <tr><td>21/11</td><td>Self-attention, parametrizzazione, complessità, multi-head, masking e batch matmul, Transformer</td><td><span class="prog-books">BB24 12.1</span> <span class="prog-opt">· Rich: Vaswani et al. 2017; Rogozhnikov 2022 · Opz: Dangel 2024</span></td></tr>
+            <tr><td>26/11</td><td>Positional encoding, Vision Transformer, transfer learning, pretraining/fine-tuning, self-supervised (pretext task)</td><td><span class="prog-books">BB24 12.1-12.4, 6.3</span> <span class="prog-opt">· Rich: Vaswani et al. 2017; Dosovitskiy et al. 2020 · Opz: Devlin et al. 2018; Gidaris et al. 2018; Hun et al. 2016; Raghu et al. 2019</span></td></tr>
+            <tr class="prog-video"><td>02/12</td><td>📹 Video — hyperparameter optimization, algoritmo elementare, introduzione ai Gaussian process</td><td><span class="prog-books">B06 2.3, 3.3; RW06 1, 2, 4</span> <span class="prog-opt">· Rich: Video lecture 5 · Opz: Franceschi et al. 2025; risorse: GPyTorch, GPFlow</span></td></tr>
+            <tr><td>05/12</td><td>BERT pretraining/fine-tuning, triplet loss, contrastive learning, SimCLR, domain adaptation, HPO model-based</td><td><span class="prog-books">JM24 cap. 11</span> <span class="prog-opt">· Rich: Devlin et al. 2018; van den Oord et al. 2019; Schroff et al. 2015; Chen et al. 2020 · Opz: Hospedales et al. 2021; Rozantsev et al. 2019; Tzeng et al. 2017; Li et al. 2017; Doersch et al. 2016; He et al. 2022; He et al. 2020; Sohn 2016</span></td></tr>
+            <tr><td>10/12</td><td>HPO model-based, expected improvement, multi-fidelity, successive halving, Hyperband, ASHA, meta-learning, domain adaptation, reweighting, Mixup</td><td><span class="prog-opt">Rich: Snoek et al. 2012; Bergstra et al. 2013; Li et al. 2018 · Opz: Jamieson &amp; Talwalkar 2016; Li et al. 2020; Yogatama et al. 2015; Jones et al. 1998; Frazier 2018; Finn et al. 2017; Franceschi et al. 2018; risorse: GPyOpt, Optuna, Syne Tune</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="prog-legend">Date senza lezione: 10/10, 28/11, 03/12. Tutte le letture sono copiate dalla colonna "Readings/Handouts" del sito ufficiale.</p>
+
       <h2>Materiali del corso</h2>
       <h3>Libri (tutti gratuiti online)</h3>
       <div class="book-grid">
@@ -4951,6 +4992,6 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260609-exam"></script>
+<script defer src="js/app.js?v=20260609-exam2"></script>
 </body>
 </html>
