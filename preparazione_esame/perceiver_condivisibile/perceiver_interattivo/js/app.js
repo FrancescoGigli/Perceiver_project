@@ -1,12 +1,16 @@
 ﻿"use strict";
 
-const TOTAL = 46;
+const TOTAL = 47;
+const CONTENT_TOTAL = 46;
 const MAIN_TOTAL = 18;
 const REFERENCE_START = 19;
 const REFERENCE_END = 40;
 const APPENDIX_START = 41;
 const APPENDIX_END = 43;
 const EXPERIMENTS_START = 44;
+const EXPERIMENTS_END = 46;
+const EXAM_START = 47;
+const GLOSSARY_CHAPTER = 43;
 const CHAPTER_TITLES = [
   "Il problema",
   "Self → Cross-attention",
@@ -53,7 +57,8 @@ const CHAPTER_TITLES = [
   "Confronti e specifiche",
   "Esperimenti: panoramica",
   "Architettura: noi vs paper",
-  "Risultati: paper vs nostri"
+  "Risultati: paper vs nostri",
+  "Esame: modalità e studio"
 ];
 const REFERENCE_TITLES = CHAPTER_TITLES.slice(REFERENCE_START - 1, REFERENCE_END);
 const APPENDIX_TITLES = CHAPTER_TITLES.slice(APPENDIX_START - 1);
@@ -73,6 +78,11 @@ if (!state.done) state.done = {};
 function renderToc() {
   const toc = document.getElementById("toc");
   toc.innerHTML = "";
+  const examTitle = document.createElement("li");
+  examTitle.className = "toc-section-title";
+  examTitle.textContent = "Esame";
+  toc.appendChild(examTitle);
+  toc.appendChild(createTocItem(EXAM_START, "exam"));
   const mainTitle = document.createElement("li");
   mainTitle.className = "toc-section-title";
   mainTitle.textContent = "Percorso Perceiver";
@@ -98,16 +108,16 @@ function renderToc() {
   expTitle.className = "toc-section-title";
   expTitle.textContent = "Esperimenti";
   toc.appendChild(expTitle);
-  for (let i = EXPERIMENTS_START; i <= TOTAL; i++) {
+  for (let i = EXPERIMENTS_START; i <= EXPERIMENTS_END; i++) {
     toc.appendChild(createTocItem(i, "experiment"));
   }
 }
 function createTocItem(i, kind = "main") {
     const li = document.createElement("li");
     li.dataset.kind = kind;
-    const kindClass = kind === "reference" ? "reference-item " : kind === "appendix" ? "appendix-item " : kind === "experiment" ? "experiment-item " : "";
+    const kindClass = kind === "reference" ? "reference-item " : kind === "appendix" ? "appendix-item " : kind === "experiment" ? "experiment-item " : kind === "exam" ? "exam-item " : "";
     li.className = `${kindClass}${i === currentChapter ? "active " : ""}${state.done[i] ? "done" : ""}`;
-    const label = kind === "reference" ? `R${i - REFERENCE_START + 1}` : kind === "appendix" ? `A${i - APPENDIX_START + 1}` : kind === "experiment" ? `E${i - EXPERIMENTS_START + 1}` : i;
+    const label = kind === "reference" ? `R${i - REFERENCE_START + 1}` : kind === "appendix" ? `A${i - APPENDIX_START + 1}` : kind === "experiment" ? `E${i - EXPERIMENTS_START + 1}` : kind === "exam" ? "★" : i;
     li.innerHTML = `<div class="toc-num"><span class="toc-num-text">${label}</span></div><div class="toc-title">${CHAPTER_TITLES[i-1]}</div>`;
     li.addEventListener("click", () => goTo(i));
     return li;
@@ -166,7 +176,8 @@ const RAIL_DATA = {
   43: { stage: 0, idea: "Confronti: prepara differenze nette, non definizioni isolate." },
   44: { stage: 0, idea: "Esperimenti: il progetto from-scratch su 3 modalità (immagini, 3D, testo), con setup e dataset." },
   45: { stage: 0, idea: "Architettura: la nostra config ridotta (1 GPU RTX 3060) vs quella del paper (64 TPU) — per Perceiver e Perceiver IO." },
-  46: { stage: 0, idea: "Risultati a confronto: i numeri del paper vs i nostri, con grafici, attention maps e gap spiegati dal budget computazionale." }
+  46: { stage: 0, idea: "Risultati a confronto: i numeri del paper vs i nostri, con grafici, attention maps e gap spiegati dal budget computazionale." },
+  47: { stage: 0, idea: "<strong>Esame</strong>: orale unico + progetto, presentazione di <strong>30'</strong> (Q&amp;A incluse). Qui le modalità ufficiali, cosa studiare in ordine di priorità e i materiali del corso." }
 };
 const SOURCE_DATA = {
   1: { pdfPage: 5,   pdfPages: "PDF p. 5",       section: "1.1 Il problema della complessità quadratica", texLine: 266 },
@@ -214,7 +225,8 @@ const SOURCE_DATA = {
   43: { pdfPage: 77,  pdfPages: "PDF pp. 77-157",  section: "Sintesi finale: confronti, specifiche e riferimenti teorici", texLine: 4050 },
   44: { pdfPage: 130, pdfPages: "Repo + PDF §3", section: "3 Implementazione e Risultati — panoramica", texLine: 6545 },
   45: { pdfPage: 131, pdfPages: "PDF §3.1-3.2", section: "3.1-3.2 Architettura e divergenze dal paper", texLine: 6592 },
-  46: { pdfPage: 78, pdfPages: "PDF §1.7 + §3.3+", section: "Risultati paper (§1.7) vs progetto (§3)", texLine: 4079 }
+  46: { pdfPage: 78, pdfPages: "PDF §1.7 + §3.3+", section: "Risultati paper (§1.7) vs progetto (§3)", texLine: 4079 },
+  47: { pdfPage: null, fileLabel: "Pagina ufficiale del corso", pdfPages: "B031278 · Deep Learning 2025", section: "Modalità d'esame e programma — Prof. Frasconi", url: "https://ai.dinfo.unifi.it/teaching/dl_2025.html", urlLabel: "Apri la pagina del corso", note: "Fonte: pagina ufficiale del corso (UniFi). Verifica sempre lì date e avvisi aggiornati." }
 };
 const PIPE_STAGES = ["Input", "Fourier", "Latenti", "Cross-Att", "Latent Tr.", "×T", "Pooling/Decoder"];
 const QUICK_LINKS = {
@@ -389,7 +401,9 @@ function renderSourceRail() {
     rail.innerHTML = '<div class="source-note">Fonte non mappata per questo capitolo.</div>';
     return;
   }
-  const chapterLabel = currentChapter >= EXPERIMENTS_START
+  const chapterLabel = currentChapter >= EXAM_START
+    ? "Esame"
+    : currentChapter >= EXPERIMENTS_START
     ? `Esperimenti ${currentChapter - EXPERIMENTS_START + 1}`
     : currentChapter >= APPENDIX_START
       ? `Appendice ${currentChapter - APPENDIX_START + 1}`
@@ -402,12 +416,16 @@ function renderSourceRail() {
   const links = hasPdf
     ? `<a class="source-link" href="${pdfHref}" target="_blank" rel="noopener">Apri PDF</a>
       <a class="source-link" href="${texHref}" target="_blank" rel="noopener" title="Riga sorgente circa ${source.texLine}">Apri .tex</a>`
-    : "";
-  const note = hasPdf
-    ? "Il PDF si apre sulla prima pagina del range; da lì puoi scorrere la sezione originale."
-    : "I dati di questa sezione vengono dai risultati reali del progetto nel repository (cartella analysis_results/).";
+    : source.url
+      ? `<a class="source-link" href="${source.url}" target="_blank" rel="noopener">${escapeHtml(source.urlLabel || "Apri")}</a>`
+      : "";
+  const note = source.note
+    ? source.note
+    : hasPdf
+      ? "Il PDF si apre sulla prima pagina del range; da lì puoi scorrere la sezione originale."
+      : "I dati di questa sezione vengono dai risultati reali del progetto nel repository (cartella analysis_results/).";
   rail.innerHTML = `
-    <div class="source-file">${hasPdf ? "appunti_ml_definitivo.pdf" : "Progetto Perceiver IO"}</div>
+    <div class="source-file">${hasPdf ? "appunti_ml_definitivo.pdf" : escapeHtml(source.fileLabel || "Progetto Perceiver IO")}</div>
     <div class="source-chapter">${escapeHtml(chapterLabel)} · ${escapeHtml(CHAPTER_TITLES[currentChapter - 1])}</div>
     <div class="source-pages">${escapeHtml(source.pdfPages)}</div>
     <div class="source-section-name">${escapeHtml(source.section)}</div>
@@ -613,8 +631,8 @@ function scrollToGlossaryEntry(id) {
     const entry = document.getElementById(`glossary-${id}`);
     if (entry) entry.scrollIntoView({ behavior: "smooth", block: "start" });
   };
-  if (currentChapter !== TOTAL) {
-    goTo(TOTAL);
+  if (currentChapter !== GLOSSARY_CHAPTER) {
+    goTo(GLOSSARY_CHAPTER);
     window.setTimeout(scroll, 80);
   } else {
     scroll();
@@ -841,9 +859,10 @@ function goTo(n) {
   document.getElementById("sidebar").classList.remove("open");
   const cb = document.querySelector(`[data-done="${n}"]`);
   if (cb) cb.checked = !!state.done[n];
-  if (n === TOTAL) {
+  if (n === CONTENT_TOTAL) {
     const recap = document.getElementById("finalRecap");
-    if (Object.values(state.done).filter(Boolean).length === TOTAL) recap.classList.remove("hidden");
+    const contentDone = Object.entries(state.done).filter(([k, v]) => v && Number(k) <= CONTENT_TOTAL).length;
+    if (contentDone >= CONTENT_TOTAL) recap.classList.remove("hidden");
     else recap.classList.add("hidden");
   }
 }
@@ -865,7 +884,7 @@ document.querySelectorAll('[data-done]').forEach(cb => {
     saveState();
     renderToc();
     renderProgress();
-    if (n === TOTAL) goTo(n);
+    if (n === CONTENT_TOTAL) goTo(n);
   });
 });
 

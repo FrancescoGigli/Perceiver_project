@@ -137,6 +137,19 @@
     background: #ffe9d6;
   }
   .toc li.experiment-item.active .toc-num { background: #e65100; color: white; }
+  .toc li.exam-item {
+    font-size: 13px;
+    background: #f7f3fc;
+  }
+  .toc li.exam-item .toc-num {
+    width: 30px;
+    height: 20px;
+    border-radius: 5px;
+    font-size: 12px;
+    color: #6a1b9a;
+    background: #f3e5f5;
+  }
+  .toc li.exam-item.active .toc-num { background: #6a1b9a; color: white; }
   .sidebar-foot { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); line-height: 1.6; }
   .sidebar-foot button { background: none; border: none; color: var(--muted); cursor: pointer; text-decoration: underline; font-size: 11px; padding: 0; }
   .sidebar-foot button:hover { color: #c62828; }
