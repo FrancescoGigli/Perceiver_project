@@ -1,6 +1,6 @@
 ﻿"use strict";
 
-const TOTAL = 51;
+const TOTAL = 52;
 const CONTENT_TOTAL = 46;
 const MAIN_TOTAL = 18;
 const REFERENCE_START = 19;
@@ -12,6 +12,7 @@ const EXPERIMENTS_END = 46;
 const EXAM_START = 47;
 const EXTRA_START = 48;
 const EXTRA_END = 51;
+const BIBLIO_CHAPTER = 52;
 const GLOSSARY_CHAPTER = 43;
 const CHAPTER_TITLES = [
   "Il problema",
@@ -64,7 +65,8 @@ const CHAPTER_TITLES = [
   "Self-supervised & BERT",
   "Iperparametri & HPO",
   "Fondamenti statistici",
-  "Sequenze & visione avanzate"
+  "Sequenze & visione avanzate",
+  "Bibliografia · paper originali"
 ];
 const REFERENCE_TITLES = CHAPTER_TITLES.slice(REFERENCE_START - 1, REFERENCE_END);
 const APPENDIX_TITLES = CHAPTER_TITLES.slice(APPENDIX_START - 1);
@@ -124,13 +126,18 @@ function renderToc() {
   for (let i = EXPERIMENTS_START; i <= EXPERIMENTS_END; i++) {
     toc.appendChild(createTocItem(i, "experiment"));
   }
+  const biblioTitle = document.createElement("li");
+  biblioTitle.className = "toc-section-title";
+  biblioTitle.textContent = "Bibliografia";
+  toc.appendChild(biblioTitle);
+  toc.appendChild(createTocItem(BIBLIO_CHAPTER, "biblio"));
 }
 function createTocItem(i, kind = "main") {
     const li = document.createElement("li");
     li.dataset.kind = kind;
-    const kindClass = kind === "reference" ? "reference-item " : kind === "appendix" ? "appendix-item " : kind === "experiment" ? "experiment-item " : kind === "exam" ? "exam-item " : kind === "extra" ? "extra-item " : "";
+    const kindClass = kind === "reference" ? "reference-item " : kind === "appendix" ? "appendix-item " : kind === "experiment" ? "experiment-item " : kind === "exam" ? "exam-item " : kind === "extra" ? "extra-item " : kind === "biblio" ? "biblio-item " : "";
     li.className = `${kindClass}${i === currentChapter ? "active " : ""}${state.done[i] ? "done" : ""}`;
-    const label = kind === "reference" ? `R${i - REFERENCE_START + 1}` : kind === "appendix" ? `A${i - APPENDIX_START + 1}` : kind === "experiment" ? `E${i - EXPERIMENTS_START + 1}` : kind === "exam" ? "★" : kind === "extra" ? `X${i - EXTRA_START + 1}` : i;
+    const label = kind === "reference" ? `R${i - REFERENCE_START + 1}` : kind === "appendix" ? `A${i - APPENDIX_START + 1}` : kind === "experiment" ? `E${i - EXPERIMENTS_START + 1}` : kind === "exam" ? "★" : kind === "extra" ? `X${i - EXTRA_START + 1}` : kind === "biblio" ? "B" : i;
     li.innerHTML = `<div class="toc-num"><span class="toc-num-text">${label}</span></div><div class="toc-title">${CHAPTER_TITLES[i-1]}</div>`;
     li.addEventListener("click", () => goTo(i));
     return li;
@@ -194,7 +201,8 @@ const RAIL_DATA = {
   48: { stage: 0, idea: "<strong>Self-supervised</strong>: BERT (MLM/NSP), contrastive/SimCLR, triplet loss, domain adaptation. Il tuo MLM su WikiText è pretraining stile BERT." },
   49: { stage: 0, idea: "<strong>Iperparametri</strong>: Gaussian process + Bayesian optimization (EI), successive halving/Hyperband/ASHA, meta-learning, Mixup." },
   50: { stage: 0, idea: "<strong>Fondamenti</strong>: ERM, classificatore di Bayes, generativo vs discriminativo, LDA/MLE, GLM, tassonomia delle loss." },
-  51: { stage: 0, idea: "<strong>Sequenze &amp; visione</strong>: seq2seq, decoding (beam/Viterbi/sampling), U-Net e Dice loss, mixture of experts." }
+  51: { stage: 0, idea: "<strong>Sequenze &amp; visione</strong>: seq2seq, decoding (beam/Viterbi/sampling), U-Net e Dice loss, mixture of experts." },
+  52: { stage: 0, idea: "<strong>Bibliografia</strong>: i paper originali citati nel tool, con link diretto ad arXiv/DOI. Le figure sono nei paper linkati." }
 };
 const SOURCE_DATA = {
   1: { pdfPage: 5,   pdfPages: "PDF p. 5",       section: "1.1 Il problema della complessità quadratica", texLine: 266 },
@@ -247,7 +255,8 @@ const SOURCE_DATA = {
   48: { pdfPage: null, fileLabel: "Programma del corso", pdfPages: "Lezioni 26/11 e 05/12", section: "Self-supervised, BERT, contrastive learning, domain adaptation", url: "https://web.stanford.edu/~jurafsky/slp3/", urlLabel: "Apri SLP3 (Jurafsky & Martin)", note: "Argomento del programma non incluso nel PDF degli appunti. Riferimenti: [JM24] cap. 11, [BB24] 12." },
   49: { pdfPage: null, fileLabel: "Programma del corso", pdfPages: "Lezioni 02/12 e 10/12", section: "Ottimizzazione iperparametri, Gaussian process, Hyperband/ASHA", url: "https://gaussianprocess.org/gpml/", urlLabel: "Apri GPML (Rasmussen & Williams)", note: "Argomento del programma non incluso nel PDF degli appunti. Riferimenti: [RW06], [B06] 2.3, 3.3." },
   50: { pdfPage: null, fileLabel: "Programma del corso", pdfPages: "Lezioni 17-26/09", section: "ERM, generativo vs discriminativo, LDA, GLM, loss", url: "https://www.bishopbook.com/", urlLabel: "Apri Bishop & Bishop", note: "Argomento del programma non incluso nel PDF degli appunti. Riferimenti: [BB24] 3-5, [GBC16] 5." },
-  51: { pdfPage: null, fileLabel: "Programma del corso", pdfPages: "Lezioni 07-14/11", section: "seq2seq, decoding, U-Net, Dice loss, mixture of experts", url: "https://www.bishopbook.com/", urlLabel: "Apri Bishop & Bishop", note: "Argomento del programma non incluso nel PDF degli appunti. Riferimenti: [BB24] 10-12, [JM24] 8-9." }
+  51: { pdfPage: null, fileLabel: "Programma del corso", pdfPages: "Lezioni 07-14/11", section: "seq2seq, decoding, U-Net, Dice loss, mixture of experts", url: "https://www.bishopbook.com/", urlLabel: "Apri Bishop & Bishop", note: "Argomento del programma non incluso nel PDF degli appunti. Riferimenti: [BB24] 10-12, [JM24] 8-9." },
+  52: { pdfPage: null, fileLabel: "Paper originali", pdfPages: "Riferimenti citati nel tool", section: "Bibliografia con link ad arXiv/DOI", url: "https://arxiv.org/", urlLabel: "arXiv.org", note: "Tutti i paper citati, con link diretto alle fonti originali (dove vivono le figure). Nessuna figura copiata: solo link." }
 };
 const PIPE_STAGES = ["Input", "Fourier", "Latenti", "Cross-Att", "Latent Tr.", "×T", "Pooling/Decoder"];
 const QUICK_LINKS = {
@@ -422,7 +431,9 @@ function renderSourceRail() {
     rail.innerHTML = '<div class="source-note">Fonte non mappata per questo capitolo.</div>';
     return;
   }
-  const chapterLabel = currentChapter >= EXTRA_START
+  const chapterLabel = currentChapter >= BIBLIO_CHAPTER
+    ? "Bibliografia"
+    : currentChapter >= EXTRA_START
     ? `Approfondimento ${currentChapter - EXTRA_START + 1}`
     : currentChapter >= EXAM_START
     ? "Esame"
