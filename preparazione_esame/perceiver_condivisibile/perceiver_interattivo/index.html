@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260609-exp11">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260609-exp11">
-<script defer src="js/interactive-labs.js?v=20260609-exp11"></script>
+<link rel="stylesheet" href="css/style.css?v=20260609-exam">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260609-exam">
+<script defer src="js/interactive-labs.js?v=20260609-exam"></script>
 </head>
 <body>
 
@@ -4585,6 +4585,299 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       </div>
     </section>
 
+    <!-- ============ CAP 47 — Esame: modalità e cosa studiare ============ -->
+    <section class="chapter exam-chapter" data-chapter="47">
+      <div class="chap-meta"><span class="chap-badge chap-badge--exam">Esame</span><span class="chap-time">~12 min</span></div>
+      <h1>Esame: come funziona e cosa studiare</h1>
+      <p class="intro">Tutto ciò che serve per sostenere l'esame di <strong>Deep Learning</strong> (corso B031278, Prof. Paolo Frasconi, UniFi — autunno 2025): le <strong>modalità ufficiali</strong>, come il tuo <strong>progetto Perceiver / Perceiver IO</strong> soddisfa già i requisiti, <strong>cosa studiare in ordine di priorità</strong>, i <strong>materiali</strong> del corso e un <strong>piano di ripasso</strong> con le domande probabili. Fonte: <a href="https://ai.dinfo.unifi.it/teaching/dl_2025.html" target="_blank" rel="noopener">pagina ufficiale del corso</a>.</p>
+
+      <div class="exam-box">
+        <div class="exam-box-label">Procedura d'esame (ufficiale)</div>
+        <ul>
+          <li><strong>Un solo orale finale + progetto</strong> — non c'è prova scritta.</li>
+          <li><strong>Presentazione di 30 minuti</strong> (domande incluse): motiva il problema → spiega la derivazione tecnica → descrivi esperimenti e risultati. Strumenti multimediali ammessi ma non obbligatori.</li>
+          <li><strong>Gruppi fino a 2 persone</strong> (3 solo in casi eccezionali, da giustificare); contributi personali chiaramente identificabili; <strong>interrogazione individuale</strong>.</li>
+          <li><strong>Si consegna solo il codice</strong> con brevi istruzioni di riproduzione (dei dati basta un link, niente report scritto): email per zip piccoli, <a href="https://0x0.st/" target="_blank" rel="noopener">0x0.st</a> per file &gt; 1 MB, oppure repo <strong>privato</strong> su <a href="https://codeberg.org/" target="_blank" rel="noopener">Codeberg</a> invitando l'utente <code>dl.unifi</code>.</li>
+          <li><strong>Argomento da concordare in ricevimento</strong>: venerdì 11:15–13:15 e lunedì 10:45–12:45 (sede S. Marta); variazioni su <a href="https://www.ing-iam.unifi.it/" target="_blank" rel="noopener">ing-iam.unifi.it</a>.</li>
+          <li><strong>Risorse di calcolo</strong> limitate disponibili su richiesta (form Google).</li>
+          <li>⚠️ <strong>Nessuna data d'esame né link di prenotazione</strong> è pubblicata sulla pagina del corso: concordala con il docente.</li>
+        </ul>
+      </div>
+
+      <h2>A colpo d'occhio</h2>
+      <div class="spec-grid">
+        <div><span>Tipo d'esame</span><strong>Orale + progetto</strong></div>
+        <div><span>Prova scritta</span><strong>Nessuna</strong></div>
+        <div><span>Presentazione</span><strong>30 min (Q&amp;A incl.)</strong></div>
+        <div><span>Gruppo</span><strong>max 2 (3 ecc.)</strong></div>
+        <div><span>Consegna</span><strong>Codice + istruzioni</strong></div>
+        <div><span>Report scritto</span><strong>Non richiesto</strong></div>
+        <div><span>Corso</span><strong>B031278</strong></div>
+        <div><span>Docente</span><strong>P. Frasconi</strong></div>
+      </div>
+
+      <h2>Le regole in dettaglio</h2>
+      <p>L'argomento del progetto si <strong>sceglie e si concorda col docente in ricevimento</strong>. Tipicamente vengono assegnati uno o più <strong>paper</strong> da leggere, con la richiesta di <strong>riprodurre a casa qualche risultato sperimentale in forma semplificata</strong>, oppure di <strong>applicare lo stesso metodo a dati o setting diversi</strong>. È lo studente a essere responsabile di studiare da sé i <strong>prerequisiti metodologici e teorici</strong>: all'orale ci si aspetta che tu li padroneggi.</p>
+      <p>Alla consegna <strong>non si presenta una relazione scritta</strong>: va condiviso il <strong>codice</strong> con brevi istruzioni per riprodurre i risultati (dei dati basta un link a dove reperirli). Tre vie per la condivisione: zip piccoli via email, <a href="https://0x0.st/" target="_blank" rel="noopener">0x0.st</a> per file oltre 1 MB, oppure un repository <strong>privato</strong> su <a href="https://codeberg.org/" target="_blank" rel="noopener">Codeberg</a> invitando come membro l'utente <code>dl.unifi</code>.</p>
+      <p>La <strong>presentazione dura 30 minuti comprese le domande</strong> e deve seguire tre momenti: prima <strong>introdurre e motivare il problema</strong>, poi <strong>spiegare la derivazione tecnica</strong>, infine <strong>descrivere il lavoro sperimentale e i risultati</strong>. Bisogna essere pronti a rispondere sia sulla <strong>letteratura di background</strong> sia sui <strong>dettagli sperimentali</strong>. Il progetto può essere di gruppo, ma l'interrogazione è <strong>individuale</strong>: ciascuno risponde in prima persona di ciò che sa.</p>
+
+      <h2>Il mio progetto Perceiver IO ✓ — già conforme ai requisiti</h2>
+      <p>Ogni regola d'esame è già coperta dal progetto. All'orale, mappa esplicitamente ciò che hai fatto su ciò che il docente chiede:</p>
+      <ul class="exam-check">
+        <li><strong>Paper assegnato → letto e implementato:</strong> Perceiver e Perceiver IO (Jaegle et al. 2021) <strong>from-scratch in PyTorch</strong>.</li>
+        <li><strong>Riprodurre risultati in forma semplificata → fatto:</strong> stessa architettura su tre modalità — CIFAR-10 (immagini), ModelNet40 (point cloud 3D), testo (MLM su WikiText-103 → fine-tuning GLUE).</li>
+        <li><strong>Applicare il metodo a dati/setting diversi → fatto:</strong> tre modalità con un'unica rete sono esattamente il "setting diverso", coerente con l'idea generale del Perceiver.</li>
+        <li><strong>Versione coerente con risorse limitate → fatto:</strong> tutto su <strong>1 sola GPU RTX 3060</strong> (il paper usa 64 TPU); numeri assoluti più bassi ma proprietà architetturali confermate.</li>
+        <li><strong>Risultati concreti da mostrare → pronti:</strong> CIFAR-10 best <strong>78.12%</strong> (exp6, Fourier PE permutato), learned PE permutato 77.60%, peggiore solo-RGB senza PE 61.34%; permutation invariance <strong>78.12% permutato vs 69.69% non-permutato</strong>; ModelNet40 ≈ <strong>83.14%</strong> (scale+rotation).</li>
+        <li><strong>Lavoro sperimentale serio:</strong> 7 esperimenti CIFAR-10 (120 epoche, batch 64), optimizer <strong>LAMB</strong>, mixed-precision AMP, TensorBoard, early stopping (patience 10), confusion matrix per epoca.</li>
+        <li><strong>Derivazione tecnica → padroneggiata:</strong> latent bottleneck (costo lineare), cross-attention O(M·N), self-attention sui latenti O(N²), Fourier PE → permutation invariance, weight sharing (Perceiver come RNN), Perceiver IO con decoder e output queries.</li>
+        <li><strong>Consegna conforme → pronta:</strong> codice + brevi istruzioni e link ai dati (non i dataset), via repo privato Codeberg con invito a <code>dl.unifi</code> oppure email/0x0.st.</li>
+      </ul>
+      <div class="comparison-note"><strong>Frase da orale:</strong> «Ho verificato di persona la teoria su tre modalità con una sola GPU, e ho documentato onestamente dove i miei risultati divergono dal paper — soprattutto sul weight sharing.»</div>
+
+      <h3>Da rifinire prima dell'orale</h3>
+      <ul class="exam-check exam-check--todo">
+        <li>Cronometrare la scaletta dei 30' nei tre momenti (motivazione → derivazione → esperimenti/risultati), Q&amp;A incluse: con 3 modalità e 7 esperimenti il rischio è sforare.</li>
+        <li>Saper spiegare con sicurezza il gap col paper (1 GPU vs 64 TPU): perché i numeri assoluti calano ma permutation invariance e scalabilità lineare restano confermate.</li>
+        <li>Essere pronto sulle domande facili da incalzare: <strong>weight sharing</strong> (Perceiver come RNN) e perché il <strong>Fourier PE</strong> dà permutation invariance.</li>
+      </ul>
+
+      <h2>Cosa studiare: priorità</h2>
+      <p>Il corso è ampio e l'orale può toccare qualsiasi lezione: la priorità qui serve a <strong>distribuire il tempo</strong>, non a escludere argomenti. Le voci <span class="prio-badge prio--alta">Alta</span> coincidono con ciò che hai già implementato e dimostrato nel progetto — quindi sia probabili all'orale, sia facili da raccontare con i tuoi dati; le voci <span class="prio-badge prio--bassa">Bassa</span> restano da ripassare almeno come idea.</p>
+      <div class="prio-legend">
+        <span class="prio-badge prio--alta">Alta</span> cuore del progetto / molto probabile &nbsp;·&nbsp;
+        <span class="prio-badge prio--media">Media</span> fondamenti importanti &nbsp;·&nbsp;
+        <span class="prio-badge prio--bassa">Bassa</span> nel programma, ripassa l'idea
+      </div>
+      <div class="prio-list">
+        <article class="prio-card prio--alta">
+          <div class="prio-card-head"><h3>Attention e Transformer</h3><span class="prio-badge prio--alta">Alta</span></div>
+          <p class="prio-args">Meccanismo di attenzione, soft dictionaries, self-attention, parametrizzazione Q/K/V, multi-head, masking, Transformer.</p>
+          <p class="prio-why"><strong>Perché:</strong> è letteralmente il cuore del progetto. Self-attention O(N²) e cross-attention O(M·N) sono ciò che hai implementato; il latent bottleneck che rende il costo lineare è il tuo contributo dimostrato. Padroneggialo a memoria, formule incluse.</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Percorso → Complessità quadratica (cap.1), Self→Cross-attention (cap.2), Cross-attention (cap.7), Latent transformer (cap.8); Riferimenti → Transformer (cap.34), Softmax (cap.19); Formulario (cap.41). Libri [P24]/[BB24].</p>
+        </article>
+        <article class="prio-card prio--alta">
+          <div class="prio-card-head"><h3>Positional encoding, ViT, transfer &amp; self-supervised</h3><span class="prio-badge prio--alta">Alta</span></div>
+          <p class="prio-args">Positional encoding, Vision Transformer, transfer learning, pretraining/fine-tuning, self-supervised.</p>
+          <p class="prio-why"><strong>Perché:</strong> le Fourier PE dimostrano la permutation invariance (exp6: 78.12% vs 69.69%; senza PE crolla a 61.34%). Il ViT è il diretto concorrente del Perceiver sulle immagini; pretraining→fine-tuning è il tuo MLM→GLUE. Hai dati sperimentali tuoi a supporto.</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Percorso → Fourier features (cap.5), Input byte array (cap.4), Ablation (cap.13), Permutazione (cap.12); Riferimenti → Fourier/PE (cap.20), ViT (cap.35); Esperimenti (cap.44-46).</p>
+        </article>
+        <article class="prio-card prio--alta">
+          <div class="prio-card-head"><h3>Perceiver IO e output flessibile</h3><span class="prio-badge prio--alta">Alta</span></div>
+          <p class="prio-args">Decoder a cross-attention, output queries, schema encode/process/decode, output di forma arbitraria.</p>
+          <p class="prio-why"><strong>Perché:</strong> è la seconda metà del titolo del progetto. Le output queries interrogano i latenti finali via cross-attention per produrre output di forma arbitraria con lo stesso encoder — ciò che permette di usare la stessa rete su immagini, 3D e testo. Quasi certa la domanda "differenza Perceiver vs Perceiver IO".</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Percorso → Perceiver IO (cap.15), Output queries (cap.16), Implementazione (cap.17); Riferimenti → Perceiver IO risultati (cap.40); Confronti (cap.43).</p>
+        </article>
+        <article class="prio-card prio--alta">
+          <div class="prio-card-head"><h3>Ottimizzazione: SGD, momentum, Adam</h3><span class="prio-badge prio--alta">Alta</span></div>
+          <p class="prio-args">GD/SGD, convergenza, minibatch, momentum, metodi adattivi (Adagrad/RMSProp/Adam), AdamW e weight decay.</p>
+          <p class="prio-why"><strong>Perché:</strong> nel progetto usi <strong>LAMB</strong> (variante layer-wise di Adam, parente di AdamW) con batch 64 e AMP. Devi spiegare Adam (momenti, bias correction), Adam vs AdamW (decoupled weight decay) e perché LAMB aiuta coi batch grandi. Quasi certo all'orale.</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Riferimenti → Ottimizzatori (cap.25); Esperimenti (cap.44-46) per LAMB/AMP. Libro [GBC16].</p>
+        </article>
+        <article class="prio-card prio--alta">
+          <div class="prio-card-head"><h3>Autodiff, backprop e init pesi</h3><span class="prio-badge prio--alta">Alta</span></div>
+          <p class="prio-args">Grafi computazionali, forward/reverse-mode autodiff, inizializzazione LeCun/Glorot/He.</p>
+          <p class="prio-why"><strong>Perché:</strong> hai un'intera sezione "backward pass" nel progetto. Spiega il reverse-mode (efficiente con molti input/poche uscite), il gradiente p−y di softmax+CE e l'init He/Glorot nei layer lineari. Tocca teoria e la tua implementazione PyTorch.</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Percorso → Backward pass (cap.14); Riferimenti → Inizializzazione pesi (cap.37); Mappa forward (cap.42).</p>
+        </article>
+        <article class="prio-card prio--alta">
+          <div class="prio-card-head"><h3>Loss, GLM, softmax e cross-entropy</h3><span class="prio-badge prio--alta">Alta</span></div>
+          <p class="prio-args">Loss L2/L1/Huber/hinge/log, GLM, Bernoulli, regressione logistica/softmax, log-sum-exp, geometria softmax.</p>
+          <p class="prio-why"><strong>Perché:</strong> softmax e cross-entropy sono il cuore numerico dell'attention (softmax su QKᵀ) e della testa di classificazione. Il log-sum-exp e la stabilità numerica sono ciò che usi con l'AMP. Domanda probabile: "perché softmax nell'attention e come la stabilizzi".</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Riferimenti → Softmax (cap.19) e Cross-Entropy (cap.21). Libro [P24].</p>
+        </article>
+        <article class="prio-card prio--alta">
+          <div class="prio-card-head"><h3>Regolarizzazione e weight sharing</h3><span class="prio-badge prio--alta">Alta</span></div>
+          <p class="prio-args">Bias-variance, double descent, vista bayesiana, L1/L2/elastic net, weight decay, dropout, early stopping, weight sharing.</p>
+          <p class="prio-why"><strong>Perché:</strong> usi early stopping (patience 10), weight decay (AdamW/LAMB) e soprattutto <strong>weight sharing</strong> (il Perceiver come RNN srotolato — punto distintivo che il docente può approfondire). Double descent è un bonus teorico apprezzato.</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Riferimenti → Regolarizzazione L1/L2 (cap.38), Dropout (cap.36); Percorso → Weight sharing (cap.9).</p>
+        </article>
+        <article class="prio-card prio--alta">
+          <div class="prio-card-head"><h3>Normalizzazione e data augmentation</h3><span class="prio-badge prio--alta">Alta</span></div>
+          <p class="prio-args">Batch/layer/instance/group normalization, gate; data augmentation.</p>
+          <p class="prio-why"><strong>Perché:</strong> il Perceiver usa <strong>LayerNorm</strong> in pattern pre-norm (residuo pulito per il gradiente) in ogni sottoblocco. Devi distinguere BatchNorm vs LayerNorm e perché nei Transformer si preferisce LayerNorm. La data augmentation (scale+rotation) è decisiva nel tuo ModelNet40 (~83%).</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Riferimenti → Layer Normalization (cap.22), Data Augmentation (cap.39); Esperimenti (cap.44-46).</p>
+        </article>
+        <article class="prio-card prio--alta">
+          <div class="prio-card-head"><h3>Feature learning, MLP e attivazioni</h3><span class="prio-badge prio--alta">Alta</span></div>
+          <p class="prio-args">Feature learning, composizionalità, denoising autoencoder, MLP, rectifier/RBF, GELU, espressività.</p>
+          <p class="prio-why"><strong>Perché:</strong> il blocco MLP con <strong>GELU</strong> è parte esplicita di ogni layer del Perceiver (pre-norm → attention → residual → MLP → residual). Motiva GELU vs ReLU e l'universal approximation; la composizionalità è il razionale del deep stacking.</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Riferimenti → Funzioni di Attivazione (cap.23); Appendici → Feed-Forward (cap.27), Perceptrone (cap.26); Percorso → Latent transformer (cap.8).</p>
+        </article>
+        <article class="prio-card prio--alta">
+          <div class="prio-card-head"><h3>Reti convoluzionali (CNN, ResNet, U-Net)</h3><span class="prio-badge prio--alta">Alta</span></div>
+          <p class="prio-args">Equivarianza traslazionale, convoluzione multidim, canali/stride/pooling, conv 1×1/dilatate/transposte, skip connection, ResNet, U-Net, DenseNet.</p>
+          <p class="prio-why"><strong>Perché:</strong> il Perceiver nasce come alternativa general-purpose alle CNN: il confronto CNN vs Perceiver (bias di equivarianza vs permutation invariance appresa) è un classico. Le skip/residual delle ResNet sono lo stesso meccanismo dei tuoi blocchi attention. Argomenta "perché non una CNN" sul tuo CIFAR-10.</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Appendici → CNN (cap.31); Riferimenti → ConvNet (cap.32), ResNet (cap.33), Residual Connections (cap.24).</p>
+        </article>
+        <article class="prio-card prio--media">
+          <div class="prio-card-head"><h3>Sequenze, RNN, LSTM/GRU</h3><span class="prio-badge prio--media">Media</span></div>
+          <p class="prio-args">Elaborazione di sequenze, embedding, RNN, vanishing/exploding gradient, RNN bidirezionali, LSTM/GRU, seq2seq, decoding.</p>
+          <p class="prio-why"><strong>Perché:</strong> due ponti col progetto — (1) il weight sharing rende il Perceiver analogo a una RNN srotolata (analogia da saper difendere); (2) il vanishing gradient motiva residual+LayerNorm. L'NLP/embedding inquadra il tuo MLM su WikiText.</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Appendici → RNN (cap.28), LSTM (cap.29), GRU (cap.30); Percorso → Weight sharing (cap.9).</p>
+        </article>
+        <article class="prio-card prio--media">
+          <div class="prio-card-head"><h3>BERT, contrastive, domain adaptation</h3><span class="prio-badge prio--media">Media</span></div>
+          <p class="prio-args">BERT pretraining/fine-tuning, triplet loss, contrastive learning (SimCLR), domain adaptation.</p>
+          <p class="prio-why"><strong>Perché:</strong> il tuo MLM su WikiText-103 è esattamente il pretraining stile BERT, e il fine-tuning GLUE è il downstream. Devi spiegare il masked language modeling e perché è self-supervised. Contrastive/SimCLR e domain adaptation sono più lontani ma il legame BERT-MLM rende questo blocco facilmente interrogabile.</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Percorso → Perceiver IO e output queries (cap.15-16); Esperimenti per MLM/GLUE. Libro [JM24].</p>
+        </article>
+        <article class="prio-card prio--media">
+          <div class="prio-card-head"><h3>Fondamenti e teoria statistica</h3><span class="prio-badge prio--media">Media</span></div>
+          <p class="prio-args">Forme di apprendimento (supervised/unsupervised/RL), storia, empirical risk minimization, classificatori ottimi, generativo vs discriminativo, LDA.</p>
+          <p class="prio-why"><strong>Perché:</strong> cornice teorica per inquadrare qualsiasi modello (anche il Perceiver è un classificatore supervisionato addestrato per ERM). Classico apri-orale: collocare il tuo lavoro nel quadro supervised/self-supervised (il tuo MLM è self-supervised).</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> intro del Percorso Perceiver e parte Esperimenti per l'inquadramento del task. Libro [BB24].</p>
+        </article>
+        <article class="prio-card prio--bassa">
+          <div class="prio-card-head"><h3>Iperparametri e meta-learning</h3><span class="prio-badge prio--bassa">Bassa</span></div>
+          <p class="prio-args">Gaussian process, expected improvement, multi-fidelity, successive halving, Hyperband, ASHA, meta-learning, domain adaptation.</p>
+          <p class="prio-why"><strong>Perché:</strong> nel programma ma lontani dal progetto (1 GPU, ricerca iperparametri manuale, non Bayesian/ASHA). Ripassali a livello di idea (GP come surrogato, expected improvement come acquisition, successive halving = stop precoce dei run scadenti). Bastano i concetti.</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> fuori scope Perceiver — studia da [BB24]/[P24]; collega il successive halving al tuo early stopping. Libro [RW06] per i GP.</p>
+        </article>
+      </div>
+
+      <h2>Materiali del corso</h2>
+      <h3>Libri (tutti gratuiti online)</h3>
+      <div class="book-grid">
+        <a class="book-card" href="https://www.bishopbook.com/" target="_blank" rel="noopener">
+          <span class="book-sigla">BB24</span>
+          <strong>Deep Learning: Foundations and Concepts</strong>
+          <span class="book-auth">Bishop &amp; Bishop, 2024</span>
+          <span class="book-use">Testo principale, moderno: copre quasi tutto il corso. Con [P24] per attention/transformer.</span>
+        </a>
+        <a class="book-card" href="http://udlbook.com" target="_blank" rel="noopener">
+          <span class="book-sigla">P24</span>
+          <strong>Understanding Deep Learning</strong>
+          <span class="book-auth">Prince, 2024</span>
+          <span class="book-use">Intuizioni e figure; riferimento d'elezione per attention e transformer.</span>
+        </a>
+        <a class="book-card" href="https://www.deeplearningbook.org/" target="_blank" rel="noopener">
+          <span class="book-sigla">GBC16</span>
+          <strong>Deep Learning</strong>
+          <span class="book-auth">Goodfellow, Bengio, Courville, 2016</span>
+          <span class="book-use">Il classico: teoria, ottimizzazione, regolarizzazione.</span>
+        </a>
+        <a class="book-card" href="https://d2l.ai/" target="_blank" rel="noopener">
+          <span class="book-sigla">ZLLS23</span>
+          <strong>Dive into Deep Learning</strong>
+          <span class="book-auth">Zhang et al., 2023</span>
+          <span class="book-use">Pratico, con codice; CNN/RNN affiancate da implementazioni.</span>
+        </a>
+        <a class="book-card" href="https://web.stanford.edu/~jurafsky/slp3/" target="_blank" rel="noopener">
+          <span class="book-sigla">JM24</span>
+          <strong>Speech and Language Processing (3ª ed.)</strong>
+          <span class="book-auth">Jurafsky &amp; Martin, draft</span>
+          <span class="book-use">NLP, attention e BERT — utile per la modalità testo (MLM → GLUE).</span>
+        </a>
+        <a class="book-card" href="https://www.microsoft.com/en-us/research/uploads/prod/2006/01/Bishop-Pattern-Recognition-and-Machine-Learning-2006.pdf" target="_blank" rel="noopener">
+          <span class="book-sigla">B06</span>
+          <strong>Pattern Recognition and Machine Learning</strong>
+          <span class="book-auth">Bishop, 2006</span>
+          <span class="book-use">Fondamenti probabilistici (softmax, distribuzioni).</span>
+        </a>
+        <a class="book-card" href="https://gaussianprocess.org/gpml/" target="_blank" rel="noopener">
+          <span class="book-sigla">RW06</span>
+          <strong>Gaussian Processes for Machine Learning</strong>
+          <span class="book-auth">Rasmussen &amp; Williams, 2006</span>
+          <span class="book-use">Per i Gaussian process e i ragionamenti sugli iperparametri.</span>
+        </a>
+      </div>
+
+      <h3>Video-lezioni e codice companion</h3>
+      <p>Le <strong>5 video-lezioni</strong> del corso sono sul portale <strong>e-l.unifi.it</strong> (Moodle, accesso UNIFI). Per le sessioni <strong>Q&amp;A</strong> sulle video-lezioni occorre <strong>inviare in anticipo le domande al docente</strong> (la Q&amp;A si tiene una settimana dopo la pubblicazione). Il <strong>codice companion</strong> è già scaricato in locale in <code>materiali_corso/</code> (<code>v2/v3/v4.tgz</code>: regressione logistica, autodiff, dataloader, CNN in TensorFlow/PyTorch) — utile da confrontare con la tua implementazione from-scratch.</p>
+      <div class="exam-links">
+        <a class="exam-link" href="https://e-l.unifi.it/mod/resource/view.php?id=1652531" target="_blank" rel="noopener">▶ Video 1</a>
+        <a class="exam-link" href="https://e-l.unifi.it/mod/resource/view.php?id=1663354" target="_blank" rel="noopener">▶ Video 2</a>
+        <a class="exam-link" href="https://e-l.unifi.it/mod/resource/view.php?id=1671328" target="_blank" rel="noopener">▶ Video 3</a>
+        <a class="exam-link" href="https://e-l.unifi.it/mod/resource/view.php?id=1675062" target="_blank" rel="noopener">▶ Video 4</a>
+        <a class="exam-link" href="https://e-l.unifi.it/mod/resource/view.php?id=1685461" target="_blank" rel="noopener">▶ Video 5</a>
+      </div>
+
+      <h3>Consegna, accesso e risorse</h3>
+      <div class="exam-links">
+        <a class="exam-link" href="https://codeberg.org/" target="_blank" rel="noopener">Codeberg — repo privato (invita <code>dl.unifi</code>)</a>
+        <a class="exam-link" href="https://0x0.st/" target="_blank" rel="noopener">0x0.st — file &gt; 1 MB</a>
+        <a class="exam-link" href="https://docs.google.com/forms/d/e/1FAIpQLSflIfEgO941fK5jw5yM3z_dlIx2S_mPIJPXEPdpQ_TXC7GTBw/viewform" target="_blank" rel="noopener">Form risorse di calcolo</a>
+        <span class="exam-link exam-link--static">Proxy fuori campus: proxy-auth.unifi.it:8888</span>
+      </div>
+
+      <h2>Piano di ripasso (ultimi ~5–7 giorni)</h2>
+      <p>Principio guida: <strong>prima i blocchi ad alta priorità legati al progetto</strong> (Perceiver/Perceiver IO, attention, le proprietà dimostrate negli esperimenti), poi i riferimenti teorici di contorno; in parallelo, <strong>costruisci e prova la presentazione un po' ogni giorno</strong>, così non arrivi all'ultimo a improvvisare la scaletta.</p>
+      <div class="study-plan">
+        <div class="study-day"><span class="study-day-n">1</span><div><strong>Cuore del progetto: Perceiver e attention</strong><p>Cross-attention (Q latenti, K/V input, O(M·N)) e self-attention sui latenti (O(N²)); il latent bottleneck e il costo lineare. Collega ogni concetto alla tua implementazione. Presentazione: prima bozza di scaletta a 30'.</p></div></div>
+        <div class="study-day"><span class="study-day-n">2</span><div><strong>Perceiver IO + proprietà dimostrate</strong><p>Decoder + output queries; dal Perceiver al Perceiver IO. Ripassa permutation invariance (78.12% vs 69.69%) e weight sharing. Presentazione: assegna i minutaggi e prepara figure chiave (mappa forward, schema attention).</p></div></div>
+        <div class="study-day"><span class="study-day-n">3</span><div><strong>Esperimenti e risultati (il tuo valore aggiunto)</strong><p>Numeri a memoria: CIFAR-10 (exp6 78.12%, learned PE 77.60%, solo-RGB 61.34%), permutazione 78.12% vs 69.69%, ModelNet40 ~83.14%. Contesto hardware (1 RTX 3060 vs 64 TPU) e strumenti (LAMB, AMP, TensorBoard, early stopping). Prima prova a voce cronometrata.</p></div></div>
+        <div class="study-day"><span class="study-day-n">4</span><div><strong>Riferimenti teorici di contorno</strong><p>Softmax, attivazioni, ottimizzatori, CNN/RNN/LSTM/GRU, Transformer/ViT, dropout, init pesi, regolarizzazione, data augmentation. Modalità testo: MLM su WikiText-103 → GLUE. Seconda prova a voce, rifinendo i punti deboli.</p></div></div>
+        <div class="study-day"><span class="study-day-n">5</span><div><strong>Anticipare le domande + prove rifinite</strong><p>Prepara le risposte alle domande probabili (vedi sotto). Prova a voce completa e cronometrata (target 30'), idealmente davanti a qualcuno o registrandoti.</p></div></div>
+        <div class="study-day"><span class="study-day-n">6</span><div><strong>Cuscinetto — chiudi i buchi</strong><p>Riprendi [GBC16]/[P24]/[BB24] sui punti ancora incerti; ultima prova integrale della presentazione coi tempi giusti.</p></div></div>
+        <div class="study-day"><span class="study-day-n">7</span><div><strong>Alleggerisci</strong><p>Solo ripasso passivo (scaletta, numeri chiave, figure) e una prova a voce leggera. Niente argomenti nuovi.</p></div></div>
+      </div>
+
+      <h3>Schema scaletta 30'</h3>
+      <div class="exp-table-wrap">
+        <table class="exp-table">
+          <thead><tr><th>Minuti</th><th>Contenuto</th></tr></thead>
+          <tbody>
+            <tr><td>0–3'</td><td>Problema e idea del Perceiver (input eterogenei, una rete per 3 modalità)</td></tr>
+            <tr><td>3–10'</td><td>Architettura: latent bottleneck, cross-attention, self-attention, Fourier PE, weight sharing</td></tr>
+            <tr><td>10–14'</td><td>Da Perceiver a Perceiver IO (decoder + output queries)</td></tr>
+            <tr class="exp-best"><td>14–24'</td><td>Esperimenti e risultati (7 run CIFAR-10, numeri chiave, permutazione, ModelNet40, hardware)</td></tr>
+            <tr><td>24–28'</td><td>Conclusioni (cosa è confermato del paper, limiti dell'hardware)</td></tr>
+            <tr><td>28–30'</td><td>Margine per le domande</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="nota">
+        <span class="nota-label">Rituale del giorno prima</span>
+        Niente argomenti nuovi: solo ripasso passivo della scaletta e dei numeri chiave (78.12%, 77.60%, 61.34%, 69.69%, 83.14%). Una sola prova a voce rilassata e cronometrata. Verifica che slide/figure, file e demo siano accessibili (testa il proxy UNIFI se ti serve mostrare materiale online). Tieni a portata le 5 domande probabili. Riposa: arrivare lucidi conta più di un ripasso notturno.
+      </div>
+
+      <h2>Domande probabili all'orale</h2>
+      <p>Clicca una domanda per vedere la traccia di risposta (1-2 righe, da espandere a voce).</p>
+      <h3>Sul progetto</h3>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Perché il bottleneck di latenti rende il costo lineare nell'input?</summary><p class="qa-a">La cross-attention iniziale usa N query latenti (N fisso e piccolo) contro M elementi di input: costo O(M·N), lineare in M. Tutta la self-attention successiva agisce solo sugli N latenti, costo O(N²) indipendente da M.</p></details>
+        <details class="qa-item"><summary>Cross-attention vs self-attention: confronta i costi O(M·N), O(N²), O(M²).</summary><p class="qa-a">La self-attention diretta sull'input costa O(M²) e per M grande (es. 50k pixel) è proibitiva. Il Perceiver la sostituisce con una cross-attention O(M·N) per proiettare nel bottleneck, poi self-attention O(N²) tra i latenti. Con N≪M si passa da quadratico a lineare in M.</p></details>
+        <details class="qa-item"><summary>Cosa contengono Q, K, V nella cross-attention del Perceiver?</summary><p class="qa-a">Q viene dall'array latente (appreso), K e V dall'array di input (byte array). I latenti "interrogano" l'input estraendone un riassunto compresso di dimensione fissa.</p></details>
+        <details class="qa-item"><summary>Perché le Fourier features danno permutation invariance?</summary><p class="qa-a">Senza positional encoding l'attention è già permutation-equivariant sull'insieme di input; le Fourier features iniettano la posizione nel valore di ciascun elemento, così l'ordine in cui passi gli elementi non conta — l'informazione spaziale viaggia col token, non con la sua posizione nella sequenza.</p></details>
+        <details class="qa-item"><summary>Cosa hai osservato sperimentalmente sulla permutation invariance?</summary><p class="qa-a">Su CIFAR-10 con Fourier PE l'accuratezza con pixel permutati (78.12%) è risultata superiore al caso non permutato (69.69%): la rete non sfrutta la griglia ma solo posizione+RGB per token, confermando l'invarianza alla permutazione.</p></details>
+        <details class="qa-item"><summary>Perché senza positional encoding il modello crolla (61.34%)?</summary><p class="qa-a">Con solo RGB e nessuna informazione di posizione, token spazialmente diversi ma con stesso colore sono indistinguibili: la rete perde la struttura spaziale e l'accuratezza cala drasticamente.</p></details>
+        <details class="qa-item"><summary>Perché il weight sharing si comporta come una RNN e regolarizza?</summary><p class="qa-a">Riusando gli stessi pesi nei blocchi ripetuti, ogni iterazione è come uno step ricorrente che raffina lo stesso stato latente (come una RNN srotolata nel tempo). Condividere i pesi riduce drasticamente i parametri, agendo da regolarizzatore e prevenendo overfitting.</p></details>
+        <details class="qa-item"><summary>Differenza tra Perceiver e Perceiver IO?</summary><p class="qa-a">Il Perceiver produce un singolo output (es. classificazione) con pooling dei latenti. Il Perceiver IO aggiunge un decoder a cross-attention: le output queries definiscono la struttura dell'output, permettendo output arbitrari (per-pixel, per-token, multi-task) di dimensione disaccoppiata dai latenti.</p></details>
+        <details class="qa-item"><summary>Come hai gestito 3 modalità con la stessa rete?</summary><p class="qa-a">La struttura interna (cross-attention → latenti → self-attention) è identica per tutte; cambiano solo la tokenizzazione dell'input e l'encoding posizionale (coord 2D pixel, coord 3D punti, posizione token). Il bottleneck rende la rete agnostica alla modalità.</p></details>
+        <details class="qa-item"><summary>Perché i tuoi numeri sono sotto il paper?</summary><p class="qa-a">Il paper usa 64 TPU, io una sola RTX 3060: batch, durata del training e dimensione del modello sono molto più piccoli, quindi i numeri assoluti sono più bassi. Ma le proprietà architetturali (permutation invariance, costo lineare, multimodalità) restano confermate.</p></details>
+      </div>
+      <h3>Teoria generale</h3>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Differenza tra Adam, AdamW e LAMB?</summary><p class="qa-a">Adam usa momenti primo/secondo adattivi per parametro. AdamW disaccoppia il weight decay dal gradiente adattivo (decay applicato direttamente ai pesi), migliorando la regolarizzazione. LAMB aggiunge una normalizzazione layer-wise del learning rate, permettendo batch molto grandi mantenendo la stabilità.</p></details>
+        <details class="qa-item"><summary>GD vs SGD vs minibatch? Cosa aggiunge il momentum?</summary><p class="qa-a">GD usa tutto il dataset (stabile, lento); SGD un campione (rumoroso, veloce); minibatch è il compromesso. Il momentum accumula una media mobile dei gradienti, smorzando le oscillazioni e accelerando nelle direzioni consistenti.</p></details>
+        <details class="qa-item"><summary>Batch normalization vs layer normalization?</summary><p class="qa-a">BatchNorm normalizza ogni feature sulla dimensione del batch (dipende dalla batch size, usa statistiche running a inference). LayerNorm normalizza sulle feature di ciascun campione indipendentemente dal batch: per questo è usata nei Transformer/sequenze.</p></details>
+        <details class="qa-item"><summary>Cos'è il vanishing gradient e come LSTM/GRU lo risolvono?</summary><p class="qa-a">Nel backprop attraverso molti step i gradienti vengono moltiplicati ripetutamente e tendono a 0 (o esplodono). LSTM/GRU introducono un cell state con connessioni additive e gate che lasciano fluire il gradiente quasi inalterato, mitigando il problema.</p></details>
+        <details class="qa-item"><summary>Differenza tra LSTM e GRU?</summary><p class="qa-a">La GRU è più semplice (2 gate: update e reset, niente cell state separato), meno parametri e spesso più veloce; la LSTM (3 gate + cell state) è più espressiva. Prestazioni spesso comparabili.</p></details>
+        <details class="qa-item"><summary>Cosa fa l'autodiff reverse-mode?</summary><p class="qa-a">Costruisce il grafo computazionale, fa un forward salvando i valori intermedi, poi propaga all'indietro le derivate via chain rule (una sola passata per il gradiente rispetto a tutti i parametri). Efficiente quando gli output sono pochi e gli input molti — il caso del training.</p></details>
+        <details class="qa-item"><summary>Spiega bias-variance e double descent.</summary><p class="qa-a">Bias alto = underfitting; varianza alta = overfitting. La curva classica è a U. Il double descent mostra che oltre il punto di interpolazione, aumentando ancora la capacità, l'errore di test torna a scendere — tipico delle reti sovraparametrizzate.</p></details>
+        <details class="qa-item"><summary>L1 (lasso) vs L2 (ridge)? E il weight decay in AdamW?</summary><p class="qa-a">L2 penalizza la somma dei quadrati dei pesi (li riduce, soluzione unica); L1 la somma dei valori assoluti, inducendo sparsità (azzera pesi). Il weight decay penalizza i pesi grandi (≈ L2 nel GD puro); in Adam interagisce male con la normalizzazione adattiva, quindi AdamW lo disaccoppia applicandolo direttamente ai pesi.</p></details>
+        <details class="qa-item"><summary>Perché il dropout regolarizza?</summary><p class="qa-a">Disattivando casualmente neuroni durante il training, impedisce la co-adattazione e forza ridondanza nelle feature; equivale ad allenare un ensemble di sottoreti. A inference si usano tutti i neuroni (scalati).</p></details>
+        <details class="qa-item"><summary>Init Xavier (Glorot) vs He?</summary><p class="qa-a">Xavier/Glorot bilancia la varianza tra fan-in e fan-out (per tanh/sigmoid). He scala sul solo fan-in (varianza 2/fan-in, per ReLU che azzera metà degli output). Usare quella sbagliata può causare vanishing/exploding delle attivazioni.</p></details>
+        <details class="qa-item"><summary>ViT vs CNN?</summary><p class="qa-a">La CNN ha bias induttivi (località ed equivarianza traslazionale) che la rendono dati-efficiente; il ViT divide l'immagine in patch e usa self-attention globale, con pochi bias induttivi — più potente su grandi dataset ma più dato-affamato, spesso serve pretraining.</p></details>
+        <details class="qa-item"><summary>Self-attention: come funziona e perché multi-head?</summary><p class="qa-a">Ogni token genera Q, K, V; i pesi di attenzione sono softmax(QKᵀ/√d) applicati a V — ogni token aggrega gli altri pesati per rilevanza. Il multi-head ripete in più sottospazi paralleli, catturando relazioni diverse, poi concatena.</p></details>
+        <details class="qa-item"><summary>BERT: pretraining e fine-tuning?</summary><p class="qa-a">Pretraining self-supervised con Masked Language Modeling (predire token mascherati) + Next Sentence Prediction su grandi corpora. Poi fine-tuning supervisionato sul task downstream con una testa task-specific. È un encoder bidirezionale.</p></details>
+        <details class="qa-item"><summary>Cos'è una skip connection (ResNet) e perché aiuta?</summary><p class="qa-a">Aggiunge l'input di un blocco alla sua uscita (y = F(x)+x): facilita il flusso del gradiente in reti profonde (mitiga il vanishing), permettendo di apprendere residui e addestrare centinaia di layer.</p></details>
+      </div>
+
+      <div class="idea">
+        <div class="idea-label">In una frase</div>
+        <p>L'esame è un orale unico con progetto: 30 minuti per raccontare <em>perché</em> il Perceiver risolve un problema reale, <em>come</em> funziona tecnicamente e <em>cosa</em> hai verificato sperimentalmente. Hai già il progetto, i dati e la teoria nel tool: ti resta da studiare in ordine di priorità, preparare la scaletta e provare a voce.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" data-go-to="44">← Esperimenti</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="47"><span class="check"></span><span class="check-label">Pronto</span></label>
+        <button class="btn btn-primary" data-go-to="1">Inizia il ripasso → Cap. 1</button>
+      </div>
+    </section>
+
   </main>
 
   <aside class="rail" id="rail">
@@ -4658,6 +4951,6 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260609-exp11"></script>
+<script defer src="js/app.js?v=20260609-exam"></script>
 </body>
 </html>
