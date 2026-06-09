@@ -2305,6 +2305,7 @@
 /* Pagina Esame (cap. 47) — modalità, priorità di studio, materiali */
 /* ============================================================= */
 .chap-badge--exam { background: #f3e5f5 !important; color: #6a1b9a !important; }
+.chap-badge--extra { background: #e3f2fd !important; color: #1565c0 !important; }
 
 .exam-box {
   background: linear-gradient(135deg, #faf5fe, #f3ecfb);

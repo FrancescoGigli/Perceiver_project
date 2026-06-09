@@ -150,6 +150,19 @@
     background: #f3e5f5;
   }
   .toc li.exam-item.active .toc-num { background: #6a1b9a; color: white; }
+  .toc li.extra-item {
+    font-size: 13px;
+    background: #f3f8fd;
+  }
+  .toc li.extra-item .toc-num {
+    width: 30px;
+    height: 20px;
+    border-radius: 5px;
+    font-size: 11px;
+    color: #1565c0;
+    background: #e3f2fd;
+  }
+  .toc li.extra-item.active .toc-num { background: #1565c0; color: white; }
   .sidebar-foot { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); line-height: 1.6; }
   .sidebar-foot button { background: none; border: none; color: var(--muted); cursor: pointer; text-decoration: underline; font-size: 11px; padding: 0; }
   .sidebar-foot button:hover { color: #c62828; }
