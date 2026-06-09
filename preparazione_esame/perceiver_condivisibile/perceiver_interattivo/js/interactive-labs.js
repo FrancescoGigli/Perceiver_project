@@ -2451,7 +2451,57 @@ const LAB_SOURCE_REFS = {
     render(false);
   }
 
+  function initStepAnimLab() {
+    var labs = document.querySelectorAll(".step-anim-lab");
+    Array.prototype.forEach.call(labs, function (lab) {
+      var nodes = Array.prototype.slice.call(lab.querySelectorAll(".step-anim-node"));
+      if (!nodes.length) return;
+      var caption = lab.querySelector(".step-anim-caption");
+      var bar = lab.querySelector(".step-anim-progress > span");
+      var playBtn = lab.querySelector(".step-play");
+      var idx = 0;
+      var timer = null;
+      var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      function show(i) {
+        idx = ((i % nodes.length) + nodes.length) % nodes.length;
+        nodes.forEach(function (n, k) {
+          n.classList.toggle("on", k === idx);
+          n.classList.toggle("done", k < idx);
+        });
+        if (caption) caption.textContent = nodes[idx].getAttribute("data-caption") || "";
+        if (bar) bar.style.width = (((idx + 1) / nodes.length) * 100) + "%";
+      }
+      function play() {
+        if (timer || reduce) return;
+        lab.classList.add("is-playing");
+        if (playBtn) playBtn.textContent = "❚❚ Pausa";
+        timer = window.setInterval(function () { show(idx + 1); }, 2000);
+      }
+      function pause() {
+        if (timer) { window.clearInterval(timer); timer = null; }
+        lab.classList.remove("is-playing");
+        if (playBtn) playBtn.textContent = "▶ Riproduci";
+      }
+      nodes.forEach(function (n, k) {
+        n.addEventListener("click", function () { pause(); show(k); });
+      });
+      if (playBtn) {
+        playBtn.addEventListener("click", function () { if (timer) { pause(); } else { play(); } });
+        if (reduce) playBtn.disabled = true;
+      }
+      show(0);
+      if (!reduce && "IntersectionObserver" in window) {
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) { if (e.isIntersecting) { play(); } else { pause(); } });
+        }, { threshold: 0.25 });
+        io.observe(lab);
+      }
+    });
+  }
+
   function initInteractiveLabs() {
+    initStepAnimLab();
     initArchitectureFlowLab();
     initByteUnrollLab();
     initAttentionMatrixLab();
