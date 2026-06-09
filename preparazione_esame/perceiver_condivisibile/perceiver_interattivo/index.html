@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260609-exam4">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260609-exam4">
-<script defer src="js/interactive-labs.js?v=20260609-exam4"></script>
+<link rel="stylesheet" href="css/style.css?v=20260609-exam5">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260609-exam5">
+<script defer src="js/interactive-labs.js?v=20260609-exam5"></script>
 </head>
 <body>
 
@@ -5274,7 +5274,100 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-51">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="51"><span class="check"></span><span class="check-label">Ho capito</span></label>
-        <button class="btn btn-primary" id="next-51" disabled>Fine</button>
+        <button class="btn btn-primary" id="next-51">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 52 — Bibliografia: paper originali ============ -->
+    <section class="chapter exam-chapter" data-chapter="52">
+      <div class="chap-meta"><span class="chap-badge chap-badge--biblio">Bibliografia</span><span class="chap-time">riferimento</span></div>
+      <h1>Bibliografia: i paper originali</h1>
+      <p class="intro">Tutti i paper citati nel tool, con <strong>link diretto alla fonte originale</strong> (arXiv, proceedings o DOI): è lì che trovi le <strong>figure</strong> e i dettagli completi. Riferimenti verificati uno per uno con ricerca web. Clicca una card per aprire il paper.</p>
+      <div class="nota">
+        <span class="nota-label">Sulle figure dei paper</span>
+        Le figure dei paper sono protette da copyright: invece di copiarle qui, trovi il <strong>link diretto alla fonte ufficiale</strong>, dove le vedi nel loro contesto originale. I diagrammi e le animazioni di questo tool sono <strong>ricostruzioni originali</strong> degli stessi concetti.
+      </div>
+
+      <h2>Perceiver e Transformer</h2>
+      <div class="book-grid">
+        <a class="book-card" href="https://arxiv.org/abs/2103.03206" target="_blank" rel="noopener"><span class="book-sigla">arXiv 2103.03206</span><strong>Perceiver: General Perception with Iterative Attention</strong><span class="book-auth">Jaegle et al. · 2021 · ICML</span><span class="book-use">Transformer generale con attenzione asimmetrica che distilla input enormi in un bottleneck latente, su più modalità.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/2107.14795" target="_blank" rel="noopener"><span class="book-sigla">arXiv 2107.14795</span><strong>Perceiver IO: A General Architecture for Structured Inputs &amp; Outputs</strong><span class="book-auth">Jaegle et al. · 2021 · ICLR 2022</span><span class="book-use">Aggiunge le output query per produrre output strutturati di forma arbitraria, scalando linearmente.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1706.03762</span><strong>Attention Is All You Need</strong><span class="book-auth">Vaswani et al. · 2017 · NeurIPS</span><span class="book-use">Introduce il Transformer: architettura basata interamente su self-attention, senza ricorrenza né convoluzioni.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1701.06538" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1701.06538</span><strong>Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer</strong><span class="book-auth">Shazeer et al. · 2017 · ICLR</span><span class="book-use">Layer Mixture-of-Experts sparsamente attivato con gating addestrabile: più capacità a costo quasi costante.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/2101.03961" target="_blank" rel="noopener"><span class="book-sigla">arXiv 2101.03961</span><strong>Switch Transformers</strong><span class="book-auth">Fedus, Zoph &amp; Shazeer · 2021 · JMLR</span><span class="book-use">Routing MoE semplificato a un solo esperto per token, scalando a modelli da trilioni di parametri.</span></a>
+      </div>
+
+      <h2>Visione e CNN</h2>
+      <div class="book-grid">
+        <a class="book-card" href="https://arxiv.org/abs/2010.11929" target="_blank" rel="noopener"><span class="book-sigla">arXiv 2010.11929</span><strong>An Image is Worth 16×16 Words (Vision Transformer)</strong><span class="book-auth">Dosovitskiy et al. · 2021 · ICLR</span><span class="book-use">Applica un Transformer puro a sequenze di patch di immagini per la classificazione (ViT).</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1512.03385" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1512.03385</span><strong>Deep Residual Learning for Image Recognition (ResNet)</strong><span class="book-auth">He et al. · 2016 · CVPR</span><span class="book-use">Le connessioni residuali (skip) permettono di addestrare reti molto profonde senza degradazione.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1505.04597" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1505.04597</span><strong>U-Net: Convolutional Networks for Biomedical Image Segmentation</strong><span class="book-auth">Ronneberger et al. · 2015 · MICCAI</span><span class="book-use">Encoder-decoder con skip connection per la segmentazione densa, efficace anche con pochi dati.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1608.06993" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1608.06993</span><strong>Densely Connected Convolutional Networks (DenseNet)</strong><span class="book-auth">Huang et al. · 2017 · CVPR</span><span class="book-use">Ogni layer connesso a tutti i successivi: riuso delle feature e migliore propagazione del gradiente.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1905.11946" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1905.11946</span><strong>EfficientNet: Rethinking Model Scaling</strong><span class="book-auth">Tan &amp; Le · 2019 · ICML</span><span class="book-use">Compound scaling: bilancia profondità, larghezza e risoluzione per CNN efficienti.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/2003.08934" target="_blank" rel="noopener"><span class="book-sigla">arXiv 2003.08934</span><strong>NeRF: Neural Radiance Fields for View Synthesis</strong><span class="book-auth">Mildenhall et al. · 2020 · ECCV</span><span class="book-use">Rappresenta una scena 3D come campo di radianza neurale continuo (citato per le frequenze esponenziali).</span></a>
+      </div>
+
+      <h2>Sequenze e NLP</h2>
+      <div class="book-grid">
+        <a class="book-card" href="https://arxiv.org/abs/1810.04805" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1810.04805</span><strong>BERT: Pre-training of Deep Bidirectional Transformers</strong><span class="book-auth">Devlin et al. · 2018 · NAACL 2019</span><span class="book-use">Pre-addestramento bidirezionale con masked language model, poi fine-tuning sui task NLP.</span></a>
+        <a class="book-card" href="https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf" target="_blank" rel="noopener"><span class="book-sigla">PDF ufficiale</span><strong>Language Models are Unsupervised Multitask Learners (GPT-2)</strong><span class="book-auth">Radford et al. · 2019 · OpenAI</span><span class="book-use">Modello linguistico autoregressivo da 1.5B parametri, citato come contrasto bidirezionale/unidirezionale.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1409.0473" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1409.0473</span><strong>Neural Machine Translation by Jointly Learning to Align and Translate</strong><span class="book-auth">Bahdanau et al. · 2014 · ICLR 2015</span><span class="book-use">Introduce il meccanismo di attenzione (soft alignment): l'origine di tutta la linea verso i Transformer.</span></a>
+        <a class="book-card" href="https://direct.mit.edu/neco/article/9/8/1735/6109/Long-Short-Term-Memory" target="_blank" rel="noopener"><span class="book-sigla">Neural Comp.</span><strong>Long Short-Term Memory (LSTM)</strong><span class="book-auth">Hochreiter &amp; Schmidhuber · 1997</span><span class="book-use">Celle a memoria e gate moltiplicativi che risolvono il vanishing gradient nelle RNN.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1406.1078" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1406.1078</span><strong>RNN Encoder-Decoder for Statistical Machine Translation (GRU)</strong><span class="book-auth">Cho et al. · 2014 · EMNLP</span><span class="book-use">Introduce l'encoder-decoder ricorrente e la Gated Recurrent Unit (GRU).</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1409.3215" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1409.3215</span><strong>Sequence to Sequence Learning with Neural Networks</strong><span class="book-auth">Sutskever et al. · 2014 · NeurIPS</span><span class="book-use">Il paradigma seq2seq end-to-end con LSTM encoder-decoder.</span></a>
+      </div>
+
+      <h2>Self-supervised e rappresentazioni</h2>
+      <div class="book-grid">
+        <a class="book-card" href="https://arxiv.org/abs/2002.05709" target="_blank" rel="noopener"><span class="book-sigla">arXiv 2002.05709</span><strong>A Simple Framework for Contrastive Learning (SimCLR)</strong><span class="book-auth">Chen et al. · 2020 · ICML</span><span class="book-use">Contrastive self-supervised con augmentation composte, projection head e loss NT-Xent.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1911.05722" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1911.05722</span><strong>Momentum Contrast (MoCo)</strong><span class="book-auth">He et al. · 2020 · CVPR</span><span class="book-use">Dizionario dinamico via coda + momentum encoder: contrastive senza batch enormi.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/2006.07733" target="_blank" rel="noopener"><span class="book-sigla">arXiv 2006.07733</span><strong>Bootstrap Your Own Latent (BYOL)</strong><span class="book-auth">Grill et al. · 2020 · NeurIPS</span><span class="book-use">Self-supervised con rete online e target: impara rappresentazioni senza coppie negative.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1503.03832" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1503.03832</span><strong>FaceNet: A Unified Embedding for Face Recognition</strong><span class="book-auth">Schroff et al. · 2015 · CVPR</span><span class="book-use">Introduce la triplet loss: embedding in cui la distanza euclidea misura la similarità.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1807.03748" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1807.03748</span><strong>Representation Learning with Contrastive Predictive Coding</strong><span class="book-auth">van den Oord et al. · 2018</span><span class="book-use">Introduce la loss InfoNCE (di cui NT-Xent è una variante).</span></a>
+      </div>
+
+      <h2>Ottimizzazione</h2>
+      <div class="book-grid">
+        <a class="book-card" href="https://arxiv.org/abs/1412.6980" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1412.6980</span><strong>Adam: A Method for Stochastic Optimization</strong><span class="book-auth">Kingma &amp; Ba · 2014 · ICLR 2015</span><span class="book-use">Stime adattive dei momenti del primo e secondo ordine del gradiente.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1711.05101" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1711.05101</span><strong>Decoupled Weight Decay Regularization (AdamW)</strong><span class="book-auth">Loshchilov &amp; Hutter · 2019 · ICLR</span><span class="book-use">Disaccoppia il weight decay dal passo adattivo, per una regolarizzazione corretta.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1904.00962" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1904.00962</span><strong>Large Batch Optimization for Deep Learning (LAMB)</strong><span class="book-auth">You et al. · 2020 · ICLR</span><span class="book-use">Learning rate adattivo per strato: abilita il training a batch molto grandi (l'optimizer del progetto).</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1703.03400" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1703.03400</span><strong>Model-Agnostic Meta-Learning (MAML)</strong><span class="book-auth">Finn, Abbeel &amp; Levine · 2017 · ICML</span><span class="book-use">Cerca un'inizializzazione da cui pochi passi di gradiente bastano su un nuovo task (few-shot).</span></a>
+      </div>
+
+      <h2>Regolarizzazione e normalizzazione</h2>
+      <div class="book-grid">
+        <a class="book-card" href="https://arxiv.org/abs/1502.03167" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1502.03167</span><strong>Batch Normalization</strong><span class="book-auth">Ioffe &amp; Szegedy · 2015 · ICML</span><span class="book-use">Normalizza gli input di ogni layer per mini-batch: training più veloce e stabile.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1607.06450" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1607.06450</span><strong>Layer Normalization</strong><span class="book-auth">Ba et al. · 2016</span><span class="book-use">Normalizza sulle feature di un singolo esempio, indipendente dal batch (usata nei Transformer/Perceiver).</span></a>
+        <a class="book-card" href="https://jmlr.org/papers/v15/srivastava14a.html" target="_blank" rel="noopener"><span class="book-sigla">JMLR v15</span><strong>Dropout: A Simple Way to Prevent Overfitting</strong><span class="book-auth">Srivastava et al. · 2014 · JMLR</span><span class="book-use">Disattiva casualmente unità durante il training: un ensemble implicito che riduce l'overfitting.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1710.09412" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1710.09412</span><strong>mixup: Beyond Empirical Risk Minimization</strong><span class="book-auth">Zhang et al. · 2017 · ICLR 2018</span><span class="book-use">Addestra su combinazioni convesse di coppie di esempi e delle loro etichette.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1909.13719" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1909.13719</span><strong>RandAugment: Practical Automated Data Augmentation</strong><span class="book-auth">Cubuk et al. · 2020 · NeurIPS</span><span class="book-use">Data augmentation automatica con spazio di ricerca ridotto a due iperparametri.</span></a>
+      </div>
+
+      <h2>Inizializzazione e iperparametri</h2>
+      <div class="book-grid">
+        <a class="book-card" href="https://proceedings.mlr.press/v9/glorot10a.html" target="_blank" rel="noopener"><span class="book-sigla">PMLR · AISTATS</span><strong>Understanding the difficulty of training deep feedforward networks</strong><span class="book-auth">Glorot &amp; Bengio · 2010 · AISTATS</span><span class="book-use">Introduce l'inizializzazione Xavier/Glorot, per mantenere stabile la varianza dei segnali.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1502.01852" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1502.01852</span><strong>Delving Deep into Rectifiers (PReLU, He init)</strong><span class="book-auth">He et al. · 2015 · ICCV</span><span class="book-use">Introduce l'inizializzazione di He, pensata per le nonlinearità rettificate (ReLU).</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1206.2944" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1206.2944</span><strong>Practical Bayesian Optimization of ML Algorithms</strong><span class="book-auth">Snoek, Larochelle &amp; Adams · 2012 · NeurIPS</span><span class="book-use">Ottimizzazione bayesiana degli iperparametri tramite Gaussian process.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1603.06560" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1603.06560</span><strong>Hyperband: A Bandit-Based Approach to HPO</strong><span class="book-auth">Li et al. · 2018 · JMLR</span><span class="book-use">Ricerca casuale accelerata da allocazione adattiva delle risorse ed early-stopping.</span></a>
+        <a class="book-card" href="https://arxiv.org/abs/1810.05934" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1810.05934</span><strong>A System for Massively Parallel Hyperparameter Tuning (ASHA)</strong><span class="book-auth">Li et al. · 2020 · MLSys</span><span class="book-use">Successive halving asincrono: HPO massicciamente parallelo con scalabilità lineare.</span></a>
+      </div>
+
+      <h2>Fondamenti e attivazioni</h2>
+      <div class="book-grid">
+        <a class="book-card" href="https://arxiv.org/abs/1606.08415" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1606.08415</span><strong>Gaussian Error Linear Units (GELU)</strong><span class="book-auth">Hendrycks &amp; Gimpel · 2016</span><span class="book-use">L'attivazione <code>x·Φ(x)</code> che pesa gli input con la CDF gaussiana (usata in BERT/Perceiver).</span></a>
+        <a class="book-card" href="https://proceedings.neurips.cc/paper/2001/hash/7b7a53e239400a13bd6be6c91c4f6c4e-Abstract.html" target="_blank" rel="noopener"><span class="book-sigla">NeurIPS 2001</span><strong>On Discriminative vs. Generative Classifiers</strong><span class="book-auth">Ng &amp; Jordan · 2001 · NeurIPS</span><span class="book-use">Il confronto teorico (logistica vs naive Bayes) citato al capitolo Fondamenti.</span></a>
+        <a class="book-card" href="https://doi.org/10.1037/h0042519" target="_blank" rel="noopener"><span class="book-sigla">DOI · Psych. Rev.</span><strong>The Perceptron: A Probabilistic Model…</strong><span class="book-auth">Rosenblatt · 1958 · Psychological Review</span><span class="book-use">Il primo modello connessionista di rete neurale: dove tutto è cominciato.</span></a>
+      </div>
+
+      <div class="idea">
+        <div class="idea-label">Come usarla</div>
+        <p>Quando in un capitolo trovi una citazione tipo <em>(Vaswani et al., 2017)</em>, qui ne hai il riferimento completo e il link. All'orale, saper collocare un'idea nel suo paper originale (e nell'anno giusto) fa un'ottima impressione.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-52">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="52"><span class="check"></span><span class="check-label">Visto</span></label>
+        <button class="btn btn-primary" data-go-to="1">Torna all'inizio →</button>
       </div>
     </section>
 
@@ -5351,6 +5444,6 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260609-exam4"></script>
+<script defer src="js/app.js?v=20260609-exam5"></script>
 </body>
 </html>
