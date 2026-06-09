@@ -2435,3 +2435,38 @@
 .exam-chapter .prog-opt { color: var(--muted); font-size: 11.5px; }
 @media (hover: hover) and (pointer: fine) { .exam-chapter .prog-table tbody tr:hover { background: var(--bg-soft, #f7f7fa); } }
 @media (max-width: 640px) { .exam-chapter .prog-table { font-size: 12px; } .exam-chapter .prog-table th, .exam-chapter .prog-table td { padding: 7px 9px; } }
+
+/* ===== Stepper animato riutilizzabile (animazione concettuale per capitolo) ===== */
+.step-anim-lab .step-anim-track { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 0; }
+.step-anim-node {
+  flex: 1 1 110px; min-width: 104px; cursor: pointer; text-align: center;
+  border: 1px solid var(--border); border-radius: 10px; padding: 12px 8px 11px;
+  background: var(--surface, #fff); opacity: 0.5; transform: scale(0.96);
+  transition: transform 360ms cubic-bezier(0.23,1,0.32,1), opacity 360ms ease, background 360ms ease, border-color 360ms ease, box-shadow 360ms ease;
+}
+.step-anim-node .step-anim-n {
+  display: inline-flex; width: 26px; height: 26px; border-radius: 50%;
+  align-items: center; justify-content: center; margin-bottom: 7px;
+  background: var(--bg-soft, #eceff5); color: var(--muted); font-weight: 700; font-size: 13px;
+  transition: background 360ms ease, color 360ms ease;
+}
+.step-anim-node .step-anim-label { display: block; font-size: 12.5px; font-weight: 600; line-height: 1.25; color: var(--text); }
+.step-anim-node.done { opacity: 0.82; transform: scale(0.985); border-color: #cfd8dc; }
+.step-anim-node.done .step-anim-n { background: var(--success-soft, #e8f5e9); color: var(--success, #2e7d32); }
+.step-anim-node.on { opacity: 1; transform: scale(1.04); border-color: var(--primary, #1a237e); background: var(--primary-soft, #e8eaf6); box-shadow: 0 8px 20px rgba(26,35,126,0.12); }
+.step-anim-node.on .step-anim-n { background: var(--primary, #1a237e); color: #fff; }
+.step-anim-progress { height: 3px; background: var(--border); border-radius: 2px; margin: 12px 0 0; overflow: hidden; }
+.step-anim-progress > span { display: block; height: 100%; width: 0; background: var(--primary, #1a237e); transition: width 450ms cubic-bezier(0.23,1,0.32,1); }
+.step-anim-caption { margin-top: 11px; min-height: 42px; font-size: 14px; line-height: 1.5; color: var(--text-soft); background: var(--bg-soft, #f7f7fa); border-radius: 8px; padding: 10px 14px; }
+.step-play {
+  background: var(--surface, #fff); border: 1px solid var(--border); border-radius: 999px;
+  padding: 6px 14px; font-size: 13px; font-weight: 600; color: var(--primary, #1a237e); cursor: pointer; white-space: nowrap;
+  transition: transform 140ms cubic-bezier(0.23,1,0.32,1), background 140ms ease, border-color 140ms ease;
+}
+.step-play:hover { background: var(--primary-soft, #e8eaf6); border-color: #c5cae9; }
+.step-play:active { transform: scale(0.97); }
+.step-play:disabled { opacity: 0.5; cursor: default; }
+@media (hover: hover) and (pointer: fine) { .step-anim-node:hover { opacity: 0.85; } }
+@media (prefers-reduced-motion: reduce) {
+  .step-anim-node, .step-anim-progress > span, .step-play { transition: none; }
+}

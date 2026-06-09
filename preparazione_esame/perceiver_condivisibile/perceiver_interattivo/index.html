@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260609-exam3">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260609-exam3">
-<script defer src="js/interactive-labs.js?v=20260609-exam3"></script>
+<link rel="stylesheet" href="css/style.css?v=20260609-exam4">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260609-exam4">
+<script defer src="js/interactive-labs.js?v=20260609-exam4"></script>
 </head>
 <body>
 
@@ -4252,6 +4252,26 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
         Framework <strong>PyTorch</strong> + mixed-precision (AMP) + TensorBoard. Ottimizzatore <strong>LAMB</strong>, early stopping (patience 10), checkpoint best/last. CIFAR-10: 120 epoche, batch 64, 50k train / 10k val, permutation seed=42. Sette esperimenti CIFAR-10 completati (durate 2.93h–7.52h ciascuno).
       </div>
 
+      <div class="concept-lab step-anim-lab" data-lab="pipeline3">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">progetto · pipeline unica</span>
+            <h3>Una rete, tre modalità: come gira il progetto</h3>
+            <p>La stessa architettura elabora immagini, point cloud e testo. Cosa cambia e cosa resta uguale.</p>
+          </div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Tre modalità diverse in ingresso: immagine (CIFAR-10), point cloud 3D (ModelNet40) o testo a byte (WikiText-103)."><span class="step-anim-n">1</span><span class="step-anim-label">Dato grezzo</span></div>
+          <div class="step-anim-node" data-caption="Ogni modalità diventa la stessa struttura uniforme: M elementi × C canali. Nessun componente domain-specific."><span class="step-anim-n">2</span><span class="step-anim-label">Byte array M×C</span></div>
+          <div class="step-anim-node" data-caption="Si concatena la posizione con le Fourier features: coord 2D dei pixel, 3D dei punti, o indice del token."><span class="step-anim-n">3</span><span class="step-anim-label">Fourier PE</span></div>
+          <div class="step-anim-node" data-caption="Cross-attention nei latenti + self-attention con weight sharing: identico per tutte e tre le modalità."><span class="step-anim-n">4</span><span class="step-anim-label">Perceiver encoder</span></div>
+          <div class="step-anim-node" data-caption="Pooling → classe (CIFAR/ModelNet) oppure output query → token (MLM/GLUE). Stessa rete, output diverso."><span class="step-anim-n">5</span><span class="step-anim-label">Pooling / decoder</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
+
       <h2>Cosa sono i dataset</h2>
       <p>Le tre modalità del progetto usano quattro dataset standard. In breve: cosa sono e cosa contengono.</p>
       <div class="dataset-cards">
@@ -4854,6 +4874,26 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
         <div class="study-day"><span class="study-day-n">7</span><div><strong>Alleggerisci</strong><p>Solo ripasso passivo (scaletta, numeri chiave, figure) e una prova a voce leggera. Niente argomenti nuovi.</p></div></div>
       </div>
 
+      <div class="concept-lab step-anim-lab" data-lab="scaletta">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">esame · scaletta</span>
+            <h3>La presentazione in 30 minuti</h3>
+            <p>I cinque momenti dell'esposizione, con i tempi. Lascia scorrere o clicca uno step.</p>
+          </div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Introduci e motiva il problema: input eterogenei, una sola rete per 3 modalità. Aggancia subito l'attenzione."><span class="step-anim-n">1</span><span class="step-anim-label">Motiva · 0–3'</span></div>
+          <div class="step-anim-node" data-caption="Derivazione tecnica: latent bottleneck, cross/self-attention, Fourier PE, weight sharing. Il cuore tecnico."><span class="step-anim-n">2</span><span class="step-anim-label">Architettura · 3–10'</span></div>
+          <div class="step-anim-node" data-caption="Dal Perceiver al Perceiver IO: il decoder e le output queries che permettono output di forma arbitraria."><span class="step-anim-n">3</span><span class="step-anim-label">Perceiver IO · 10–14'</span></div>
+          <div class="step-anim-node" data-caption="Lavoro sperimentale e risultati: 7 run CIFAR-10, permutation invariance, ModelNet40, contesto hardware. Il tuo valore aggiunto."><span class="step-anim-n">4</span><span class="step-anim-label">Esperimenti · 14–24'</span></div>
+          <div class="step-anim-node" data-caption="Conclusioni: cosa è confermato del paper, limiti dovuti all'hardware. Poi lascia margine per le domande."><span class="step-anim-n">5</span><span class="step-anim-label">Conclusioni + Q&amp;A · 24–30'</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
+
       <h3>Schema scaletta 30'</h3>
       <div class="exp-table-wrap">
         <table class="exp-table">
@@ -4925,6 +4965,26 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       <h1>Self-supervised learning, BERT e rappresentazioni</h1>
       <p class="intro">L'<strong>apprendimento self-supervised (SSL)</strong> pre-addestra grandi modelli su enormi quantità di dati <em>non etichettati</em>, costruendo le etichette dai dati stessi. È il cuore dei modelli di rappresentazione moderni: prima si impara una rappresentazione generale con un compito "pretesto", poi la si trasferisce (fine-tuning) al compito reale con poche etichette. Qui: SSL in generale, il suo esempio nel linguaggio (BERT/MLM), due metodi per immagini/embedding (contrastive learning e triplet loss) e il domain adaptation.</p>
 
+      <div class="concept-lab step-anim-lab" data-lab="mlm">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">self-supervised · MLM</span>
+            <h3>Come impara BERT: il Masked Language Modeling</h3>
+            <p>Dal testo non etichettato alla loss, senza una sola annotazione umana. Clicca uno step o lascia scorrere.</p>
+          </div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Si parte da testo grezzo non etichettato: dati abbondanti e gratuiti, nessuna annotazione manuale."><span class="step-anim-n">1</span><span class="step-anim-label">Testo grezzo</span></div>
+          <div class="step-anim-node" data-caption="Si maschera ~15% dei token: di questi 80% → [MASK], 10% token casuale, 10% invariato (riduce il mismatch col fine-tuning)."><span class="step-anim-n">2</span><span class="step-anim-label">Maschera 15%</span></div>
+          <div class="step-anim-node" data-caption="L'encoder Transformer bidirezionale legge tutto il contesto — sinistra e destra insieme — per ogni posizione."><span class="step-anim-n">3</span><span class="step-anim-label">Encoder bidirez.</span></div>
+          <div class="step-anim-node" data-caption="Il modello predice il token originale dal solo contesto: deve aver capito davvero la frase."><span class="step-anim-n">4</span><span class="step-anim-label">Predici token</span></div>
+          <div class="step-anim-node" data-caption="La loss è una cross-entropy sui soli token mascherati. Le etichette le hanno fornite i dati stessi: è self-supervised."><span class="step-anim-n">5</span><span class="step-anim-label">Cross-entropy</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
+
       <h2>Self-supervised learning: cos'è e perché</h2>
       <p>Il <strong>self-supervised learning</strong> è una forma di apprendimento non supervisionato in cui il segnale di supervisione è <em>generato automaticamente dai dati stessi</em>. Si nasconde o trasforma parte dell'input e si chiede al modello di ricostruirla/predirla: questo è il <strong>pretext task</strong>, un compito "finto" il cui solo scopo è forzare la rete a imparare rappresentazioni utili.</p>
       <p>Perché serve: le etichette sono costose e scarse, mentre i dati grezzi sono praticamente illimitati. SSL sfrutta questo oceano di dati non etichettati per imparare una rappresentazione generale, che poi richiede pochissimi dati etichettati per il compito finale (<strong>downstream task</strong>). È il motore dei foundation model.</p>
@@ -4989,6 +5049,26 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       <h1>Ottimizzazione degli iperparametri (HPO)</h1>
       <p class="intro">Gli <strong>iperparametri</strong> (learning rate, weight decay, dropout, n. di latent, dimensione del modello, batch size) non si apprendono col gradiente: vanno scelti prima. Cercare la configurazione che minimizza l'errore di validazione è un problema <em>black-box</em>, <em>costoso</em> (ogni valutazione = un training intero) e <em>non differenziabile</em>. Dalle baseline (grid/random) ai metodi model-based (GP + Bayesian optimization), ai multi-fidelity (successive halving/Hyperband/ASHA), fino a meta-learning e mixup.</p>
 
+      <div class="concept-lab step-anim-lab" data-lab="sha">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">HPO · multi-fidelity</span>
+            <h3>Successive Halving: scartare presto i candidati scarsi</h3>
+            <p>Come concentrare un budget di GPU limitato sulle configurazioni promettenti.</p>
+          </div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Parti con molte configurazioni e poco budget ciascuna: es. 8 config allenate per 1 sola epoca (bassa fedeltà)."><span class="step-anim-n">1</span><span class="step-anim-label">8 config · 1 ep.</span></div>
+          <div class="step-anim-node" data-caption="Valuti e tieni solo la frazione migliore (1/η): le peggiori vengono eliminate subito, senza sprecare GPU."><span class="step-anim-n">2</span><span class="step-anim-label">Scarta i peggiori</span></div>
+          <div class="step-anim-node" data-caption="Moltiplichi per η il budget alle sopravvissute: 4 config × 3 epoche. Il budget per round resta ~costante."><span class="step-anim-n">3</span><span class="step-anim-label">4 config · 3 ep.</span></div>
+          <div class="step-anim-node" data-caption="Ripeti: 2 config × 9 epoche. Le risorse si concentrano via via sulle candidate migliori."><span class="step-anim-n">4</span><span class="step-anim-label">2 config · 9 ep.</span></div>
+          <div class="step-anim-node" data-caption="Resta la configurazione vincente, con pochissime valutazioni costose sprecate. Hyperband ripete più 'bracket'; ASHA in asincrono."><span class="step-anim-n">5</span><span class="step-anim-label">Vincitrice</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
+
       <h2>Il problema HPO: black-box e costoso</h2>
       <p>Vogliamo <code>x* = argmin_x f(x)</code>, con <code>x</code> = configurazione di iperparametri e <code>f(x)</code> = errore di validazione. Difficoltà: (1) <strong>black-box</strong> — niente forma analitica, solo valutazioni puntuali; (2) <strong>non differenziabile</strong> (alcuni iperparametri sono discreti/categorici); (3) <strong>valutazioni costose e rumorose</strong> (ogni <code>f(x)</code> è un training completo). L'obiettivo non è solo trovare il minimo, ma trovarlo col <em>minor numero di valutazioni</em>: i metodi si distinguono per come spendono un budget limitato.</p>
 
@@ -5042,6 +5122,26 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       <div class="chap-meta"><span class="chap-badge chap-badge--extra">Approfondimento · corso</span><span class="chap-time">~9 min</span></div>
       <h1>Fondamenti statistici dell'apprendimento</h1>
       <p class="intro">Le basi dell'apprendimento supervisionato: <em>cosa</em> minimizziamo (il rischio), <em>quale</em> classificatore è ottimo (Bayes), <em>come</em> modellare i dati (generativo vs discriminativo) e <em>con quale</em> loss. È la cornice che giustifica l'addestramento di qualsiasi rete — Perceiver incluso, che è un classificatore discriminativo addestrato per ERM con cross-entropy.</p>
+
+      <div class="concept-lab step-anim-lab" data-lab="erm">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">fondamenti · ERM</span>
+            <h3>La catena che unifica: dal rischio a Bayes</h3>
+            <p>Perché addestrare una rete con la cross-entropy è, in fondo, fare statistica.</p>
+          </div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Obiettivo ideale: il rischio vero, la loss media sulla distribuzione reale p(x,y). Ma p è ignota → non calcolabile."><span class="step-anim-n">1</span><span class="step-anim-label">Rischio vero</span></div>
+          <div class="step-anim-node" data-caption="ERM: lo approssimiamo col rischio empirico, la loss media sul training set. Addestrare = minimizzare questo."><span class="step-anim-n">2</span><span class="step-anim-label">Rischio empirico</span></div>
+          <div class="step-anim-node" data-caption="Per la classificazione la loss è la cross-entropy, che è esattamente la negative log-likelihood (NLL)."><span class="step-anim-n">3</span><span class="step-anim-label">Cross-entropy</span></div>
+          <div class="step-anim-node" data-caption="Minimizzare la NLL equivale alla Maximum Likelihood Estimation: i parametri più verosimili per i dati osservati."><span class="step-anim-n">4</span><span class="step-anim-label">= MLE</span></div>
+          <div class="step-anim-node" data-caption="Così stimiamo p(y|x) e ci avviciniamo alla regola ottima di Bayes: argmax_y p(y|x). Tutto torna."><span class="step-anim-n">5</span><span class="step-anim-label">≈ Bayes</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
 
       <h2>Empirical Risk Minimization (ERM)</h2>
       <p>Vogliamo un predittore che sbagli poco su dati <em>futuri</em>. Misuriamo l'errore con una <strong>loss</strong> <code>L(f(x), y)</code> e l'obiettivo ideale è il <strong>rischio vero (atteso)</strong> <code>R(f) = E_{(x,y)~p}[L(f(x), y)]</code>. Ma <code>p(x,y)</code> è ignota, quindi <code>R(f)</code> non è calcolabile: lo approssimiamo col <strong>rischio empirico</strong> <code>R_emp(f) = (1/N) Σ_i L(f(x_i), y_i)</code>. L'addestramento <em>è</em> la minimizzazione di <code>R_emp</code>.</p>
@@ -5102,6 +5202,26 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       <div class="chap-meta"><span class="chap-badge chap-badge--extra">Approfondimento · corso</span><span class="chap-time">~9 min</span></div>
       <h1>Sequenze e visione: argomenti avanzati</h1>
       <p class="intro">Strumenti "classici ma fondamentali": come si genera una sequenza in uscita (seq2seq e decoding), come si fa segmentazione densa pixel-per-pixel (U-Net, FCN, Dice loss) e come si scala un modello a basso costo (Mixture of Experts). Concetti che illuminano scelte ricorrenti — encoder-decoder, skip connection, computazione condizionale — che ritrovi nel Perceiver IO.</p>
+
+      <div class="concept-lab step-anim-lab" data-lab="beam">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">decoding · beam search</span>
+            <h3>Beam search: cercare la sequenza migliore</h3>
+            <p>Lo spazio delle sequenze è esponenziale: serve un'euristica intelligente.</p>
+          </div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Generare la sequenza più probabile: con vocabolario V e lunghezza L ci sono V^L sequenze. Impossibile enumerarle."><span class="step-anim-n">1</span><span class="step-anim-label">Spazio V^L</span></div>
+          <div class="step-anim-node" data-caption="Greedy (k=1): a ogni passo prendi l'argmax. Veloce ma miope: una scelta locale può precludere la sequenza migliore."><span class="step-anim-n">2</span><span class="step-anim-label">Greedy (k=1)</span></div>
+          <div class="step-anim-node" data-caption="Beam search: mantieni le k ipotesi più probabili (il 'beam'), non solo la migliore. Qui k=3."><span class="step-anim-n">3</span><span class="step-anim-label">Beam k=3</span></div>
+          <div class="step-anim-node" data-caption="A ogni passo espandi tutte le k ipotesi e tieni le k con score (somma dei log p) migliore. Pota il resto."><span class="step-anim-n">4</span><span class="step-anim-label">Espandi &amp; pota</span></div>
+          <div class="step-anim-node" data-caption="Si normalizza per lunghezza: senza, il beam preferirebbe sequenze troppo corte (meno log p negativi sommati)."><span class="step-anim-n">5</span><span class="step-anim-label">Normalizza</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
 
       <h2>Seq2Seq: encoder-decoder e vettore di contesto</h2>
       <p>Un modello <strong>seq2seq</strong> mappa una sequenza di input a una di output di lunghezza variabile (traduzione, riassunto). L'architettura classica è un <strong>encoder-decoder</strong>: un RNN/LSTM <em>encoder</em> comprime la sorgente in un <strong>vettore di contesto</strong> c (l'ultimo stato); un decoder <strong>autoregressivo</strong> genera l'output token per token da c, finché non emette <code>&lt;EOS&gt;</code>.</p>
@@ -5231,6 +5351,6 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260609-exam3"></script>
+<script defer src="js/app.js?v=20260609-exam4"></script>
 </body>
 </html>
