@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260610-pdffig">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260610-pdffig">
-<script defer src="js/interactive-labs.js?v=20260610-pdffig"></script>
+<link rel="stylesheet" href="css/style.css?v=20260610-anim2">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260610-anim2">
+<script defer src="js/interactive-labs.js?v=20260610-anim2"></script>
 </head>
 <body>
 
@@ -5022,6 +5022,26 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       <div class="comparison-note"><strong>Legame col progetto:</strong> la modalità testo replica il paradigma BERT: il <strong>pretraining MLM su WikiText-103</strong> è il pretext self-supervised, il <strong>fine-tuning su GLUE</strong> è il downstream. La differenza: Perceiver IO lavora su byte UTF-8 grezzi (niente tokenizer) e usa il decoder a query invece del <code>[CLS]</code> interno — in classificazione basta 1 output query (l'equivalente esterno del [CLS]); in MLM servono molte query (una per posizione mascherata). Il paper confronta proprio Perceiver IO vs BERT a parità di FLOPs su GLUE.</div>
 
       <h2>Contrastive learning e SimCLR</h2>
+
+      <div class="concept-lab step-anim-lab" data-lab="simclr-flow">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">contrastive · SimCLR (Chen et al. 2020)</span>
+            <h3>Come funziona il contrastive learning</h3>
+            <p>Avvicinare le viste della stessa immagine, allontanare le altre — senza etichette.</p>
+          </div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Una stessa immagine viene trasformata due volte con augmentation diverse (crop, color jitter, blur): nascono due «viste positive»."><span class="step-anim-n">1</span><span class="step-anim-label">Due viste</span></div>
+          <div class="step-anim-node" data-caption="Le due viste passano nello stesso encoder (es. ResNet) che produce le rappresentazioni."><span class="step-anim-n">2</span><span class="step-anim-label">Encoder condiviso</span></div>
+          <div class="step-anim-node" data-caption="Una testa di proiezione (MLP) mappa le feature nello spazio dove si applica la loss; dopo il pretraining si scarta."><span class="step-anim-n">3</span><span class="step-anim-label">Projection head</span></div>
+          <div class="step-anim-node" data-caption="Loss NT-Xent: avvicina le due viste positive (stesso esempio) e allontana tutti gli altri elementi del batch (negativi)."><span class="step-anim-n">4</span><span class="step-anim-label">Pull / push</span></div>
+          <div class="step-anim-node" data-caption="Servono batch grandi: più negativi informativi = rappresentazione migliore. Le etichette non sono mai servite (self-supervised)."><span class="step-anim-n">5</span><span class="step-anim-label">Batch grandi</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
       <p>Il <strong>contrastive learning</strong> impara confrontando esempi: <strong>avvicina nello spazio delle feature le "viste" positive dello stesso esempio e allontana i negativi</strong>. Le viste positive nascono da due <em>augmentation</em> diverse della stessa immagine; gli altri elementi del batch sono negativi (quindi è self-supervised, niente etichette).</p>
       <p><strong>SimCLR</strong> è il metodo canonico: (1) augmentation forti e composte (crop+resize, color jitter, blur); (2) un encoder (es. ResNet); (3) una <strong>testa di proiezione</strong> (MLP) verso lo spazio dove si applica la loss — poi si scarta e si usano le feature dell'encoder; (4) loss <strong>NT-Xent</strong> (softmax sulle similarità coseno con temperatura). Serve <strong>batch molto grandi</strong> perché i negativi sono gli altri elementi del batch.</p>
       <ul>
@@ -5274,6 +5294,26 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       </ul>
 
       <h2>Mixture of Experts (MoE)</h2>
+
+      <div class="concept-lab step-anim-lab" data-lab="moe-flow">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">MoE · routing sparso (Shazeer et al. 2017)</span>
+            <h3>Mixture of Experts: calcolo condizionale</h3>
+            <p>Più capacità (parametri) a costo di calcolo quasi costante.</p>
+          </div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Un token entra nel layer MoE, che contiene N sotto-reti specializzate (gli «esperti»)."><span class="step-anim-n">1</span><span class="step-anim-label">Token in input</span></div>
+          <div class="step-anim-node" data-caption="Una piccola gating network calcola un punteggio per ciascuno degli N esperti."><span class="step-anim-n">2</span><span class="step-anim-label">Gating</span></div>
+          <div class="step-anim-node" data-caption="Top-k routing: si attivano solo i k esperti col punteggio più alto (es. Top-1 in Switch, Top-2 nei MoE classici). Gli altri restano spenti."><span class="step-anim-n">3</span><span class="step-anim-label">Top-k routing</span></div>
+          <div class="step-anim-node" data-caption="Solo i k esperti scelti elaborano il token: la maggior parte della rete non viene eseguita (sparsità)."><span class="step-anim-n">4</span><span class="step-anim-label">Esperti attivi</span></div>
+          <div class="step-anim-node" data-caption="Gli output si combinano pesati dal gating. Risultato: parametri totali enormi (capacità), ma FLOPs per token quasi costanti."><span class="step-anim-n">5</span><span class="step-anim-label">Combinazione</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
       <p>Una <strong>MoE</strong> sostituisce un grande layer con N sotto-reti specializzate (gli <strong>esperti</strong>) più una <strong>gating network</strong> che decide quali attivare. Con il <strong>Top-k gating</strong> si attivano solo <em>k</em> esperti su N per token (Top-1 nello Switch Transformer, Top-2 nei MoE classici): i <strong>parametri</strong> totali crescono moltissimo (più capacità), ma il <strong>costo per token</strong> resta quasi costante → scaling efficiente, perché disaccoppia capacità e FLOPs.</p>
       <ul>
         <li><strong>Load balancing</strong> (loss ausiliaria) + <strong>expert capacity</strong>/token dropping per evitare il collasso su pochi esperti; nei setup distribuiti pesa la comunicazione all-to-all.</li>
@@ -6177,6 +6217,6 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260610-pdffig"></script>
+<script defer src="js/app.js?v=20260610-anim2"></script>
 </body>
 </html>
