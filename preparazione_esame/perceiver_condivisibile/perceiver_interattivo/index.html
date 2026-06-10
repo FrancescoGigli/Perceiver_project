@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260610-anim2">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260610-anim2">
-<script defer src="js/interactive-labs.js?v=20260610-anim2"></script>
+<link rel="stylesheet" href="css/style.css?v=20260610-anim3">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260610-anim3">
+<script defer src="js/interactive-labs.js?v=20260610-anim3"></script>
 </head>
 <body>
 
@@ -5050,6 +5050,26 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       </ul>
 
       <h2>Triplet loss</h2>
+
+      <div class="concept-lab step-anim-lab" data-lab="triplet-flow">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">triplet loss · FaceNet (Schroff et al. 2015)</span>
+            <h3>Triplet loss: anchor, positive, negative</h3>
+            <p>Imparare uno spazio in cui la distanza misura la similarità.</p>
+          </div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Si prende un'ancora, un positivo (stessa identità/classe) e un negativo (classe diversa)."><span class="step-anim-n">1</span><span class="step-anim-label">Tripla</span></div>
+          <div class="step-anim-node" data-caption="I tre passano nella stessa rete che li mappa in uno spazio di embedding."><span class="step-anim-n">2</span><span class="step-anim-label">Embedding</span></div>
+          <div class="step-anim-node" data-caption="L'ancora deve stare più vicina al positivo che al negativo, di almeno un margine m."><span class="step-anim-n">3</span><span class="step-anim-label">Obiettivo</span></div>
+          <div class="step-anim-node" data-caption="L = max(0, d(a,p) − d(a,n) + m): se la condizione è già soddisfatta la loss è zero (tripla «facile»)."><span class="step-anim-n">4</span><span class="step-anim-label">Loss</span></div>
+          <div class="step-anim-node" data-caption="Si scelgono triple difficili (hard/semi-hard) per imparare davvero. Usi: verifica volti, retrieval, ranking."><span class="step-anim-n">5</span><span class="step-anim-label">Hard mining</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
       <p>La <strong>triplet loss</strong> impara uno spazio di embedding con triple <code>(anchor, positive, negative)</code>: l'anchor dev'essere <em>più vicino</em> al positive (stessa classe) che al negative (classe diversa) di almeno un <strong>margine</strong> m. Formula: <code>L = max(0, d(a,p) − d(a,n) + m)</code>. Se la condizione è già soddisfatta la loss è zero (tripla facile). Usi: ranking, verifica di volti/identità (FaceNet), retrieval.</p>
       <ul>
         <li>Con embedding L2-normalizzati vale <code>d²(a,b) = 2 − 2·cos(a,b)</code>: il margine ha interpretazione geometrica precisa.</li>
@@ -5120,6 +5140,26 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       </ul>
 
       <h2>Bayesian Optimization e Expected Improvement</h2>
+
+      <div class="concept-lab step-anim-lab" data-lab="bo-flow">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">HPO · Bayesian optimization (Snoek et al. 2012)</span>
+            <h3>Bayesian Optimization: il prossimo punto</h3>
+            <p>Spendere poche valutazioni costose nei punti più promettenti.</p>
+          </div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Hai valutato alcune configurazioni; ognuna è stata un training intero (costoso)."><span class="step-anim-n">1</span><span class="step-anim-label">Punti osservati</span></div>
+          <div class="step-anim-node" data-caption="Un Gaussian Process approssima la funzione: per ogni punto dà media μ (stima) e varianza σ (incertezza)."><span class="step-anim-n">2</span><span class="step-anim-label">Surrogato GP</span></div>
+          <div class="step-anim-node" data-caption="L'Expected Improvement combina μ bassa (exploitation) e σ alta (exploration) in un punteggio."><span class="step-anim-n">3</span><span class="step-anim-label">Acquisition (EI)</span></div>
+          <div class="step-anim-node" data-caption="Si sceglie la config che massimizza l'acquisition: economico da scegliere (sul surrogato), caro da valutare."><span class="step-anim-n">4</span><span class="step-anim-label">Prossimo punto</span></div>
+          <div class="step-anim-node" data-caption="Si addestra quella config, si aggiorna il GP, si ripete: pochissimi training sprecati."><span class="step-anim-n">5</span><span class="step-anim-label">Aggiorna</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
       <p>La <strong>Bayesian Optimization (BO)</strong> è il ciclo: (1) fit del GP sui punti osservati; (2) si massimizza una <strong>acquisition function</strong> per scegliere il prossimo <code>x</code> (economico, sul surrogato); (3) si valuta <code>f(x)</code> (training vero); (4) si aggiorna il GP. L'acquisition bilancia <strong>exploration</strong> (alta <code>σ</code>, zone inesplorate) ed <strong>exploitation</strong> (bassa <code>μ</code>, zone già buone). La più usata è l'<strong>Expected Improvement</strong>: <code>EI(x) = E[max(0, f* − f(x))]</code>, con <code>f*</code> = miglior errore finora. EI premia sia media promettente sia alta incertezza, in un'unica formula.</p>
       <ul>
         <li>Alternativa: <strong>LCB</strong> (Lower Confidence Bound) <code>μ(x) − β·σ(x)</code> per la minimizzazione.</li>
@@ -5131,6 +5171,26 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       <p>SHA soffre il trade-off "quante config vs quanto budget ciascuna". <strong>Hyperband</strong> lo risolve eseguendo più <strong>bracket</strong> di SHA con punti di partenza diversi, coprendo lo spettro senza indovinarlo. <strong>ASHA</strong> è la versione <em>asincrona</em>: promuove una configurazione appena ce ne sono abbastanza pronte, senza attese sincrone → scala molto meglio in parallelo.</p>
 
       <h2>Meta-learning e Mixup</h2>
+
+      <div class="concept-lab step-anim-lab" data-lab="mixup-flow">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">regolarizzazione · mixup (Zhang et al. 2017)</span>
+            <h3>mixup: interpolare esempi ed etichette</h3>
+            <p>Esempi virtuali per confini di decisione più morbidi.</p>
+          </div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Si prendono due campioni (x_i, y_i) e (x_j, y_j) a caso dal batch."><span class="step-anim-n">1</span><span class="step-anim-label">Due esempi</span></div>
+          <div class="step-anim-node" data-caption="Si campiona un peso λ da una distribuzione Beta(α, α)."><span class="step-anim-n">2</span><span class="step-anim-label">λ da Beta</span></div>
+          <div class="step-anim-node" data-caption="x̃ = λ·x_i + (1−λ)·x_j: l'immagine virtuale è una sovrapposizione delle due."><span class="step-anim-n">3</span><span class="step-anim-label">Mescola input</span></div>
+          <div class="step-anim-node" data-caption="ỹ = λ·y_i + (1−λ)·y_j: anche l'etichetta è interpolata (soft label)."><span class="step-anim-n">4</span><span class="step-anim-label">Mescola etichette</span></div>
+          <div class="step-anim-node" data-caption="La rete impara a comportarsi linearmente tra gli esempi: confini più morbidi, meno overfitting e overconfidence."><span class="step-anim-n">5</span><span class="step-anim-label">Effetto</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
       <p>Il <strong>meta-learning</strong> ("imparare a imparare") impara <em>come</em> adattarsi in fretta a nuovi task da una distribuzione di task affini; per l'HPO serve a fare <em>warm-start</em> con storici di esperimenti. <strong>MAML</strong> cerca un'<em>inizializzazione</em> dei pesi da cui <strong>pochi passi di gradiente</strong> bastano su un nuovo task (few-shot): inner loop (adatta al task) + outer loop (ottimizza l'init).</p>
       <p>Il <strong>mixup</strong> è una regolarizzazione sui <em>dati</em>: crea esempi virtuali come combinazioni convesse <code>x̃ = λ·x_i + (1−λ)·x_j</code>, <code>ỹ = λ·y_i + (1−λ)·y_j</code>, con <code>λ ~ Beta(α,α)</code>. Forza il modello a comportarsi <strong>linearmente tra gli esempi</strong>: predizioni più lisce, meno overfitting e meno overconfidence (etichette soft).</p>
       <div class="comparison-note"><strong>Legame col progetto:</strong> la tua ricerca di iperparametri è stata <strong>manuale</strong> (7 esperimenti CIFAR-10 scelti a ragionamento): un grid/random artigianale a budget minimo, obbligato da 1 sola RTX 3060 — proprio lo scenario "valutazioni costose" che motiva i metodi automatici. La BO avrebbe scelto la prossima configurazione in modo informato (learning rate di LAMB, weight decay, dropout, n. di latent). Soprattutto, il tuo <strong>early stopping</strong> è il parente del <strong>successive halving</strong>: entrambi tagliano presto i run poco promettenti (l'early stopping ferma <em>un</em> training, SHA confronta e scarta <em>tra più</em> configurazioni). Il <strong>mixup</strong> era applicabile direttamente a CIFAR-10.</div>
@@ -5284,6 +5344,26 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       </ul>
 
       <h2>U-Net e Fully Convolutional Networks</h2>
+
+      <div class="concept-lab step-anim-lab" data-lab="unet-flow">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">segmentazione · U-Net (Ronneberger et al. 2015)</span>
+            <h3>U-Net: encoder-decoder con skip</h3>
+            <p>Come si segmenta ogni pixel mantenendo i bordi netti.</p>
+          </div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Un'immagine entra: serve una classe per OGNI pixel (segmentazione densa), non una sola etichetta."><span class="step-anim-n">1</span><span class="step-anim-label">Input</span></div>
+          <div class="step-anim-node" data-caption="Convoluzioni + downsampling: la risoluzione cala e i canali salgono. Cattura il «cosa» (il contesto semantico)."><span class="step-anim-n">2</span><span class="step-anim-label">Encoder (contrae)</span></div>
+          <div class="step-anim-node" data-caption="Nel punto più compresso la rete ha il contesto globale, ma ha perso i dettagli spaziali fini."><span class="step-anim-n">3</span><span class="step-anim-label">Bottleneck</span></div>
+          <div class="step-anim-node" data-caption="Up-convolution: risale di risoluzione per ricostruire la mappa densa. Da solo, però, non ritrova i bordi precisi."><span class="step-anim-n">4</span><span class="step-anim-label">Decoder (espande)</span></div>
+          <div class="step-anim-node" data-caption="Le feature ad alta risoluzione dell'encoder vengono concatenate al decoder: ecco i bordi netti. È la chiave della U-Net."><span class="step-anim-n">5</span><span class="step-anim-label">Skip connection</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
       <p>La <strong>segmentazione semantica</strong> assegna una classe a <em>ogni pixel</em>. Le <strong>FCN</strong> tolgono i layer fully-connected e usano solo convoluzioni → l'output è una mappa 2D. <strong>U-Net</strong> è un encoder-decoder simmetrico a U: l'<em>encoder</em> riduce la risoluzione (cattura il "cosa"), il <em>decoder</em> risale con up-convolution (ricostruisce il "dove"). Il pezzo cruciale sono le <strong>skip connection</strong>: concatenano le feature ad alta risoluzione dell'encoder al decoder, recuperando i dettagli spaziali persi nel downsampling (bordi netti).</p>
 
       <h2>Dice loss vs cross-entropy per-pixel</h2>
@@ -6217,6 +6297,6 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260610-anim2"></script>
+<script defer src="js/app.js?v=20260610-anim3"></script>
 </body>
 </html>
