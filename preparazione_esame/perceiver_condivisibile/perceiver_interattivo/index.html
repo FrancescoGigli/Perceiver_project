@@ -5442,6 +5442,24 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
         L'atlante visivo sotto è una selezione locale per ripasso personale, ricavata dai PDF scaricati; per citare o controllare il contesto completo resta sempre valido il <strong>link diretto alla fonte ufficiale</strong>. I diagrammi e le animazioni del percorso principale restano <strong>ricostruzioni originali</strong> degli stessi concetti.
       </div>
 
+      <h2>Sintesi: il Perceiver nel panorama</h2>
+      <div class="nota">
+        <span class="nota-label">Da una ricerca multi-fonte (deep research, verifica avversariale)</span>
+        Come il Perceiver si colloca tra Transformer, ViT e i metodi di attention efficiente — sintesi per l'orale.
+      </div>
+      <p><strong>Il problema.</strong> La self-attention del Transformer (Vaswani et al., 2017) costa <code>O(M²)</code> nel numero di elementi M: proibitiva per input grandi (un'immagine ImageNet ha ~50k pixel).</p>
+      <p><strong>L'idea del Perceiver</strong> (Jaegle et al., 2021): un bottleneck di N latenti appresi (N≪M). La cross-attention input→latenti costa <code>O(M·N)</code> e tutta la self-attention successiva agisce sui soli latenti, <code>O(N²)</code> indipendente da M → costo <strong>lineare</strong> in M, con la profondità della rete disaccoppiata dalla dimensione dell'input.</p>
+      <p><strong>vs Vision Transformer</strong> (Dosovitskiy et al., 2021): il ViT spezza l'immagine in patch e applica un Transformer standard (quadratico nei patch, con tokenizzazione specifica per immagini). Il Perceiver evita la patchificazione e scala su input grezzi di qualsiasi modalità.</p>
+      <p><strong>vs altri metodi efficienti.</strong> Linformer proietta K/V a bassa dimensione; Performer approssima l'attention con kernel (FAVOR+); il <em>Set Transformer</em> (inducing points) è l'antesignano più diretto del bottleneck di latenti. Il Perceiver generalizza l'idea a un'architettura profonda e multimodale.</p>
+      <p><strong>Perceiver IO</strong> (Jaegle et al., 2021): aggiunge un decoder a <em>output query</em> → output strutturati di forma arbitraria (per-pixel, per-token), disaccoppiati dai latenti. Stesso encoder per immagini, testo, optical flow, audio-video.</p>
+      <div class="spec-grid">
+        <div><span>ImageNet (Perceiver)</span><strong>~78% top-1</strong></div>
+        <div><span>Optical flow Sintel</span><strong>SOTA (Perceiver IO)</strong></div>
+        <div><span>GLUE (byte-level)</span><strong>≈ BERT a pari FLOPs</strong></div>
+        <div><span>Costo attention</span><strong>O(M·N) + O(N²)</strong></div>
+      </div>
+      <div class="comparison-note"><strong>Frase da orale:</strong> «Il Perceiver prende la generalità del Transformer e la rende scalabile con un bottleneck di latenti: paga le proprietà spaziali con un positional encoding esplicito (più data-hungry), ma in cambio una sola architettura gestisce immagini, 3D, testo e multimodale a costo lineare.» <em>Fonti verificate: Jaegle et al. 2021 (arXiv:2103.03206, 2107.14795); Vaswani et al. 2017 (1706.03762); Dosovitskiy et al. 2021 (2010.11929).</em></div>
+
       <h2>Perceiver e Transformer</h2>
       <div class="book-grid">
         <a class="book-card" href="https://arxiv.org/abs/2103.03206" target="_blank" rel="noopener"><span class="book-sigla">arXiv 2103.03206</span><strong>Perceiver: General Perception with Iterative Attention</strong><span class="book-auth">Jaegle et al. · 2021 · ICML</span><span class="book-use">Transformer generale con attenzione asimmetrica che distilla input enormi in un bottleneck latente, su più modalità.</span></a>
