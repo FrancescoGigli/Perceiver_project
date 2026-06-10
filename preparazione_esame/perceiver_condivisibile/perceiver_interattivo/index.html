@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
 <meta charset="UTF-8">
@@ -22,7 +22,7 @@ window.MathJax = {
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
 <link rel="stylesheet" href="css/style.css?v=20260609-exam5">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260609-exam5">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260610-paper-figures">
 <script defer src="js/interactive-labs.js?v=20260609-exam5"></script>
 </head>
 <body>
@@ -5285,7 +5285,7 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       <p class="intro">Tutti i paper citati nel tool, con <strong>link diretto alla fonte originale</strong> (arXiv, proceedings o DOI): è lì che trovi le <strong>figure</strong> e i dettagli completi. Riferimenti verificati uno per uno con ricerca web. Clicca una card per aprire il paper.</p>
       <div class="nota">
         <span class="nota-label">Sulle figure dei paper</span>
-        Le figure dei paper sono protette da copyright: invece di copiarle qui, trovi il <strong>link diretto alla fonte ufficiale</strong>, dove le vedi nel loro contesto originale. I diagrammi e le animazioni di questo tool sono <strong>ricostruzioni originali</strong> degli stessi concetti.
+        L'atlante visivo sotto è una selezione locale per ripasso personale, ricavata dai PDF scaricati; per citare o controllare il contesto completo resta sempre valido il <strong>link diretto alla fonte ufficiale</strong>. I diagrammi e le animazioni del percorso principale restano <strong>ricostruzioni originali</strong> degli stessi concetti.
       </div>
 
       <h2>Perceiver e Transformer</h2>
@@ -5357,6 +5357,714 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
         <a class="book-card" href="https://arxiv.org/abs/1606.08415" target="_blank" rel="noopener"><span class="book-sigla">arXiv 1606.08415</span><strong>Gaussian Error Linear Units (GELU)</strong><span class="book-auth">Hendrycks &amp; Gimpel · 2016</span><span class="book-use">L'attivazione <code>x·Φ(x)</code> che pesa gli input con la CDF gaussiana (usata in BERT/Perceiver).</span></a>
         <a class="book-card" href="https://proceedings.neurips.cc/paper/2001/hash/7b7a53e239400a13bd6be6c91c4f6c4e-Abstract.html" target="_blank" rel="noopener"><span class="book-sigla">NeurIPS 2001</span><strong>On Discriminative vs. Generative Classifiers</strong><span class="book-auth">Ng &amp; Jordan · 2001 · NeurIPS</span><span class="book-use">Il confronto teorico (logistica vs naive Bayes) citato al capitolo Fondamenti.</span></a>
         <a class="book-card" href="https://doi.org/10.1037/h0042519" target="_blank" rel="noopener"><span class="book-sigla">DOI · Psych. Rev.</span><strong>The Perceptron: A Probabilistic Model…</strong><span class="book-auth">Rosenblatt · 1958 · Psychological Review</span><span class="book-use">Il primo modello connessionista di rete neurale: dove tutto è cominciato.</span></a>
+      </div>
+      <!-- ============ Atlante visivo dai paper ============ -->
+      <div class="paper-figure-atlas" id="atlante-figure-paper">
+        <div class="paper-figure-atlas-head">
+          <span class="book-sigla">Didascalie estratte</span>
+          <h2>Atlante visivo dai paper</h2>
+          <p>Una selezione leggera delle figure raster estratte dai PDF, scelta per ripasso visivo: poche immagini rappresentative per paper, con pagina e caption originale quando disponibile.</p>
+        </div>
+        <section class="paper-figure-group">
+          <h3>Perceiver e Transformer</h3>
+          <div class="paper-figure-grid">
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/2103.03206" target="_blank" rel="noopener" aria-label="Apri il paper: Perceiver: General Perception with Iterative Attention">
+              <img src="paper_figures/fig_001_pdf01_p003.jpg" alt="Perceiver: General Perception with Iterative Attention, pagina 3: Figure 2. We train the Perceiver architecture on images from ImageNet (Deng et al., 2009) (left), video and audio" loading="lazy" decoding="async" width="656" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 2103.03206 · p. 3 · Jaegle et al. · 2021 · ICML</span>
+              <strong>Perceiver: General Perception with Iterative Attention</strong>
+              <span class="paper-figure-caption">Figure 2. We train the Perceiver architecture on images from ImageNet (Deng et al., 2009) (left), video and audio from AudioSet (Gemmeke et al., 2017) (considered both multi- and uni-modally) (center), and 3D point clouds from ModelNet40 (Wu et al., 2015) (right). Essentially no architectural changes are required to use the model on a diverse range of input data.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/2103.03206" target="_blank" rel="noopener" aria-label="Apri il paper: Perceiver: General Perception with Iterative Attention">
+              <img src="paper_figures/fig_002_pdf01_p007.jpg" alt="Perceiver: General Perception with Iterative Attention, pagina 7: Figure 3. Attention maps from the ﬁrst, second, and eighth (ﬁnal) cross-attention layers of a model on ImageNet wi" loading="lazy" decoding="async" width="640" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 2103.03206 · p. 7 · Jaegle et al. · 2021 · ICML</span>
+              <strong>Perceiver: General Perception with Iterative Attention</strong>
+              <span class="paper-figure-caption">Figure 3. Attention maps from the ﬁrst, second, and eighth (ﬁnal) cross-attention layers of a model on ImageNet with 8 cross-attention modules. Cross-attention modules 2-8 share weights in this model. Row 1: Original image and close-ups of one attention map from each of these layers. Rows 2-4: Overview of the attention maps of the cross-attention modules. Attention maps appear to scan the input image using tartan-lik</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/2103.03206" target="_blank" rel="noopener" aria-label="Apri il paper: Perceiver: General Perception with Iterative Attention">
+              <img src="paper_figures/fig_003_pdf01_p016.jpg" alt="Perceiver: General Perception with Iterative Attention, pagina 16: Figure 4. For ImageNet experiments, we generate position encod- ings using [-1, 1]-normalized (x, y)-coordinates" loading="lazy" decoding="async" width="250" height="250">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 2103.03206 · p. 16 · Jaegle et al. · 2021 · ICML</span>
+              <strong>Perceiver: General Perception with Iterative Attention</strong>
+              <span class="paper-figure-caption">Figure 4. For ImageNet experiments, we generate position encod- ings using [-1, 1]-normalized (x, y)-coordinates drawn from (a) crops rather than from (b) the raw images, as we ﬁnd the latter leads to overﬁtting.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/2107.14795" target="_blank" rel="noopener" aria-label="Apri il paper: Perceiver IO: A General Architecture for Structured Inputs &amp; Outputs">
+              <img src="paper_figures/fig_004_pdf02_p002.jpg" alt="Perceiver IO: A General Architecture for Structured Inputs &amp; Outputs, pagina 2: Figure 1: The Perceiver IO architecture can be used on domains with a wide variety of input and outp" loading="lazy" decoding="async" width="920" height="575">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 2107.14795 · p. 2 · Jaegle et al. · 2021 · ICLR 2022</span>
+              <strong>Perceiver IO: A General Architecture for Structured Inputs &amp; Outputs</strong>
+              <span class="paper-figure-caption">Figure 1: The Perceiver IO architecture can be used on domains with a wide variety of input and output spaces, including multi-task language understanding, dense visual tasks like optical ﬂow, hybrid dense/sparse multimodal tasks such as video+audio+class autoencoding, and tasks with symbolic outputs like StarCraft II. See Tables 5 and 6 for details of all domains considered here.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/2107.14795" target="_blank" rel="noopener" aria-label="Apri il paper: Perceiver IO: A General Architecture for Structured Inputs &amp; Outputs">
+              <img src="paper_figures/fig_005_pdf02_p009.jpg" alt="Perceiver IO: A General Architecture for Structured Inputs &amp; Outputs, pagina 9: Table 4: Multimodal autoencoding results. Higher is better for accuracy and PSNR. We show results in" loading="lazy" decoding="async" width="920" height="463">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 2107.14795 · p. 9 · Jaegle et al. · 2021 · ICLR 2022</span>
+              <strong>Perceiver IO: A General Architecture for Structured Inputs &amp; Outputs</strong>
+              <span class="paper-figure-caption">Table 4: Multimodal autoencoding results. Higher is better for accuracy and PSNR. We show results in Tab. 4 and reconstructions in</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/2107.14795" target="_blank" rel="noopener" aria-label="Apri il paper: Perceiver IO: A General Architecture for Structured Inputs &amp; Outputs">
+              <img src="paper_figures/fig_006_pdf02_p009.jpg" alt="Perceiver IO: A General Architecture for Structured Inputs &amp; Outputs, pagina 9: Fig. 4. By masking the classiﬁcation label during evaluation, our autoencoding model becomes a Kinet" loading="lazy" decoding="async" width="920" height="456">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 2107.14795 · p. 9 · Jaegle et al. · 2021 · ICLR 2022</span>
+              <strong>Perceiver IO: A General Architecture for Structured Inputs &amp; Outputs</strong>
+              <span class="paper-figure-caption">Fig. 4. By masking the classiﬁcation label during evaluation, our autoencoding model becomes a Kinet- ics 700 classiﬁer. Latent variables are shared across modalities, so the quality of reconstructions for each</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener" aria-label="Apri il paper: Attention Is All You Need">
+              <img src="paper_figures/fig_007_pdf03_p003.jpg" alt="Attention Is All You Need, pagina 3: Figure 1: The Transformer - model architecture. The Transformer follows this overall architecture using stacked self-attention and point-wise," loading="lazy" decoding="async" width="434" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1706.03762 · p. 3 · Vaswani et al. · 2017 · NeurIPS</span>
+              <strong>Attention Is All You Need</strong>
+              <span class="paper-figure-caption">Figure 1: The Transformer - model architecture. The Transformer follows this overall architecture using stacked self-attention and point-wise, fully connected layers for both the encoder and decoder, shown in the left and right halves of Figure 1, respectively.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener" aria-label="Apri il paper: Attention Is All You Need">
+              <img src="paper_figures/fig_008_pdf03_p004.jpg" alt="Attention Is All You Need, pagina 4: Figure 2: (left) Scaled Dot-Product Attention. (right) Multi-Head Attention consists of several attention layers running in parallel." loading="lazy" decoding="async" width="417" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1706.03762 · p. 4 · Vaswani et al. · 2017 · NeurIPS</span>
+              <strong>Attention Is All You Need</strong>
+              <span class="paper-figure-caption">Figure 2: (left) Scaled Dot-Product Attention. (right) Multi-Head Attention consists of several attention layers running in parallel.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1701.06538" target="_blank" rel="noopener" aria-label="Apri il paper: Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer">
+              <img src="paper_figures/fig_009_pdf04_p006.jpg" alt="Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer, pagina 6: Figure 2: Model comparison on 1-Billion-Word Language-Modeling Benchmark. On the left, we" loading="lazy" decoding="async" width="812" height="612">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1701.06538 · p. 6 · Shazeer et al. · 2017 · ICLR</span>
+              <strong>Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer</strong>
+              <span class="paper-figure-caption">Figure 2: Model comparison on 1-Billion-Word Language-Modeling Benchmark. On the left, we</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1701.06538" target="_blank" rel="noopener" aria-label="Apri il paper: Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer">
+              <img src="paper_figures/fig_010_pdf04_p007.jpg" alt="Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer, pagina 7: Table 1: Summary of high-capacity MoE-augmented models with varying computational budgets" loading="lazy" decoding="async" width="812" height="612">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1701.06538 · p. 7 · Shazeer et al. · 2017 · ICLR</span>
+              <strong>Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer</strong>
+              <span class="paper-figure-caption">Table 1: Summary of high-capacity MoE-augmented models with varying computational budgets, vs. best previously published results (Jozefowicz et al., 2016). Details in Appendix C.</span>
+            </figcaption>
+          </figure>
+          </div>
+        </section>
+        <section class="paper-figure-group">
+          <h3>Visione e CNN</h3>
+          <div class="paper-figure-grid">
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/2010.11929" target="_blank" rel="noopener" aria-label="Apri il paper: An Image is Worth 16×16 Words (Vision Transformer)">
+              <img src="paper_figures/fig_011_pdf06_p003.jpg" alt="An Image is Worth 16×16 Words (Vision Transformer), pagina 3: Figure 1: Model overview. We split an image into ﬁxed-size patches, linearly embed each of them, add position embeddin" loading="lazy" decoding="async" width="920" height="98">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 2010.11929 · p. 3 · Dosovitskiy et al. · 2021 · ICLR</span>
+              <strong>An Image is Worth 16×16 Words (Vision Transformer)</strong>
+              <span class="paper-figure-caption">Figure 1: Model overview. We split an image into ﬁxed-size patches, linearly embed each of them, add position embeddings, and feed the resulting sequence of vectors to a standard Transformer encoder. In order to perform classiﬁcation, we use the standard approach of adding an extra learnable “classiﬁcation token” to the sequence. The illustration of the Transformer encoder was inspired by Vaswani et al. (2017).</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/2010.11929" target="_blank" rel="noopener" aria-label="Apri il paper: An Image is Worth 16×16 Words (Vision Transformer)">
+              <img src="paper_figures/fig_012_pdf06_p008.jpg" alt="An Image is Worth 16×16 Words (Vision Transformer), pagina 8: Figure 5 contains the transfer performance versus total pre-training compute (see Appendix D.5 for details on computat" loading="lazy" decoding="async" width="299" height="299">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 2010.11929 · p. 8 · Dosovitskiy et al. · 2021 · ICLR</span>
+              <strong>An Image is Worth 16×16 Words (Vision Transformer)</strong>
+              <span class="paper-figure-caption">Figure 5 contains the transfer performance versus total pre-training compute (see Appendix D.5 for details on computational costs). Detailed results per model are provided in Table 6 in the Ap- pendix. A few patterns can be observed. First, Vision Transformers dominate ResNets on the performance/compute trade-off. ViT uses approximately 2− 4× less compute to attain the same performance (average over 5 datasets). Seco</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/2010.11929" target="_blank" rel="noopener" aria-label="Apri il paper: An Image is Worth 16×16 Words (Vision Transformer)">
+              <img src="paper_figures/fig_013_pdf06_p008.jpg" alt="An Image is Worth 16×16 Words (Vision Transformer), pagina 8: Figure 6: Representative ex-" loading="lazy" decoding="async" width="299" height="298">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 2010.11929 · p. 8 · Dosovitskiy et al. · 2021 · ICLR</span>
+              <strong>An Image is Worth 16×16 Words (Vision Transformer)</strong>
+              <span class="paper-figure-caption">Figure 6: Representative ex-</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1505.04597" target="_blank" rel="noopener" aria-label="Apri il paper: U-Net: Convolutional Networks for Biomedical Image Segmentation">
+              <img src="paper_figures/fig_014_pdf08_p003.jpg" alt="U-Net: Convolutional Networks for Biomedical Image Segmentation, pagina 3: Fig. 2. Overlap-tile strategy for seamless segmentation of arbitrary large images (here segmentation of n" loading="lazy" decoding="async" width="640" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1505.04597 · p. 3 · Ronneberger et al. · 2015 · MICCAI</span>
+              <strong>U-Net: Convolutional Networks for Biomedical Image Segmentation</strong>
+              <span class="paper-figure-caption">Fig. 2. Overlap-tile strategy for seamless segmentation of arbitrary large images (here segmentation of neuronal structures in EM stacks). Prediction of the segmentation in the yellow area, requires image data within the blue area as input. Missing input data</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1505.04597" target="_blank" rel="noopener" aria-label="Apri il paper: U-Net: Convolutional Networks for Biomedical Image Segmentation">
+              <img src="paper_figures/fig_015_pdf08_p005.jpg" alt="U-Net: Convolutional Networks for Biomedical Image Segmentation, pagina 5: Fig. 3. HeLa cells on glass recorded with DIC (diﬀerential interference contrast) mi- croscopy. (a) raw i" loading="lazy" decoding="async" width="711" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1505.04597 · p. 5 · Ronneberger et al. · 2015 · MICCAI</span>
+              <strong>U-Net: Convolutional Networks for Biomedical Image Segmentation</strong>
+              <span class="paper-figure-caption">Fig. 3. HeLa cells on glass recorded with DIC (diﬀerential interference contrast) mi- croscopy. (a) raw image. ( b) overlay with ground truth segmentation. Diﬀerent colors indicate diﬀerent instances of the HeLa cells. ( c) generated segmentation mask (white: foreground, black: background). ( d) map with a pixel-wise loss weight to force the network to learn the border pixels.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1505.04597" target="_blank" rel="noopener" aria-label="Apri il paper: U-Net: Convolutional Networks for Biomedical Image Segmentation">
+              <img src="paper_figures/fig_016_pdf08_p007.jpg" alt="U-Net: Convolutional Networks for Biomedical Image Segmentation, pagina 7: Fig. 4. Result on the ISBI cell tracking challenge. ( a) part of an input image of the “PhC-U373” data se" loading="lazy" decoding="async" width="512" height="512">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1505.04597 · p. 7 · Ronneberger et al. · 2015 · MICCAI</span>
+              <strong>U-Net: Convolutional Networks for Biomedical Image Segmentation</strong>
+              <span class="paper-figure-caption">Fig. 4. Result on the ISBI cell tracking challenge. ( a) part of an input image of the “PhC-U373” data set. (b) Segmentation result (cyan mask) with manual ground truth (yellow border) ( c) input image of the “DIC-HeLa” data set. ( d) Segmentation result (random colored masks) with manual ground truth (yellow border).</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/2003.08934" target="_blank" rel="noopener" aria-label="Apri il paper: NeRF: Neural Radiance Fields for View Synthesis">
+              <img src="paper_figures/fig_017_pdf11_p002.jpg" alt="NeRF: Neural Radiance Fields for View Synthesis, pagina 2: Fig. 1: We present a method that optimizes a continuous 5D neural radiance ﬁeld representation (volume density and view-d" loading="lazy" decoding="async" width="640" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 2003.08934 · p. 2 · Mildenhall et al. · 2020 · ECCV</span>
+              <strong>NeRF: Neural Radiance Fields for View Synthesis</strong>
+              <span class="paper-figure-caption">Fig. 1: We present a method that optimizes a continuous 5D neural radiance ﬁeld representation (volume density and view-dependent color at any continuous location) of a scene from a set of input images. We use techniques from volume</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/2003.08934" target="_blank" rel="noopener" aria-label="Apri il paper: NeRF: Neural Radiance Fields for View Synthesis">
+              <img src="paper_figures/fig_018_pdf11_p005.jpg" alt="NeRF: Neural Radiance Fields for View Synthesis, pagina 5: Fig. 2: An overview of our neural radiance ﬁeld scene representation and diﬀer- entiable rendering procedure. We synthesi" loading="lazy" decoding="async" width="453" height="453">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 2003.08934 · p. 5 · Mildenhall et al. · 2020 · ECCV</span>
+              <strong>NeRF: Neural Radiance Fields for View Synthesis</strong>
+              <span class="paper-figure-caption">Fig. 2: An overview of our neural radiance ﬁeld scene representation and diﬀer- entiable rendering procedure. We synthesize images by sampling 5D coordinates (location and viewing direction) along camera rays (a), feeding those locations into an MLP to produce a color and volume density (b), and using volume ren- dering techniques to composite these values into an image (c). This rendering function is diﬀerentiable,</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/2003.08934" target="_blank" rel="noopener" aria-label="Apri il paper: NeRF: Neural Radiance Fields for View Synthesis">
+              <img src="paper_figures/fig_019_pdf11_p006.jpg" alt="NeRF: Neural Radiance Fields for View Synthesis, pagina 6: Fig. 3: A visualization of view-dependent emitted radiance. Our neural radiance ﬁeld representation outputs RGB color as" loading="lazy" decoding="async" width="513" height="513">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 2003.08934 · p. 6 · Mildenhall et al. · 2020 · ECCV</span>
+              <strong>NeRF: Neural Radiance Fields for View Synthesis</strong>
+              <span class="paper-figure-caption">Fig. 3: A visualization of view-dependent emitted radiance. Our neural radiance ﬁeld representation outputs RGB color as a 5D function of both spatial position x and viewing direction d. Here, we visualize example directional color distri- butions for two spatial locations in our neural representation of the Ship scene.</span>
+            </figcaption>
+          </figure>
+          </div>
+        </section>
+        <section class="paper-figure-group">
+          <h3>Sequenze e NLP</h3>
+          <div class="paper-figure-grid">
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1810.04805" target="_blank" rel="noopener" aria-label="Apri il paper: BERT: Pre-training of Deep Bidirectional Transformers">
+              <img src="paper_figures/fig_020_pdf12_p003.jpg" alt="BERT: Pre-training of Deep Bidirectional Transformers, pagina 3: Figure 1: Overall pre-training and ﬁne-tuning procedures for BERT. Apart from output layers, the same architec- tur" loading="lazy" decoding="async" width="468" height="127">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1810.04805 · p. 3 · Devlin et al. · 2018 · NAACL 2019</span>
+              <strong>BERT: Pre-training of Deep Bidirectional Transformers</strong>
+              <span class="paper-figure-caption">Figure 1: Overall pre-training and ﬁne-tuning procedures for BERT. Apart from output layers, the same architec- tures are used in both pre-training and ﬁne-tuning. The same pre-trained model parameters are used to initialize models for different down-stream tasks. During ﬁne-tuning, all parameters are ﬁne-tuned. [CLS] is a special symbol added in front of every input example, and [SEP] is a special separator token (e</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf" target="_blank" rel="noopener" aria-label="Apri il paper: Language Models are Unsupervised Multitask Learners (GPT-2)">
+              <img src="paper_figures/fig_021_pdf13_p002.jpg" alt="Language Models are Unsupervised Multitask Learners (GPT-2), pagina 2: Figure 1. Zero-shot task performance of WebText LMs as a function of model size on many NLP tasks. Reading Co" loading="lazy" decoding="async" width="920" height="264">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">PDF ufficiale · p. 2 · Radford et al. · 2019 · OpenAI</span>
+              <strong>Language Models are Unsupervised Multitask Learners (GPT-2)</strong>
+              <span class="paper-figure-caption">Figure 1. Zero-shot task performance of WebText LMs as a function of model size on many NLP tasks. Reading Comprehension results are on CoQA (Reddy et al., 2018), translation on WMT-14 Fr-En (Artetxe et al., 2017), summarization on CNN and Daily Mail (See et al., 2017), and Question Answering on Natural Questions (Kwiatkowski et al., 2019). Section 3 contains detailed descriptions of each result.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf" target="_blank" rel="noopener" aria-label="Apri il paper: Language Models are Unsupervised Multitask Learners (GPT-2)">
+              <img src="paper_figures/fig_022_pdf13_p005.jpg" alt="Language Models are Unsupervised Multitask Learners (GPT-2), pagina 5: Table 3. Zero-shot results on many datasets. No training or ﬁne-tuning was performed for any of these results" loading="lazy" decoding="async" width="920" height="487">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">PDF ufficiale · p. 5 · Radford et al. · 2019 · OpenAI</span>
+              <strong>Language Models are Unsupervised Multitask Learners (GPT-2)</strong>
+              <span class="paper-figure-caption">Table 3. Zero-shot results on many datasets. No training or ﬁne-tuning was performed for any of these results. PTB and WikiText-2 results are from (Gong et al., 2018). CBT results are from (Bajgar et al., 2016). LAMBADA accuracy result is from (Hoang et al., 2018) and LAMBADA perplexity result is from (Grave et al., 2016). Other results are from (Dai et al., 2019).</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf" target="_blank" rel="noopener" aria-label="Apri il paper: Language Models are Unsupervised Multitask Learners (GPT-2)">
+              <img src="paper_figures/fig_023_pdf13_p006.jpg" alt="Language Models are Unsupervised Multitask Learners (GPT-2), pagina 6: Figure 3. Performance on the Winograd Schema Challenge as a function of model capacity. The Winograd Schema c" loading="lazy" decoding="async" width="877" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">PDF ufficiale · p. 6 · Radford et al. · 2019 · OpenAI</span>
+              <strong>Language Models are Unsupervised Multitask Learners (GPT-2)</strong>
+              <span class="paper-figure-caption">Figure 3. Performance on the Winograd Schema Challenge as a function of model capacity. The Winograd Schema challenge (Levesque et al., 2012)</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1406.1078" target="_blank" rel="noopener" aria-label="Apri il paper: RNN Encoder-Decoder for Statistical Machine Translation (GRU)">
+              <img src="paper_figures/fig_024_pdf16_p008.jpg" alt="RNN Encoder-Decoder for Statistical Machine Translation (GRU), pagina 8: Table 3: Samples generated from the RNN Encoder–Decoder for each source phrase used in Table 2. We show the" loading="lazy" decoding="async" width="853" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1406.1078 · p. 8 · Cho et al. · 2014 · EMNLP</span>
+              <strong>RNN Encoder-Decoder for Statistical Machine Translation (GRU)</strong>
+              <span class="paper-figure-caption">Table 3: Samples generated from the RNN Encoder–Decoder for each source phrase used in Table 2. We show the top-5 target phrases out of 50 samples. They are sorted by the RNN Encoder–Decoder scores.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1406.1078" target="_blank" rel="noopener" aria-label="Apri il paper: RNN Encoder-Decoder for Statistical Machine Translation (GRU)">
+              <img src="paper_figures/fig_025_pdf16_p008.jpg" alt="RNN Encoder-Decoder for Statistical Machine Translation (GRU), pagina 8: Figure 4: 2–D embedding of the learned word representation. The left one shows the full embedding space, wh" loading="lazy" decoding="async" width="853" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1406.1078 · p. 8 · Cho et al. · 2014 · EMNLP</span>
+              <strong>RNN Encoder-Decoder for Statistical Machine Translation (GRU)</strong>
+              <span class="paper-figure-caption">Figure 4: 2–D embedding of the learned word representation. The left one shows the full embedding space, while the right one shows a zoomed-in view of one region (color–coded). For more plots, see the supplementary material.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1406.1078" target="_blank" rel="noopener" aria-label="Apri il paper: RNN Encoder-Decoder for Statistical Machine Translation (GRU)">
+              <img src="paper_figures/fig_026_pdf16_p009.jpg" alt="RNN Encoder-Decoder for Statistical Machine Translation (GRU), pagina 9: Figure 5: 2–D embedding of the learned phrase representation. The top left one shows the full represen- tat" loading="lazy" decoding="async" width="853" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1406.1078 · p. 9 · Cho et al. · 2014 · EMNLP</span>
+              <strong>RNN Encoder-Decoder for Statistical Machine Translation (GRU)</strong>
+              <span class="paper-figure-caption">Figure 5: 2–D embedding of the learned phrase representation. The top left one shows the full represen- tation space (5000 randomly selected points), while the other three ﬁgures show the zoomed-in view of speciﬁc regions (color–coded).</span>
+            </figcaption>
+          </figure>
+          </div>
+        </section>
+        <section class="paper-figure-group">
+          <h3>Self-supervised e rappresentazioni</h3>
+          <div class="paper-figure-grid">
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/2002.05709" target="_blank" rel="noopener" aria-label="Apri il paper: A Simple Framework for Contrastive Learning (SimCLR)">
+              <img src="paper_figures/fig_027_pdf18_p004.jpg" alt="A Simple Framework for Contrastive Learning (SimCLR), pagina 4: Figure 4. Illustrations of the studied data augmentation operators. Each augmentation can transform data stochastica" loading="lazy" decoding="async" width="272" height="272">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 2002.05709 · p. 4 · Chen et al. · 2020 · ICML</span>
+              <strong>A Simple Framework for Contrastive Learning (SimCLR)</strong>
+              <span class="paper-figure-caption">Figure 4. Illustrations of the studied data augmentation operators. Each augmentation can transform data stochastically with some internal parameters (e.g. rotation degree, noise level). Note that we only test these operators in ablation, the augmentation policy used to train our models only includes random crop (with ﬂip and resize), color distortion, and Gaussian blur. (Original image cc-by: V on.grzanka) 2012; Hén</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/2002.05709" target="_blank" rel="noopener" aria-label="Apri il paper: A Simple Framework for Contrastive Learning (SimCLR)">
+              <img src="paper_figures/fig_028_pdf18_p004.jpg" alt="A Simple Framework for Contrastive Learning (SimCLR), pagina 4: Figure 3. This simple design choice conveniently decouples" loading="lazy" decoding="async" width="272" height="272">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 2002.05709 · p. 4 · Chen et al. · 2020 · ICML</span>
+              <strong>A Simple Framework for Contrastive Learning (SimCLR)</strong>
+              <span class="paper-figure-caption">Figure 3. This simple design choice conveniently decouples</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/2002.05709" target="_blank" rel="noopener" aria-label="Apri il paper: A Simple Framework for Contrastive Learning (SimCLR)">
+              <img src="paper_figures/fig_029_pdf18_p004.jpg" alt="A Simple Framework for Contrastive Learning (SimCLR), pagina 4: Figure 5. Linear evaluation (ImageNet top-1 accuracy) under in- dividual or composition of data augmentations, appli" loading="lazy" decoding="async" width="272" height="272">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 2002.05709 · p. 4 · Chen et al. · 2020 · ICML</span>
+              <strong>A Simple Framework for Contrastive Learning (SimCLR)</strong>
+              <span class="paper-figure-caption">Figure 5. Linear evaluation (ImageNet top-1 accuracy) under in- dividual or composition of data augmentations, applied only to one branch. For all columns but the last, diagonal entries corre- spond to single transformation, and off-diagonals correspond to composition of two transformations (applied sequentially). The last column reﬂects the average over the row.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/2006.07733" target="_blank" rel="noopener" aria-label="Apri il paper: Bootstrap Your Own Latent (BYOL)">
+              <img src="paper_figures/fig_030_pdf20_p032.jpg" alt="Bootstrap Your Own Latent (BYOL), pagina 32: Figure 8: BYOL sketch summarizing the method by emphasizing the neural architecture. 32" loading="lazy" decoding="async" width="920" height="401">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 2006.07733 · p. 32 · Grill et al. · 2020 · NeurIPS</span>
+              <strong>Bootstrap Your Own Latent (BYOL)</strong>
+              <span class="paper-figure-caption">Figure 8: BYOL sketch summarizing the method by emphasizing the neural architecture. 32</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1503.03832" target="_blank" rel="noopener" aria-label="Apri il paper: FaceNet: A Unified Embedding for Face Recognition">
+              <img src="paper_figures/fig_031_pdf21_p001.jpg" alt="FaceNet: A Unified Embedding for Face Recognition, pagina 1: Figure 1. Illumination and Pose invariance. Pose and illumina- tion have been a long standing problem in face recogniti" loading="lazy" decoding="async" width="640" height="486">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1503.03832 · p. 1 · Schroff et al. · 2015 · CVPR</span>
+              <strong>FaceNet: A Unified Embedding for Face Recognition</strong>
+              <span class="paper-figure-caption">Figure 1. Illumination and Pose invariance. Pose and illumina- tion have been a long standing problem in face recognition. This ﬁgure shows the output distances of FaceNet between pairs of faces of the same and a different person in different pose and il- lumination combinations. A distance of 0.0 means the faces are identical, 4.0 corresponds to the opposite spectrum, two different identities. You can see that a thr</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1503.03832" target="_blank" rel="noopener" aria-label="Apri il paper: FaceNet: A Unified Embedding for Face Recognition">
+              <img src="paper_figures/fig_032_pdf21_p005.jpg" alt="FaceNet: A Unified Embedding for Face Recognition, pagina 5: Figure 4. FLOPS vs. Accuracy trade-off. Shown is the trade-off" loading="lazy" decoding="async" width="920" height="446">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1503.03832 · p. 5 · Schroff et al. · 2015 · CVPR</span>
+              <strong>FaceNet: A Unified Embedding for Face Recognition</strong>
+              <span class="paper-figure-caption">Figure 4. FLOPS vs. Accuracy trade-off. Shown is the trade-off</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1503.03832" target="_blank" rel="noopener" aria-label="Apri il paper: FaceNet: A Unified Embedding for Face Recognition">
+              <img src="paper_figures/fig_033_pdf21_p008.jpg" alt="FaceNet: A Unified Embedding for Face Recognition, pagina 8: Figure 6. LFW errors. This shows all pairs of images that were incorrectly classiﬁed on LFW. Only eight of the 13 false" loading="lazy" decoding="async" width="601" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1503.03832 · p. 8 · Schroff et al. · 2015 · CVPR</span>
+              <strong>FaceNet: A Unified Embedding for Face Recognition</strong>
+              <span class="paper-figure-caption">Figure 6. LFW errors. This shows all pairs of images that were incorrectly classiﬁed on LFW. Only eight of the 13 false rejects shown here are actual errors the other ﬁve are mislabeled in LFW. | Figure 7. Face Clustering. Shown is an exemplar cluster for one user. All these images in the users personal photo collection were clustered together.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1807.03748" target="_blank" rel="noopener" aria-label="Apri il paper: Representation Learning with Contrastive Predictive Coding">
+              <img src="paper_figures/fig_034_pdf22_p002.jpg" alt="Representation Learning with Contrastive Predictive Coding, pagina 2: Figure 1: Overview of Contrastive Predictive Coding, the proposed representation learning approach. Although t" loading="lazy" decoding="async" width="920" height="139">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1807.03748 · p. 2 · van den Oord et al. · 2018</span>
+              <strong>Representation Learning with Contrastive Predictive Coding</strong>
+              <span class="paper-figure-caption">Figure 1: Overview of Contrastive Predictive Coding, the proposed representation learning approach. Although this ﬁgure shows audio as input, we use the same setup for images, text and reinforcement learning.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1807.03748" target="_blank" rel="noopener" aria-label="Apri il paper: Representation Learning with Contrastive Predictive Coding">
+              <img src="paper_figures/fig_035_pdf22_p005.jpg" alt="Representation Learning with Contrastive Predictive Coding, pagina 5: Figure 3: Average accuracy of predicting the positive sample in the contrastive loss for 1 to 20 latent steps" loading="lazy" decoding="async" width="920" height="579">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1807.03748 · p. 5 · van den Oord et al. · 2018</span>
+              <strong>Representation Learning with Contrastive Predictive Coding</strong>
+              <span class="paper-figure-caption">Figure 3: Average accuracy of predicting the positive sample in the contrastive loss for 1 to 20 latent steps in the future of a speech waveform.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1807.03748" target="_blank" rel="noopener" aria-label="Apri il paper: Representation Learning with Contrastive Predictive Coding">
+              <img src="paper_figures/fig_036_pdf22_p005.jpg" alt="Representation Learning with Contrastive Predictive Coding, pagina 5: Figure 2: t-SNE visualization of audio (speech) representations for a subset of 10 speakers (out of 251). Ever" loading="lazy" decoding="async" width="779" height="435">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1807.03748 · p. 5 · van den Oord et al. · 2018</span>
+              <strong>Representation Learning with Contrastive Predictive Coding</strong>
+              <span class="paper-figure-caption">Figure 2: t-SNE visualization of audio (speech) representations for a subset of 10 speakers (out of 251). Every color represents a different speaker.</span>
+            </figcaption>
+          </figure>
+          </div>
+        </section>
+        <section class="paper-figure-group">
+          <h3>Ottimizzazione</h3>
+          <div class="paper-figure-grid">
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1711.05101" target="_blank" rel="noopener" aria-label="Apri il paper: Decoupled Weight Decay Regularization (AdamW)">
+              <img src="paper_figures/fig_037_pdf24_p005.jpg" alt="Decoupled Weight Decay Regularization (AdamW), pagina 5: Figure 1: Adam performs better with decoupled weight decay (bottom row, AdamW) than with L2 regularization (top row, Adam)." loading="lazy" decoding="async" width="623" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1711.05101 · p. 5 · Loshchilov &amp; Hutter · 2019 · ICLR</span>
+              <strong>Decoupled Weight Decay Regularization (AdamW)</strong>
+              <span class="paper-figure-caption">Figure 1: Adam performs better with decoupled weight decay (bottom row, AdamW) than with L2 regularization (top row, Adam). We show the ﬁnal test error of a 26 2x64d ResNet on CIFAR-10 after 100 epochs of training with ﬁxed learning rate (left column), step-drop learning rate (with drops at epoch indexes 30, 60 and 80, middle column) and cosine annealing (right column). AdamW leads to a more separable hyperparameter</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1711.05101" target="_blank" rel="noopener" aria-label="Apri il paper: Decoupled Weight Decay Regularization (AdamW)">
+              <img src="paper_figures/fig_038_pdf24_p006.jpg" alt="Decoupled Weight Decay Regularization (AdamW), pagina 6: Figure 2: The Top-1 test error of a 26 2x64d ResNet on CIFAR-10 measured after 100 epochs. The proposed SGDW and AdamW (rig" loading="lazy" decoding="async" width="770" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1711.05101 · p. 6 · Loshchilov &amp; Hutter · 2019 · ICLR</span>
+              <strong>Decoupled Weight Decay Regularization (AdamW)</strong>
+              <span class="paper-figure-caption">Figure 2: The Top-1 test error of a 26 2x64d ResNet on CIFAR-10 measured after 100 epochs. The proposed SGDW and AdamW (right column) have a more separable hyperparameter space.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1711.05101" target="_blank" rel="noopener" aria-label="Apri il paper: Decoupled Weight Decay Regularization (AdamW)">
+              <img src="paper_figures/fig_039_pdf24_p007.jpg" alt="Decoupled Weight Decay Regularization (AdamW), pagina 7: Figure 3: Learning curves (top row) and generalization results (bottom row) obtained by a 26 2x96d ResNet trained with Adam" loading="lazy" decoding="async" width="787" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1711.05101 · p. 7 · Loshchilov &amp; Hutter · 2019 · ICLR</span>
+              <strong>Decoupled Weight Decay Regularization (AdamW)</strong>
+              <span class="paper-figure-caption">Figure 3: Learning curves (top row) and generalization results (bottom row) obtained by a 26 2x96d ResNet trained with Adam and AdamW on CIFAR-10. See text for details. SuppFigure 4 in the Appendix shows the same qualitative results for ImageNet32x32.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1904.00962" target="_blank" rel="noopener" aria-label="Apri il paper: Large Batch Optimization for Deep Learning (LAMB)">
+              <img src="paper_figures/fig_040_pdf25_p015.jpg" alt="Large Batch Optimization for Deep Learning (LAMB), pagina 15: Figure 1: This ﬁgure shows N-LAMB and NN-LAMB can achieve a comparable accuracy compared to LAMB optimizer. Their perf" loading="lazy" decoding="async" width="920" height="459">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1904.00962 · p. 15 · You et al. · 2020 · ICLR</span>
+              <strong>Large Batch Optimization for Deep Learning (LAMB)</strong>
+              <span class="paper-figure-caption">Figure 1: This ﬁgure shows N-LAMB and NN-LAMB can achieve a comparable accuracy compared to LAMB optimizer. Their performances are much better than momentum solver. The result of momentum optimizer was reported by Goyal et al. (2017). For Nadam, we use the learning rate recipe of (Goyal et al., 2017): (1) 5-epoch warmup to stablize the initial stage; and (2) multiply the learning rate by 0.1 at 30th, 60th, and 80th e</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1904.00962" target="_blank" rel="noopener" aria-label="Apri il paper: Large Batch Optimization for Deep Learning (LAMB)">
+              <img src="paper_figures/fig_041_pdf25_p016.jpg" alt="Large Batch Optimization for Deep Learning (LAMB), pagina 16: Figure 3: We tried different norms in LAMB optimizer. However, we did not observe a signiﬁcant difference in the valid" loading="lazy" decoding="async" width="920" height="349">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1904.00962 · p. 16 · You et al. · 2020 · ICLR</span>
+              <strong>Large Batch Optimization for Deep Learning (LAMB)</strong>
+              <span class="paper-figure-caption">Figure 3: We tried different norms in LAMB optimizer. However, we did not observe a signiﬁcant difference in the validation accuracy of ImageNet training with ResNet-50. We use L2 norm as the default.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1904.00962" target="_blank" rel="noopener" aria-label="Apri il paper: Large Batch Optimization for Deep Learning (LAMB)">
+              <img src="paper_figures/fig_042_pdf25_p016.jpg" alt="Large Batch Optimization for Deep Learning (LAMB), pagina 16: Figure 2: The ﬁgure shows that adam-correction has the same effect as learning rate warmup. We removed adam-correction" loading="lazy" decoding="async" width="920" height="316">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1904.00962 · p. 16 · You et al. · 2020 · ICLR</span>
+              <strong>Large Batch Optimization for Deep Learning (LAMB)</strong>
+              <span class="paper-figure-caption">Figure 2: The ﬁgure shows that adam-correction has the same effect as learning rate warmup. We removed adam-correction from the LAMB optimizer. We did not observe any drop in the test or validation accuracy for BERT and ImageNet training.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1703.03400" target="_blank" rel="noopener" aria-label="Apri il paper: Model-Agnostic Meta-Learning (MAML)">
+              <img src="paper_figures/fig_043_pdf26_p006.jpg" alt="Model-Agnostic Meta-Learning (MAML), pagina 6: Figure 2. Few-shot adaptation for the simple regression task. Left: Note that MAML is able to estimate parts of the curve where there" loading="lazy" decoding="async" width="783" height="586">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1703.03400 · p. 6 · Finn, Abbeel &amp; Levine · 2017 · ICML</span>
+              <strong>Model-Agnostic Meta-Learning (MAML)</strong>
+              <span class="paper-figure-caption">Figure 2. Few-shot adaptation for the simple regression task. Left: Note that MAML is able to estimate parts of the curve where there are no datapoints, indicating that the model has learned about the periodic structure of sine waves. Right: Fine-tuning of a model pretrained on the same distribution of tasks without MAML, with a tuned step size. Due to the often contradictory outputs on the pre-training tasks, this m</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1703.03400" target="_blank" rel="noopener" aria-label="Apri il paper: Model-Agnostic Meta-Learning (MAML)">
+              <img src="paper_figures/fig_044_pdf26_p006.jpg" alt="Model-Agnostic Meta-Learning (MAML), pagina 6: Figure 3. Quantitative sinusoid regression results showing the learning curve at meta test-time. Note that MAML continues to improve" loading="lazy" decoding="async" width="783" height="586">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1703.03400 · p. 6 · Finn, Abbeel &amp; Levine · 2017 · ICML</span>
+              <strong>Model-Agnostic Meta-Learning (MAML)</strong>
+              <span class="paper-figure-caption">Figure 3. Quantitative sinusoid regression results showing the learning curve at meta test-time. Note that MAML continues to improve with additional gradient steps without overﬁtting to the extremely small dataset during meta-testing, achieving a loss that is substantially lower than the baseline ﬁne-tuning approach.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1703.03400" target="_blank" rel="noopener" aria-label="Apri il paper: Model-Agnostic Meta-Learning (MAML)">
+              <img src="paper_figures/fig_045_pdf26_p007.jpg" alt="Model-Agnostic Meta-Learning (MAML), pagina 7: Table 1. Few-shot classiﬁcation on held-out Omniglot characters (top) and the MiniImagenet test set (bottom). MAML achieves results t" loading="lazy" decoding="async" width="809" height="544">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1703.03400 · p. 7 · Finn, Abbeel &amp; Levine · 2017 · ICML</span>
+              <strong>Model-Agnostic Meta-Learning (MAML)</strong>
+              <span class="paper-figure-caption">Table 1. Few-shot classiﬁcation on held-out Omniglot characters (top) and the MiniImagenet test set (bottom). MAML achieves results that are comparable to or outperform state-of-the-art convolutional and recurrent models. Siamese nets, matching nets, and the memory module approaches are all speciﬁc to classiﬁcation, and are not directly applicable to regression or RL scenarios. The ± shows 95% conﬁdence intervals ove</span>
+            </figcaption>
+          </figure>
+          </div>
+        </section>
+        <section class="paper-figure-group">
+          <h3>Regolarizzazione e normalizzazione</h3>
+          <div class="paper-figure-grid">
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://jmlr.org/papers/v15/srivastava14a.html" target="_blank" rel="noopener" aria-label="Apri il paper: Dropout: A Simple Way to Prevent Overfitting">
+              <img src="paper_figures/fig_046_pdf29_p011.jpg" alt="Dropout: A Simple Way to Prevent Overfitting, pagina 11: Table 4: Error rates on CIFAR-10 and CIFAR-100." loading="lazy" decoding="async" width="640" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">JMLR v15 · p. 11 · Srivastava et al. · 2014 · JMLR</span>
+              <strong>Dropout: A Simple Way to Prevent Overfitting</strong>
+              <span class="paper-figure-caption">Table 4: Error rates on CIFAR-10 and CIFAR-100.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://jmlr.org/papers/v15/srivastava14a.html" target="_blank" rel="noopener" aria-label="Apri il paper: Dropout: A Simple Way to Prevent Overfitting">
+              <img src="paper_figures/fig_047_pdf29_p011.jpg" alt="Dropout: A Simple Way to Prevent Overfitting, pagina 11: Figure 5: Samples from image data sets. Each row corresponds to a diﬀerent category. Method CIFAR-10 CIFAR-100 Conv Net + m" loading="lazy" decoding="async" width="340" height="340">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">JMLR v15 · p. 11 · Srivastava et al. · 2014 · JMLR</span>
+              <strong>Dropout: A Simple Way to Prevent Overfitting</strong>
+              <span class="paper-figure-caption">Figure 5: Samples from image data sets. Each row corresponds to a diﬀerent category. Method CIFAR-10 CIFAR-100 Conv Net + max pooling (hand tuned) 15.60 43.48 Conv Net + stochastic pooling (Zeiler and Fergus, 2013) 15.13 42.51 Conv Net + max pooling (Snoek et al., 2012) 14.98 - Conv Net + max pooling + dropout fully connected layers 14.32 41.26 Conv Net + max pooling + dropout in all layers 12.61 37.20 Conv Net + max</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://jmlr.org/papers/v15/srivastava14a.html" target="_blank" rel="noopener" aria-label="Apri il paper: Dropout: A Simple Way to Prevent Overfitting">
+              <img src="paper_figures/fig_048_pdf29_p012.jpg" alt="Dropout: A Simple Way to Prevent Overfitting, pagina 12: Figure 6: Some ImageNet test cases with the 4 most probable labels as predicted by our model." loading="lazy" decoding="async" width="654" height="262">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">JMLR v15 · p. 12 · Srivastava et al. · 2014 · JMLR</span>
+              <strong>Dropout: A Simple Way to Prevent Overfitting</strong>
+              <span class="paper-figure-caption">Figure 6: Some ImageNet test cases with the 4 most probable labels as predicted by our model.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1909.13719" target="_blank" rel="noopener" aria-label="Apri il paper: RandAugment: Practical Automated Data Augmentation">
+              <img src="paper_figures/fig_049_pdf31_p003.jpg" alt="RandAugment: Practical Automated Data Augmentation, pagina 3: Figure 1. Example images augmented by RandAugment. In these examples N=2 and three magnitudes are shown corre- spondin" loading="lazy" decoding="async" width="742" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1909.13719 · p. 3 · Cubuk et al. · 2020 · NeurIPS</span>
+              <strong>RandAugment: Practical Automated Data Augmentation</strong>
+              <span class="paper-figure-caption">Figure 1. Example images augmented by RandAugment. In these examples N=2 and three magnitudes are shown corre- sponding to the optimal distortion magnitudes for ResNet-50, EfﬁcientNet-B5 and EfﬁcientNet-B7, respectively. As the dis- tortion magnitude increases, the strength of the augmentation in- creases.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1909.13719" target="_blank" rel="noopener" aria-label="Apri il paper: RandAugment: Practical Automated Data Augmentation">
+              <img src="paper_figures/fig_050_pdf31_p005.jpg" alt="RandAugment: Practical Automated Data Augmentation, pagina 5: Figure 3. Optimal magnitude of augmentation depends on the size of the model and the training set. All results report" loading="lazy" decoding="async" width="804" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1909.13719 · p. 5 · Cubuk et al. · 2020 · NeurIPS</span>
+              <strong>RandAugment: Practical Automated Data Augmentation</strong>
+              <span class="paper-figure-caption">Figure 3. Optimal magnitude of augmentation depends on the size of the model and the training set. All results report CIFAR-10 validation accuracy for Wide-ResNet model architectures [53] averaged over 20 random initializations, where N = 1 . (a) Accuracy of Wide-ResNet-28-2, Wide-ResNet-28-7, and Wide-ResNet-28-10 across varying distortion magnitudes. Models are trained for 200 epochs on 45K training set examples. S</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1909.13719" target="_blank" rel="noopener" aria-label="Apri il paper: RandAugment: Practical Automated Data Augmentation">
+              <img src="paper_figures/fig_051_pdf31_p007.jpg" alt="RandAugment: Practical Automated Data Augmentation, pagina 7: Table 3. ImageNet results. Top-1 and Top-5 accuracies (%) on ImageNet. Baseline and AutoAugment (AA) results on ResNet" loading="lazy" decoding="async" width="792" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1909.13719 · p. 7 · Cubuk et al. · 2020 · NeurIPS</span>
+              <strong>RandAugment: Practical Automated Data Augmentation</strong>
+              <span class="paper-figure-caption">Table 3. ImageNet results. Top-1 and Top-5 accuracies (%) on ImageNet. Baseline and AutoAugment (AA) results on ResNet-50 are from [5]. Fast AutoAugment (Fast AA) results are from [25]. EfﬁcientNet results with and without AutoAugment are from [47].</span>
+            </figcaption>
+          </figure>
+          </div>
+        </section>
+        <section class="paper-figure-group">
+          <h3>Inizializzazione e iperparametri</h3>
+          <div class="paper-figure-grid">
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://proceedings.mlr.press/v9/glorot10a.html" target="_blank" rel="noopener" aria-label="Apri il paper: Understanding the difficulty of training deep feedforward networks">
+              <img src="paper_figures/fig_052_pdf32_p002.jpg" alt="Understanding the difficulty of training deep feedforward networks, pagina 2: Figure 1: Top: Shapeset-3×2 images at 64×64 resolution. The examples we used are at 32×32 resolution." loading="lazy" decoding="async" width="750" height="375">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">PMLR · AISTATS · p. 2 · Glorot &amp; Bengio · 2010 · AISTATS</span>
+              <strong>Understanding the difficulty of training deep feedforward networks</strong>
+              <span class="paper-figure-caption">Figure 1: Top: Shapeset-3×2 images at 64×64 resolution. The examples we used are at 32×32 resolution. The learner tries to predict which objects (parallelogram, triangle, or el- lipse) are present, and 1 or 2 objects can be present, yield- ing 9 possible classiﬁcations. Bottom: Small-ImageNet images at full resolution.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://proceedings.mlr.press/v9/glorot10a.html" target="_blank" rel="noopener" aria-label="Apri il paper: Understanding the difficulty of training deep feedforward networks">
+              <img src="paper_figures/fig_053_pdf32_p003.jpg" alt="Understanding the difficulty of training deep feedforward networks, pagina 3: Figure 2: Mean and standard deviation (vertical bars) of the activation values (output of the sigmoid)" loading="lazy" decoding="async" width="920" height="324">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">PMLR · AISTATS · p. 3 · Glorot &amp; Bengio · 2010 · AISTATS</span>
+              <strong>Understanding the difficulty of training deep feedforward networks</strong>
+              <span class="paper-figure-caption">Figure 2: Mean and standard deviation (vertical bars) of the activation values (output of the sigmoid) during supervised learning, for the different hidden layers of a deep archi- tecture. The top hidden layer quickly saturates at 0 (slow- ing down all learning), but then slowly desaturates around epoch 100.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://proceedings.mlr.press/v9/glorot10a.html" target="_blank" rel="noopener" aria-label="Apri il paper: Understanding the difficulty of training deep feedforward networks">
+              <img src="paper_figures/fig_054_pdf32_p004.jpg" alt="Understanding the difficulty of training deep feedforward networks, pagina 4: Figure 3: Top:98 percentiles (markers alone) and standard deviation (solid lines with markers) of the" loading="lazy" decoding="async" width="920" height="336">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">PMLR · AISTATS · p. 4 · Glorot &amp; Bengio · 2010 · AISTATS</span>
+              <strong>Understanding the difficulty of training deep feedforward networks</strong>
+              <span class="paper-figure-caption">Figure 3: Top:98 percentiles (markers alone) and standard deviation (solid lines with markers) of the distribution of</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1502.01852" target="_blank" rel="noopener" aria-label="Apri il paper: Delving Deep into Rectifiers (PReLU, He init)">
+              <img src="paper_figures/fig_055_pdf33_p010.jpg" alt="Delving Deep into Rectifiers (PReLU, He init), pagina 10: Figure 4. Example validation images successfully classiﬁed by our method. For each image, the ground-truth label and the t" loading="lazy" decoding="async" width="517" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1502.01852 · p. 10 · He et al. · 2015 · ICCV</span>
+              <strong>Delving Deep into Rectifiers (PReLU, He init)</strong>
+              <span class="paper-figure-caption">Figure 4. Example validation images successfully classiﬁed by our method. For each image, the ground-truth label and the top-5 la- bels predicted by our method are listed. | Figure 5. Example validation images incorrectly classiﬁed by our method, in the three classes with the highest top-5 test error. Top: “letter opener” (49% top-5 test error). Middle: “spotlight” (38%).</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1502.01852" target="_blank" rel="noopener" aria-label="Apri il paper: Delving Deep into Rectifiers (PReLU, He init)">
+              <img src="paper_figures/fig_056_pdf33_p010.jpg" alt="Delving Deep into Rectifiers (PReLU, He init), pagina 10: Figure 4. Example validation images successfully classiﬁed by our method. For each image, the ground-truth label and the t" loading="lazy" decoding="async" width="517" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1502.01852 · p. 10 · He et al. · 2015 · ICCV</span>
+              <strong>Delving Deep into Rectifiers (PReLU, He init)</strong>
+              <span class="paper-figure-caption">Figure 4. Example validation images successfully classiﬁed by our method. For each image, the ground-truth label and the top-5 la- bels predicted by our method are listed. | Figure 5. Example validation images incorrectly classiﬁed by our method, in the three classes with the highest top-5 test error. Top: “letter opener” (49% top-5 test error). Middle: “spotlight” (38%).</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1603.06560" target="_blank" rel="noopener" aria-label="Apri il paper: Hyperband: A Bandit-Based Approach to HPO">
+              <img src="paper_figures/fig_057_pdf35_p002.jpg" alt="Hyperband: A Bandit-Based Approach to HPO, pagina 2: Figure 1(a). Existing empirical evidence suggests that these methods outperform random search (Thornton et al., 2013; Eggensper" loading="lazy" decoding="async" width="834" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1603.06560 · p. 2 · Li et al. · 2018 · JMLR</span>
+              <strong>Hyperband: A Bandit-Based Approach to HPO</strong>
+              <span class="paper-figure-caption">Figure 1(a). Existing empirical evidence suggests that these methods outperform random search (Thornton et al., 2013; Eggensperger et al., 2013; Snoek et al., 2015b). However, these methods tackle the fundamentally challenging problem of simultaneously ﬁtting and optimizing a high-dimensional, non-convex function with unknown smoothness, and possibly noisy evaluations.</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1603.06560" target="_blank" rel="noopener" aria-label="Apri il paper: Hyperband: A Bandit-Based Approach to HPO">
+              <img src="paper_figures/fig_058_pdf35_p002.jpg" alt="Hyperband: A Bandit-Based Approach to HPO, pagina 2: Figure 1: (a) The heatmap shows the validation error over a two-dimensional search space with red corresponding to areas with l" loading="lazy" decoding="async" width="649" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1603.06560 · p. 2 · Li et al. · 2018 · JMLR</span>
+              <strong>Hyperband: A Bandit-Based Approach to HPO</strong>
+              <span class="paper-figure-caption">Figure 1: (a) The heatmap shows the validation error over a two-dimensional search space with red corresponding to areas with lower validation error. Conﬁguration selection methods adaptively choose new conﬁgurations to train, proceeding in a sequential manner as indicated by the numbers. (b) The plot shows the validation error as a function of the resources allocated to each conﬁguration (i.e. each line in the plot)</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1603.06560" target="_blank" rel="noopener" aria-label="Apri il paper: Hyperband: A Bandit-Based Approach to HPO">
+              <img src="paper_figures/fig_059_pdf35_p007.jpg" alt="Hyperband: A Bandit-Based Approach to HPO, pagina 7: Figure 2: The validation loss as a function of total resources allocated for two conﬁgurations is shown. ν1 and ν2 represent th" loading="lazy" decoding="async" width="854" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1603.06560 · p. 7 · Li et al. · 2018 · JMLR</span>
+              <strong>Hyperband: A Bandit-Based Approach to HPO</strong>
+              <span class="paper-figure-caption">Figure 2: The validation loss as a function of total resources allocated for two conﬁgurations is shown. ν1 and ν2 represent the terminal validation losses at convergence. The</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://arxiv.org/abs/1810.05934" target="_blank" rel="noopener" aria-label="Apri il paper: A System for Massively Parallel Hyperparameter Tuning (ASHA)">
+              <img src="paper_figures/fig_060_pdf36_p004.jpg" alt="A System for Massively Parallel Hyperparameter Tuning (ASHA), pagina 4: Figure 1. Promotion scheme for SHA withn = 9,r = 1,R = 9, andη = 3." loading="lazy" decoding="async" width="567" height="314">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">arXiv 1810.05934 · p. 4 · Li et al. · 2020 · MLSys</span>
+              <strong>A System for Massively Parallel Hyperparameter Tuning (ASHA)</strong>
+              <span class="paper-figure-caption">Figure 1. Promotion scheme for SHA withn = 9,r = 1,R = 9, andη = 3.</span>
+            </figcaption>
+          </figure>
+          </div>
+        </section>
+        <section class="paper-figure-group">
+          <h3>Fondamenti e attivazioni</h3>
+          <div class="paper-figure-grid">
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://proceedings.neurips.cc/paper/2001/hash/7b7a53e239400a13bd6be6c91c4f6c4e-Abstract.html" target="_blank" rel="noopener" aria-label="Apri il paper: On Discriminative vs. Generative Classifiers">
+              <img src="paper_figures/fig_061_pdf38_p001.jpg" alt="On Discriminative vs. Generative Classifiers, pagina 1: Nessuna didascalia esplicita rilevata. Contesto pagina: On Discriminative vs. Generative classifiers: A comparison of logist" loading="lazy" decoding="async" width="495" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">NeurIPS 2001 · p. 1 · Ng &amp; Jordan · 2001 · NeurIPS</span>
+              <strong>On Discriminative vs. Generative Classifiers</strong>
+              <span class="paper-figure-caption">Nessuna didascalia esplicita rilevata. Contesto pagina: On Discriminative vs. Generative classifiers: A comparison of logistic regression and naive Bayes Andrew Y. Ng Computer Science Division University of California, Berkeley Berkeley, CA 94720 Michael I. Jordan C.S. Div. &amp; Dept. of Stat. University of California , Berkeley Berkeley, CA 94720 Abstract We compare discrimin ative and generative learning as typified b</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://proceedings.neurips.cc/paper/2001/hash/7b7a53e239400a13bd6be6c91c4f6c4e-Abstract.html" target="_blank" rel="noopener" aria-label="Apri il paper: On Discriminative vs. Generative Classifiers">
+              <img src="paper_figures/fig_062_pdf38_p002.jpg" alt="On Discriminative vs. Generative Classifiers, pagina 2: Nessuna didascalia esplicita rilevata. Contesto pagina: by thresholding p(ylx) to make predictions. Given a classifier hGen" loading="lazy" decoding="async" width="495" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">NeurIPS 2001 · p. 2 · Ng &amp; Jordan · 2001 · NeurIPS</span>
+              <strong>On Discriminative vs. Generative Classifiers</strong>
+              <span class="paper-figure-caption">Nessuna didascalia esplicita rilevata. Contesto pagina: by thresholding p(ylx) to make predictions. Given a classifier hGen fit according to the first criterion, and a model hDis fit according to either the second or the third criterion (using the same parametric family of models) , we call hGen and hDis a Generative-Discriminative pair. For example, if p(xly) is Gaussian and p(y) is multinomial , then the correspond</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://proceedings.neurips.cc/paper/2001/hash/7b7a53e239400a13bd6be6c91c4f6c4e-Abstract.html" target="_blank" rel="noopener" aria-label="Apri il paper: On Discriminative vs. Generative Classifiers">
+              <img src="paper_figures/fig_063_pdf38_p003.jpg" alt="On Discriminative vs. Generative Classifiers, pagina 3: Nessuna didascalia esplicita rilevata. Contesto pagina: the discriminative logistic regression classifier ho is : X I-t Y pr" loading="lazy" decoding="async" width="495" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">NeurIPS 2001 · p. 3 · Ng &amp; Jordan · 2001 · NeurIPS</span>
+              <strong>On Discriminative vs. Generative Classifiers</strong>
+              <span class="paper-figure-caption">Nessuna didascalia esplicita rilevata. Contesto pagina: the discriminative logistic regression classifier ho is : X I-t Y predicts hOis (x) = T if and only if the linear discriminant function lDis(x) = L~=l (3ixi + () (3) is positive. Being a discriminative model, the parameters [(3, ()] can be fit either to maximize the conditionallikelikood on the training set L~= llogp(y(i) Ix(i); (3, ()), or to minimize 0-1 train</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://doi.org/10.1037/h0042519" target="_blank" rel="noopener" aria-label="Apri il paper: The Perceptron: A Probabilistic Model…">
+              <img src="paper_figures/fig_064_pdf39_p007.jpg" alt="The Perceptron: A Probabilistic Model…, pagina 7: Nessuna didascalia esplicita rilevata. Contesto pagina: The Perceptron 7" loading="lazy" decoding="async" width="920" height="294">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">DOI · Psych. Rev. · p. 7 · Rosenblatt · 1958 · Psychological Review</span>
+              <strong>The Perceptron: A Probabilistic Model…</strong>
+              <span class="paper-figure-caption">Nessuna didascalia esplicita rilevata. Contesto pagina: The Perceptron 7</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://doi.org/10.1037/h0042519" target="_blank" rel="noopener" aria-label="Apri il paper: The Perceptron: A Probabilistic Model…">
+              <img src="paper_figures/fig_065_pdf39_p042.jpg" alt="The Perceptron: A Probabilistic Model…, pagina 42: Nessuna didascalia esplicita rilevata. Contesto pagina: The hype 42 The New Yorker, December 6, 1958 P . 44 The New York Times, J" loading="lazy" decoding="async" width="336" height="640">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">DOI · Psych. Rev. · p. 42 · Rosenblatt · 1958 · Psychological Review</span>
+              <strong>The Perceptron: A Probabilistic Model…</strong>
+              <span class="paper-figure-caption">Nessuna didascalia esplicita rilevata. Contesto pagina: The hype 42 The New Yorker, December 6, 1958 P . 44 The New York Times, July 8 1958</span>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure-card">
+            <a class="paper-figure-media" href="https://doi.org/10.1037/h0042519" target="_blank" rel="noopener" aria-label="Apri il paper: The Perceptron: A Probabilistic Model…">
+              <img src="paper_figures/fig_066_pdf39_p043.jpg" alt="The Perceptron: A Probabilistic Model…, pagina 43: Nessuna didascalia esplicita rilevata. Contesto pagina: The hype 43 The New Yorker, December 6, 1958 P . 44 The New York Times, J" loading="lazy" decoding="async" width="920" height="517">
+            </a>
+            <figcaption>
+              <span class="paper-figure-source">DOI · Psych. Rev. · p. 43 · Rosenblatt · 1958 · Psychological Review</span>
+              <strong>The Perceptron: A Probabilistic Model…</strong>
+              <span class="paper-figure-caption">Nessuna didascalia esplicita rilevata. Contesto pagina: The hype 43 The New Yorker, December 6, 1958 P . 44 The New York Times, July 8 1958 The IBM 704 computer</span>
+            </figcaption>
+          </figure>
+          </div>
+        </section>
       </div>
 
       <div class="idea">
