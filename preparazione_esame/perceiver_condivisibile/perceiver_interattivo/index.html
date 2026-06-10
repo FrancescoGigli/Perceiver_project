@@ -1882,6 +1882,21 @@ Pre-norm:  y = x + f(LN(x))</div>
         <p>Nel Perceiver ci sono molte LayerNorm: prima dell'attention e prima dell'MLP, sia nel cross-attention block sia nel latent transformer. Negli appunti viene stimato un ordine di circa 112 normalizzazioni/residual sui blocchi completi: senza pre-norm il training profondo sarebbe molto più fragile.</p>
       </div>
 
+      <div class="concept-lab step-anim-lab" data-lab="norm-axis">
+        <div class="lab-head">
+          <div><span class="lab-source">normalizzazione · Ioffe&Szegedy 2015 / Ba 2016</span><h3>Normalizzazione: su quale asse?</h3><p>BatchNorm vs LayerNorm: cosa cambia e perché i Transformer scelgono LayerNorm.</p></div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Un mini-batch di attivazioni: una matrice (esempi × feature)."><span class="step-anim-n">1</span><span class="step-anim-label">Attivazioni</span></div>
+          <div class="step-anim-node" data-caption="Normalizza ogni feature sulla dimensione del BATCH: dipende dalla batch size e usa statistiche «running» a inference. (Ioffe & Szegedy 2015)"><span class="step-anim-n">2</span><span class="step-anim-label">Batch Norm</span></div>
+          <div class="step-anim-node" data-caption="Normalizza sulle FEATURE di ogni singolo esempio: indipendente dal batch. (Ba et al. 2016)"><span class="step-anim-n">3</span><span class="step-anim-label">Layer Norm</span></div>
+          <div class="step-anim-node" data-caption="Parametri appresi γ e β riscalano e traslano l'output normalizzato."><span class="step-anim-n">4</span><span class="step-anim-label">Scala e sposta</span></div>
+          <div class="step-anim-node" data-caption="Sequenze a lunghezza variabile e batch piccoli rendono BatchNorm instabile → si usa LayerNorm (anche nel Perceiver)."><span class="step-anim-n">5</span><span class="step-anim-label">Nei Transformer</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-22">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="22"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -2495,6 +2510,21 @@ W_out = \left\lfloor\frac{W - k + 2p}{s}\right\rfloor + 1
         <p>Negli appunti il collegamento è esplicito: il Perceiver usa circa <strong>112 residual connections</strong>, una per ogni sottoblocco di attention e FFN. Senza questi percorsi additivi, un modello così profondo e iterativo perderebbe segnale o diventerebbe molto difficile da ottimizzare.</p>
       </div>
 
+      <div class="concept-lab step-anim-lab" data-lab="effnet-scale">
+        <div class="lab-head">
+          <div><span class="lab-source">CNN · EfficientNet (Tan & Le 2019)</span><h3>EfficientNet: compound scaling</h3><p>Come ingrandire una CNN in modo bilanciato.</p></div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Si parte da una rete efficiente (EfficientNet-B0)."><span class="step-anim-n">1</span><span class="step-anim-label">Rete base</span></div>
+          <div class="step-anim-node" data-caption="Si può scalare profondità (più strati), larghezza (più canali) o risoluzione (input più grande)."><span class="step-anim-n">2</span><span class="step-anim-label">Tre dimensioni</span></div>
+          <div class="step-anim-node" data-caption="Scalare una sola dimensione satura presto: i guadagni calano."><span class="step-anim-n">3</span><span class="step-anim-label">Scalarne una sola</span></div>
+          <div class="step-anim-node" data-caption="Si scalano le TRE insieme con un rapporto fisso (un solo coefficiente φ): bilanciate."><span class="step-anim-n">4</span><span class="step-anim-label">Compound scaling</span></div>
+          <div class="step-anim-node" data-caption="Stessa accuratezza con molti meno FLOPs e parametri. (Tan & Le 2019)"><span class="step-anim-n">5</span><span class="step-anim-label">Risultato</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-31">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="31"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -2586,6 +2616,21 @@ W_{out} = \left\lfloor\frac{W - k + 2p}{s}\right\rfloor + 1
         <p>La ConvNet è il riferimento per la scalabilità. Il Perceiver prova a conservarne il vantaggio computazionale, ma rinuncia al vincolo della griglia: usa Fourier features per la posizione e latenti fissi per comprimere l'input.</p>
       </div>
 
+      <div class="concept-lab step-anim-lab" data-lab="densenet-flow">
+        <div class="lab-head">
+          <div><span class="lab-source">CNN · DenseNet (Huang et al. 2017)</span><h3>DenseNet: connettività densa</h3><p>Riuso delle feature e gradiente che fluisce meglio.</p></div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Le feature map del primo strato convoluzionale."><span class="step-anim-n">1</span><span class="step-anim-label">Strato 1</span></div>
+          <div class="step-anim-node" data-caption="Ogni strato riceve in input le feature di TUTTI gli strati precedenti (concatenate), non solo l'ultimo."><span class="step-anim-n">2</span><span class="step-anim-label">Concatenazione</span></div>
+          <div class="step-anim-node" data-caption="Le feature vengono riutilizzate: meno parametri e gradiente che propaga meglio."><span class="step-anim-n">3</span><span class="step-anim-label">Riuso feature</span></div>
+          <div class="step-anim-node" data-caption="Ogni strato aggiunge solo poche mappe (growth rate k): la rete resta compatta."><span class="step-anim-n">4</span><span class="step-anim-label">Growth rate</span></div>
+          <div class="step-anim-node" data-caption="ResNet SOMMA il residuo; DenseNet CONCATENA. (Huang et al. 2017)"><span class="step-anim-n">5</span><span class="step-anim-label">vs ResNet</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-32">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="32"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -5102,6 +5147,36 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
 
       <div class="paper-fig-label">📄 Dal paper originale</div>
       <figure class="paper-fig"><img src="../paper_figures/simclr_augment.png" alt="Augmentation in SimCLR" loading="lazy"><figcaption>Esempio di augmentation stocastica: la composizione casuale di trasformazioni genera le due viste positive dello stesso esempio, cuore del contrastive learning. — «SimCLR» (Chen et al., 2020, arXiv:2002.05709)</figcaption></figure>
+      <div class="concept-lab step-anim-lab" data-lab="gpt-flow">
+        <div class="lab-head">
+          <div><span class="lab-source">language model · GPT-2 (Radford et al. 2019)</span><h3>GPT: generazione autoregressiva</h3><p>Il contrasto unidirezionale rispetto a BERT.</p></div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Si parte dai token già visti (il prompt)."><span class="step-anim-n">1</span><span class="step-anim-label">Contesto</span></div>
+          <div class="step-anim-node" data-caption="Ogni posizione vede SOLO il passato (masked self-attention): niente futuro."><span class="step-anim-n">2</span><span class="step-anim-label">Attention causale</span></div>
+          <div class="step-anim-node" data-caption="Il modello produce una distribuzione sul token successivo."><span class="step-anim-n">3</span><span class="step-anim-label">Predici il prossimo</span></div>
+          <div class="step-anim-node" data-caption="Si sceglie un token, lo si aggiunge al contesto, si ripete."><span class="step-anim-n">4</span><span class="step-anim-label">Campiona e accoda</span></div>
+          <div class="step-anim-node" data-caption="GPT è unidirezionale e generativo; BERT bidirezionale per la comprensione. (Radford et al. 2019)"><span class="step-anim-n">5</span><span class="step-anim-label">vs BERT</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
+      <div class="concept-lab step-anim-lab" data-lab="moco-flow">
+        <div class="lab-head">
+          <div><span class="lab-source">contrastive · MoCo (He et al. 2020)</span><h3>MoCo: dizionario dinamico</h3><p>Contrastive learning senza batch enormi.</p></div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Due viste augmentate: una nell'encoder «query», l'altra nell'encoder «key»."><span class="step-anim-n">1</span><span class="step-anim-label">Query e key</span></div>
+          <div class="step-anim-node" data-caption="L'encoder key non è addestrato col gradiente: è una media mobile (momentum) di quello query → coerente nel tempo."><span class="step-anim-n">2</span><span class="step-anim-label">Momentum encoder</span></div>
+          <div class="step-anim-node" data-caption="I key passati si accumulano in una coda: tanti negativi SENZA batch giganti."><span class="step-anim-n">3</span><span class="step-anim-label">Coda di negativi</span></div>
+          <div class="step-anim-node" data-caption="La query combacia col suo key positivo e differisce da quelli in coda (InfoNCE)."><span class="step-anim-n">4</span><span class="step-anim-label">Contrastive</span></div>
+          <div class="step-anim-node" data-caption="MoCo evita i batch enormi di SimCLR usando coda + momentum. (He et al. 2020)"><span class="step-anim-n">5</span><span class="step-anim-label">vs SimCLR</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-48">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="48"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -5221,6 +5296,21 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       <figure class="paper-fig"><img src="../paper_figures/asha_rungs.png" alt="ASHA: promozione a rung" loading="lazy"><figcaption>Il meccanismo a «rung» di ASHA: molte configurazioni con poche iterazioni (rung 0), solo le migliori promosse ai rung superiori con più budget (qui la vincente al rung 2). — «ASHA» (Li et al., 2020, arXiv:1810.05934)</figcaption></figure>
       <figure class="paper-fig"><img src="../paper_figures/maml_sinusoid.png" alt="MAML: adattamento few-shot" loading="lazy"><figcaption>Regressione few-shot di una sinusoide con K=5 punti: dopo pochi passi di gradiente il modello inizializzato con MAML approssima la funzione target. — «MAML» (Finn et al., 2017, arXiv:1703.03400)</figcaption></figure>
       <figure class="paper-fig"><img src="../paper_figures/mixup_interpolation.png" alt="mixup: confini morbidi" loading="lazy"><figcaption>Con mixup il modello impara transizioni graduali tra le classi: la probabilità interpola in modo regolare tra i punti, invece di confini netti. — «mixup» (Zhang et al., 2017, arXiv:1710.09412)</figcaption></figure>
+      <div class="concept-lab step-anim-lab" data-lab="maml-flow">
+        <div class="lab-head">
+          <div><span class="lab-source">meta-learning · MAML (Finn et al. 2017)</span><h3>MAML: imparare a inizializzare</h3><p>Un'inizializzazione da cui pochi passi bastano su un task nuovo.</p></div>
+          <div class="lab-toggle"><button type="button" class="step-play">▶ Riproduci</button></div>
+        </div>
+        <div class="step-anim-track">
+          <div class="step-anim-node" data-caption="Si campiona una distribuzione di task simili (es. tante sinusoidi diverse)."><span class="step-anim-n">1</span><span class="step-anim-label">Tanti task</span></div>
+          <div class="step-anim-node" data-caption="Da un'inizializzazione θ, per ogni task si fanno pochi passi di gradiente → θ' adattato al task."><span class="step-anim-n">2</span><span class="step-anim-label">Inner loop</span></div>
+          <div class="step-anim-node" data-caption="Si misura la loss di θ' DOPO l'adattamento, non prima."><span class="step-anim-n">3</span><span class="step-anim-label">Valuta dopo</span></div>
+          <div class="step-anim-node" data-caption="Si aggiorna θ per minimizzare la loss post-adattamento, mediata su molti task."><span class="step-anim-n">4</span><span class="step-anim-label">Outer loop (meta)</span></div>
+          <div class="step-anim-node" data-caption="Risultato: da θ pochi step bastano su un task NUOVO. (Finn et al. 2017)"><span class="step-anim-n">5</span><span class="step-anim-label">Few-shot</span></div>
+        </div>
+        <div class="step-anim-progress"><span></span></div>
+        <div class="step-anim-caption"></div>
+      </div>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-49">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="49"><span class="check"></span><span class="check-label">Ho capito</span></label>
