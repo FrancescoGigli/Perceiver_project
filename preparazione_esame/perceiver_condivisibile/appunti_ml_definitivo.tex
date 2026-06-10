@@ -7704,6 +7704,12 @@ W_2 = 0.4 - 0.1 \cdot \frac{0.0895}{\sqrt{0.05}} = 0.4 - 0.1 \cdot \frac{0.0895}
 \needspace{4\baselineskip}
 \subsection{AdamW (Adam con Weight Decay disaccoppiato)}
 
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.6\textwidth]{./appunti_images/papers/adamw_test_error.png}
+\caption{Test error: Adam (rosso) vs AdamW (blu). Il weight decay disaccoppiato di AdamW generalizza meglio a parità di learning rate. \emph{Fonte:} Loshchilov \& Hutter, \emph{Decoupled Weight Decay Regularization} (arXiv:1711.05101).}
+\end{figure}
+
 \textbf{AdamW} (Loshchilov \& Hutter, 2017) corregge un difetto di Adam: l'L2 regularization aggiunta al gradiente interagisce con l'adattività e non produce il vero weight decay.
 
 \begin{formulabox}[title={\textbf{AdamW --- Differenza chiave da Adam}}]
@@ -7725,6 +7731,12 @@ In Adam puro, $v_t$ accumula la magnitudine del gradiente $+ \lambda W_t$. I par
 
 \needspace{4\baselineskip}
 \subsection{LAMB (Layer-wise Adaptive Moments for Batch training)}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.72\textwidth]{./appunti_images/papers/lamb_batchsize.png}
+\caption{Training di BERT con l'ottimizzatore LAMB a batch crescenti (512--32K): la qualità finale (F1 $\approx$ 91.5) si mantiene anche con batch enormi --- è l'optimizer usato nel nostro progetto. \emph{Fonte:} You et al., \emph{LAMB} (arXiv:1904.00962).}
+\end{figure}
 
 \textbf{LAMB} (You et al., 2019) estende Adam con un \textbf{trust ratio per layer}, permettendo di usare batch size enormi (decine di migliaia di esempi su centinaia di acceleratori) senza instabilità. Il Perceiver IO usa LAMB con batch 1024 su 64 TPU per il training su ImageNet.
 
@@ -8239,6 +8251,12 @@ Le LSTM funzionano bene ma hanno molti parametri. Una versione semplificata con 
 
 \section{GRU (Gated Recurrent Unit)}
 
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.6\textwidth]{./appunti_images/papers/gru_phrase_embedding.png}
+\caption{Spazio di embedding 2D delle frasi appreso dall'RNN Encoder-Decoder: frasi di significato simile si raggruppano. \emph{Fonte:} Cho et al., \emph{RNN Encoder-Decoder} (arXiv:1406.1078).}
+\end{figure}
+
 La \textbf{GRU}, introdotta da \textbf{Cho et al.\ (2014)} in ``Learning Phrase Representations using RNN Encoder-Decoder for Statistical Machine Translation'' (EMNLP), semplifica la LSTM fondendo cella e stato nascosto e usando solo \textbf{2 porte} invece di 3.
 
 \begin{figure}[htbp]
@@ -8721,6 +8739,12 @@ Le \hyperref[app:cnn]{CNN} hanno visione locale (limitata al kernel), le \hyperr
 
 \needspace{4\baselineskip}
 \subsection{Architettura overview}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.42\textwidth]{./appunti_images/papers/transformer_fig1.png}
+\caption{Architettura del Transformer: encoder (sinistra) e decoder (destra) impilati $N\times$, con multi-head attention, feed-forward, connessioni residue (Add \& Norm) e positional encoding. \emph{Fonte:} Vaswani et al., \emph{Attention Is All You Need} (arXiv:1706.03762).}
+\end{figure}
 
 Il Transformer segue uno schema \textbf{encoder-decoder}:
 
@@ -9533,6 +9557,12 @@ Inference & identità: $\tilde{x} = x$ & $\times 1$ (nessuna modifica) \\
 
 \subsection{Interpretazione: ensemble implicito}
 
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.55\textwidth]{./appunti_images/papers/dropout_features.png}
+\caption{Feature del primo strato apprese con il dropout: rilevatori strutturati e localizzati invece di rumore co-adattato. \emph{Fonte:} Srivastava et al., \emph{Dropout} (JMLR v15, 2014).}
+\end{figure}
+
 Con $N$ neuroni, ogni forward pass usa una sottorete distinta: esistono $2^N$ sottoreti possibili, campionate con diversa frequenza in base a $p$. A inference, il modello completo può essere interpretato come la media geometrica di tutte queste sottoreti.
 
 \subsection{Dove e quando si applica}
@@ -9565,6 +9595,12 @@ Consideriamo un layer lineare $z = Wx + b$ con $n_{\text{in}}$ ingressi, bias ze
 Per mantenere $\text{Var}(z) = \text{Var}(x)$ (nessuna amplificazione) occorre $\sigma_w^2 = 1/n_{\text{in}}$.
 
 \subsection{Xavier/Glorot Initialization}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.7\textwidth]{./appunti_images/papers/glorot_init.png}
+\caption{Test error per diverse attivazioni e inizializzazioni: l'inizializzazione normalizzata (Xavier/Glorot) raggiunge errori molto più bassi della sigmoide profonda che satura. \emph{Fonte:} Glorot \& Bengio (AISTATS 2010).}
+\end{figure}
 
 Xavier (Glorot \& Bengio, 2010) bilancia sia il forward che il backward pass prendendo la media tra $n_{\text{in}}$ e $n_{\text{out}}$:
 
@@ -9680,6 +9716,12 @@ La \textbf{data augmentation} genera varianti trasformate degli esempi di traini
 
 \subsection{Tecniche avanzate}
 
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.72\textwidth]{./appunti_images/papers/randaugment_magnitude.png}
+\caption{Effetto del parametro di magnitudine $M$ di RandAugment: a parità di trasformazioni, $M$ più grande significa distorsione più intensa. \emph{Fonte:} Cubuk et al., \emph{RandAugment} (arXiv:1909.13719).}
+\end{figure}
+
 \begin{itemize}
   \item \textbf{MixUp} (Zhang et al., 2018, ICLR): interpola linearmente due immagini e le loro label con coefficiente $\lambda \sim \text{Beta}(\alpha, \alpha)$:
   \[
@@ -9710,6 +9752,12 @@ Il Perceiver usa la stessa pipeline di augmentation di ViT e ResNet su ImageNet:
 Il Perceiver IO (Jaegle et al., 2022, ICML) dimostra che la stessa architettura encoder-process-decode è competitiva con modelli specializzati su task radicalmente diversi, cambiando solo le output query e le proiezioni di input/output.
 
 \subsection{Optical Flow (Sintel)}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.7\textwidth]{./appunti_images/papers/perceiverio_optical_flow.png}
+\caption{Flusso ottico denso predetto da Perceiver IO (codifica a colori per direzione e intensità): stato dell'arte su Sintel trattando l'output come decodifica di query strutturate. \emph{Fonte:} Jaegle et al., \emph{Perceiver IO} (arXiv:2107.14795).}
+\end{figure}
 
 L'optical flow stima il vettore di movimento $(\Delta x, \Delta y)$ per ogni pixel tra due frame consecutivi. Il Perceiver IO fornisce query con coordinate pixel $(u, v)$ e feature dell'immagine al decoder; il decoder produce un vettore 2D per ogni query.
 
