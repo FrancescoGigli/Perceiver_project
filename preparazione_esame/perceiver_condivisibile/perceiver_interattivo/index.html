@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260609-exam5">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260610-paper-figures">
-<script defer src="js/interactive-labs.js?v=20260609-exam5"></script>
+<link rel="stylesheet" href="css/style.css?v=20260610-paperfig">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260610-paperfig">
+<script defer src="js/interactive-labs.js?v=20260610-paperfig"></script>
 </head>
 <body>
 
@@ -2174,6 +2174,9 @@ Cosine:      η_t = η_min + 0.5(η_max - η_min)(1 + cos(\frac{πt}{T_c}))</div
         <p>Per Perceiver e Perceiver IO l'ottimizzatore non è un dettaglio: LAMB aiuta a stabilizzare training grandi, profondi e con batch elevati.</p>
       </div>
 
+      <div class="paper-fig-label">📄 Dal paper originale</div>
+      <figure class="paper-fig"><img src="../paper_figures/adamw_test_error.png" alt="Test error: Adam vs AdamW" loading="lazy"><figcaption>Test error di Adam (rosso) vs AdamW (blu): il weight decay disaccoppiato di AdamW generalizza meglio a parità di learning rate. — «Decoupled Weight Decay Regularization» (Loshchilov &amp; Hutter, 2019, arXiv:1711.05101)</figcaption></figure>
+      <figure class="paper-fig"><img src="../paper_figures/lamb_batchsize.png" alt="LAMB e batch size" loading="lazy"><figcaption>Training di BERT con l'ottimizzatore LAMB a batch crescenti (512→32K): la qualità finale (F1 ~91.5) si mantiene anche con batch enormi — è l'optimizer usato nel progetto. — LAMB (You et al., 2020, arXiv:1904.00962)</figcaption></figure>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-25">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="25"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -3053,6 +3056,8 @@ h_t = (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t
         <p>RNN, LSTM e GRU eccellono sui dati sequenziali, ma restano legate alla nozione di ordine temporale. Per dati a griglia (immagini) servono le CNN; per relazioni globali a costo accettabile, l'attention dei Transformer.</p>
       </div>
 
+      <div class="paper-fig-label">📄 Dal paper originale</div>
+      <figure class="paper-fig"><img src="../paper_figures/gru_phrase_embedding.png" alt="Embedding 2D delle frasi" loading="lazy"><figcaption>Spazio di embedding 2D delle frasi appreso dall'RNN Encoder-Decoder: frasi di significato simile si raggruppano. — «RNN Encoder-Decoder»/GRU (Cho et al., 2014, arXiv:1406.1078)</figcaption></figure>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-30">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="30"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -3475,6 +3480,8 @@ S_{ij} & j \le i \\
         <p>Il Perceiver <strong>sostituisce la self-attention</strong> <code>O(M²)</code> <strong>con la cross-attention</strong> <code>O(MN)</code> (N≪M), ma <em>eredita</em> dal Transformer tutto il resto: multi-head, FFN, residual, LayerNorm.</p>
       </div>
 
+      <div class="paper-fig-label">📄 Dal paper originale</div>
+      <figure class="paper-fig"><img src="../paper_figures/transformer_fig1.png" alt="Architettura del Transformer" loading="lazy"><figcaption>L'architettura del Transformer: encoder (sinistra) e decoder (destra) impilati N×, con multi-head attention, feed-forward, connessioni residue (Add &amp; Norm) e positional encoding. — Fig. 1, «Attention Is All You Need» (Vaswani et al., 2017, arXiv:1706.03762)</figcaption></figure>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-34">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="34"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -3608,6 +3615,8 @@ S_{ij} & j \le i \\
         <p>Il Perceiver <strong>non usa dropout</strong>: il weight sharing tra le <em>T</em> iterazioni agisce già da regolarizzatore implicito. Gli autori mostrano che aggiungere dropout non migliora l'accuracy su ImageNet in questa configurazione.</p>
       </div>
 
+      <div class="paper-fig-label">📄 Dal paper originale</div>
+      <figure class="paper-fig"><img src="../paper_figures/dropout_features.png" alt="Feature apprese col dropout" loading="lazy"><figcaption>Feature del primo strato apprese con il dropout: rilevatori strutturati e localizzati invece di rumore co-adattato — l'effetto regolarizzante del dropout. — «Dropout» (Srivastava et al., 2014, JMLR v15)</figcaption></figure>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-36">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="36"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -3662,6 +3671,8 @@ S_{ij} & j \le i \\
         <p>Il latent array usa <code>N(0, 0.02)</code> troncata — piccolo per non dominare il primo forward. Le proiezioni Q/K/V usano He (GELU nell'MLP). Le proiezioni tra dimensioni diverse (C_tot=261 → D_QKV) usano Xavier.</p>
       </div>
 
+      <div class="paper-fig-label">📄 Dal paper originale</div>
+      <figure class="paper-fig"><img src="../paper_figures/glorot_init.png" alt="Inizializzazione e attivazioni" loading="lazy"><figcaption>Test error per diverse attivazioni e inizializzazioni: l'init normalizzata (Xavier/Glorot) raggiunge errori molto più bassi della sigmoide profonda che satura. — «Understanding the difficulty of training deep networks» (Glorot &amp; Bengio, AISTATS 2010)</figcaption></figure>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-37">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="37"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -3779,6 +3790,8 @@ S_{ij} & j \le i \\
         <p>Il Perceiver usa crop + flip + normalization (nessun MixUp). È <strong>più dipendente dall'augmentation</strong> rispetto alle CNN perché non ha inductive bias spaziale: senza crop e flip potrebbe memorizzare le posizioni assolute degli oggetti nel training set. Le Fourier features forniscono la posizione <em>esplicita</em>, ma non l'invarianza a scala e composizione.</p>
       </div>
 
+      <div class="paper-fig-label">📄 Dal paper originale</div>
+      <figure class="paper-fig"><img src="../paper_figures/randaugment_magnitude.png" alt="Magnitudine di RandAugment" loading="lazy"><figcaption>Effetto del parametro di magnitudine M di RandAugment: a parità di trasformazioni, M più grande = distorsione più intensa (un solo parametro globale di forza). — Fig. 2, «RandAugment» (Cubuk et al., 2020, arXiv:1909.13719)</figcaption></figure>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-39">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="39"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -3822,6 +3835,8 @@ S_{ij} & j \le i \\
         <p>Nessun componente domain-specific aggiunto. L'adattamento avviene interamente attraverso le <strong>output query</strong>. Questo è il contributo centrale del paper: <em>one architecture, many outputs</em>.</p>
       </div>
 
+      <div class="paper-fig-label">📄 Dal paper originale</div>
+      <figure class="paper-fig"><img src="../paper_figures/perceiverio_optical_flow.png" alt="Optical flow di Perceiver IO" loading="lazy"><figcaption>Flusso ottico denso predetto da Perceiver IO (codifica a colori): stato dell'arte su Sintel trattando l'output come decodifica di query strutturate. — «Perceiver IO» (Jaegle et al., 2021, arXiv:2107.14795)</figcaption></figure>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-40">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="40"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -5036,6 +5051,8 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
 
       <div class="idea"><div class="idea-label">In una frase</div><p>Il self-supervised learning costruisce le etichette dai dati stessi (pretext task) per imparare rappresentazioni generali da dati non etichettati, da trasferire poi con fine-tuning: il MLM di BERT ne è l'esempio nel linguaggio.</p></div>
 
+      <div class="paper-fig-label">📄 Dal paper originale</div>
+      <figure class="paper-fig"><img src="../paper_figures/simclr_augment.png" alt="Augmentation in SimCLR" loading="lazy"><figcaption>Esempio di augmentation stocastica: la composizione casuale di trasformazioni genera le due viste positive dello stesso esempio, cuore del contrastive learning. — «SimCLR» (Chen et al., 2020, arXiv:2002.05709)</figcaption></figure>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-48">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="48"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -5110,6 +5127,11 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
 
       <div class="idea"><div class="idea-label">In una frase</div><p>Poiché ogni valutazione costa un training intero, l'HPO è l'arte di spendere bene un budget: dalle baseline non adattive (grid/random), ai surrogati che scelgono il punto migliore (GP + Bayesian optimization con EI), ai multi-fidelity che scartano presto i candidati scarsi (SHA/Hyperband/ASHA).</p></div>
 
+      <div class="paper-fig-label">📄 Dal paper originale</div>
+      <figure class="paper-fig"><img src="../paper_figures/hyperband_loss_resources.png" alt="Hyperband: loss vs risorse" loading="lazy"><figcaption>Curve di perdita di molte configurazioni in funzione delle risorse allocate: le peggiori vengono interrotte presto (successive halving), il cuore di Hyperband. — «Hyperband» (Li et al., 2018, arXiv:1603.06560)</figcaption></figure>
+      <figure class="paper-fig"><img src="../paper_figures/asha_rungs.png" alt="ASHA: promozione a rung" loading="lazy"><figcaption>Il meccanismo a «rung» di ASHA: molte configurazioni con poche iterazioni (rung 0), solo le migliori promosse ai rung superiori con più budget (qui la vincente al rung 2). — «ASHA» (Li et al., 2020, arXiv:1810.05934)</figcaption></figure>
+      <figure class="paper-fig"><img src="../paper_figures/maml_sinusoid.png" alt="MAML: adattamento few-shot" loading="lazy"><figcaption>Regressione few-shot di una sinusoide con K=5 punti: dopo pochi passi di gradiente il modello inizializzato con MAML approssima la funzione target. — «MAML» (Finn et al., 2017, arXiv:1703.03400)</figcaption></figure>
+      <figure class="paper-fig"><img src="../paper_figures/mixup_interpolation.png" alt="mixup: confini morbidi" loading="lazy"><figcaption>Con mixup il modello impara transizioni graduali tra le classi: la probabilità interpola in modo regolare tra i punti, invece di confini netti. — «mixup» (Zhang et al., 2017, arXiv:1710.09412)</figcaption></figure>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-49">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="49"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -5271,6 +5293,9 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
 
       <div class="idea"><div class="idea-label">In una frase</div><p>Encoder-decoder, skip connection, sparsità e ricerca strutturata sono le leve ricorrenti: comprimere il significato (encoder), ricostruire l'output preservando i dettagli (decoder + skip), spendere calcolo solo dove serve (MoE/1×1) e scegliere bene la sequenza generata (beam/Viterbi/temperatura).</p></div>
 
+      <div class="paper-fig-label">📄 Dal paper originale</div>
+      <figure class="paper-fig"><img src="../paper_figures/moe_perplexity.png" alt="MoE vs LSTM" loading="lazy"><figcaption>A parità di budget computazionale, i Mixture-of-Experts sparsi (verde) ottengono perplessità molto più bassa degli LSTM densi (blu): più capacità senza più calcolo. — «Sparsely-Gated MoE» (Shazeer et al., 2017, arXiv:1701.06538)</figcaption></figure>
+      <figure class="paper-fig"><img src="../paper_figures/unet_segmentation.png" alt="U-Net: segmentazione" loading="lazy"><figcaption>Segmentazione di cellule con maschere a istanze colorate, output della U-Net su microscopia. — «U-Net» (Ronneberger et al., 2015, arXiv:1505.04597)</figcaption></figure>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-51">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="51"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -6152,6 +6177,6 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260609-exam5"></script>
+<script defer src="js/app.js?v=20260610-paperfig"></script>
 </body>
 </html>
