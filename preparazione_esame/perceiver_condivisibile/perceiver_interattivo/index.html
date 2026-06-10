@@ -4354,7 +4354,7 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
 
       <div class="idea">
         <div class="idea-label">Dove andiamo</div>
-        <p>Qui la panoramica e i dati. Nel <strong>prossimo capitolo</strong> confronto la mia architettura con quella del paper (Perceiver e Perceiver IO); in quello dopo, i <strong>risultati a confronto</strong> con grafici e attention maps.</p>
+        <p>Qui la panoramica e i dati. I due capitoli successivi sono separati: prima <strong>Perceiver originale vs paper</strong> (CIFAR-10, ablation, permutation invariance, ModelNet40), poi <strong>Perceiver IO vs paper</strong> (decoder, output queries, MLM e GLUE).</p>
       </div>
 
       <div class="nav-bar">
@@ -4364,13 +4364,13 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       </div>
     </section>
 
-    <!-- ============ CAP 45 — Architettura: noi vs paper ============ -->
+    <!-- ============ CAP 45 - Perceiver originale vs paper ============ -->
     <section class="chapter" data-chapter="45">
       <div class="chap-meta"><span class="chap-badge">Esp. 2</span><span class="chap-time">~10 min</span></div>
-      <h1>Architettura &amp; implementazione: noi vs il paper</h1>
-      <p class="intro">Abbiamo riprodotto Perceiver e Perceiver IO <strong>from-scratch in PyTorch</strong> su una sola <strong>GPU RTX 3060 (12 GB)</strong>, non sulle 64 TPU del paper. Questo ha imposto configurazioni più piccole: ecco cosa cambia, componente per componente, e perché.</p>
+      <h1>Perceiver originale vs paper</h1>
+      <p class="intro">Questa sezione confronta solo il <strong>Perceiver originale</strong> del paper con i nostri esperimenti: architettura ridotta, ablation CIFAR-10, permutation invariance, weight sharing e ModelNet40. Perceiver IO è separato nel capitolo dopo.</p>
 
-      <h2>Perceiver — la nostra config vs il paper</h2>
+      <h2>Architettura: nostra config vs paper</h2>
       <div class="dataset-cards">
         <div class="dataset-card">
           <div class="dataset-name">Paper (ImageNet) <span class="dataset-tag">Jaegle 2021</span></div>
@@ -4383,22 +4383,30 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
           <p class="dataset-use">Input: 1.024 pixel (32×32). Stesso schema, capacità ridotta.</p>
         </div>
       </div>
-
-      <h2>Perceiver IO — la nostra config vs il paper</h2>
+      <h2>Risultati Perceiver vs paper</h2>
       <div class="dataset-cards">
         <div class="dataset-card">
-          <div class="dataset-name">Paper (testo/flow) <span class="dataset-tag">Jaegle 2022</span></div>
-          <p>Encoder-process-<strong>decode</strong> con output query. Per il linguaggio: 26–40 layer di latent transformer, <strong>201–425M</strong> parametri, decoder a cross-attention con query per posizione/token/modalità. Pre-training MLM su Wikipedia+C4.</p>
-          <p class="dataset-use">GLUE byte-level a parità di FLOPs con BERT.</p>
+          <div class="dataset-name">CIFAR-10 ablation</div>
+          <p><strong>Noi</strong>: Fourier 72.02%, RGB-only 61.34%, learned PE permutato 77.60%, Fourier permutato 78.12%.</p>
+          <p class="dataset-use">Conferma il punto del paper: la posizione deve viaggiare insieme all'input. Senza positional encoding il modello perde 10.68 punti.</p>
         </div>
         <div class="dataset-card">
-          <div class="dataset-name">Nostro (CIFAR/MLM/GLUE) <span class="dataset-tag">RTX 3060</span></div>
-          <p><code>N=128</code> latenti · <code>D=512</code> · <strong>8 teste</strong> · 1 cross-attend stage + 4 transformer blocks · ~9.5–10M parametri · decoder a output query (1 per classificazione, 1 per posizione byte nel MLM). Pre-training MLM su <strong>solo</strong> WikiText-103.</p>
-          <p class="dataset-use">Stessa idea encode-process-decode, scala molto minore.</p>
+          <div class="dataset-name">Permutation invariance</div>
+          <p><strong>Paper</strong>: Fourier 78.0 -> 78.0; learned PE 78.0 -> 70.9.<br><strong>Noi</strong>: Fourier permutato 78.12%, learned PE permutato 77.60%.</p>
+          <p class="dataset-use">Il nostro risultato riproduce qualitativamente la proprietà: Fourier è più robusto del learned PE quando l'ordine dei pixel cambia.</p>
+        </div>
+        <div class="dataset-card">
+          <div class="dataset-name">Weight sharing</div>
+          <p><strong>Paper</strong>: sharing = +5.1 punti e 7x meno parametri.<br><strong>Noi</strong>: no sharing = 73.85% vs 68.49%, ma 8.67M vs 3.35M parametri.</p>
+          <p class="dataset-use">Qui la lettura è onesta: nel nostro setup piccolo il weight sharing resta efficiente, ma non migliora l'accuracy.</p>
+        </div>
+        <div class="dataset-card">
+          <div class="dataset-name">ModelNet40</div>
+          <p><strong>Paper</strong>: 85.7%.<br><strong>Noi</strong>: 84.24% con scale-only, 83.67% con translation, 83.14% con rotation.</p>
+          <p class="dataset-use">Gap piccolo: stessa architettura su point cloud 3D, senza componenti geometriche specializzate.</p>
         </div>
       </div>
-
-      <h2>Quanto è più piccolo il nostro modello?</h2>
+      <h2>Quanto è più piccolo il nostro Perceiver?</h2>
       <div class="concept-lab scale-compare-lab" data-lab="scale-compare">
         <div class="lab-head">
           <div>
@@ -4420,19 +4428,18 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
         <div class="lab-readout" id="scaleReadout"></div>
       </div>
 
-      <h2>Divergenze dal paper (trasparenza metodologica)</h2>
+      <h2>Divergenze dal paper (solo Perceiver)</h2>
       <ul class="diverg-list">
         <li><strong>Teste cross-attention</strong>: paper 1 (single-head) → noi 8 (ModelNet/MLM), 3 (CIFAR)</li>
         <li><strong>Latent array (CIFAR)</strong>: paper N=512, D=1024 → noi N=96, D=384 (ridotto per la GPU)</li>
         <li><strong>Iterazioni</strong>: paper T=8 con weight sharing → noi 4 cross-attend stages (CIFAR)</li>
         <li><strong>Batch</strong>: paper 1024 (64 TPU) → noi 64 (1 GPU)</li>
         <li><strong>Dropout</strong>: paper nessuno → noi 0.1–0.2 (compensa l'overfitting del modello più piccolo)</li>
-        <li><strong>Pre-training MLM</strong>: paper Wikipedia+C4 (enorme) → noi solo WikiText-103</li>
         <li><strong>Coerenti col paper</strong>: ottimizzatore LAMB, 120 epoche (CIFAR), Fourier features linearly spaced</li>
       </ul>
       <div class="nota">
         <span class="nota-label">Implicazione</span>
-        Le accuracy sono <strong>sistematicamente inferiori</strong> al paper per via del budget (1 GPU vs 64 TPU, modelli più piccoli, pre-training ridotto). Ma le <strong>relazioni ablative</strong> — importanza del PE, robustezza alle permutazioni con Fourier, effetto del weight sharing — restano valide e riproducibili. È questo che conta scientificamente.
+        Le accuracy non vanno lette come replica identica del paper: dataset, scala e hardware sono diversi. Il punto scientifico è che le <strong>relazioni ablative</strong> - importanza del PE, robustezza alle permutazioni con Fourier, trade-off del weight sharing - sono isolate e leggibili.
       </div>
 
       <div class="nav-bar">
@@ -4442,55 +4449,52 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       </div>
     </section>
 
-    <!-- ============ CAP 46 — Risultati: paper vs nostri ============ -->
+    <!-- ============ CAP 46 - Perceiver IO vs paper ============ -->
     <section class="chapter" data-chapter="46">
       <div class="chap-meta"><span class="chap-badge">Esp. 3</span><span class="chap-time">~14 min</span></div>
-      <h1>Risultati: paper vs i nostri</h1>
-      <p class="intro">I numeri reali del progetto, a confronto con quelli del paper. I gap assoluti sono spiegati dal budget (modelli più piccoli, 1 GPU, pre-training ridotto); ciò che conta è che le <strong>tendenze</strong> e le proprietà architetturali si confermano.</p>
+      <h1>Perceiver IO vs paper</h1>
+      <p class="intro">Questa sezione è dedicata solo a <strong>Perceiver IO</strong>: decoder con output queries, classificazione CIFAR-10, pre-training MLM byte-level e fine-tuning GLUE. I risultati del Perceiver originale sono nel capitolo precedente.</p>
 
-      <h2>I nostri risultati per modalità</h2>
+      <h2>Architettura Perceiver IO: nostra config vs paper</h2>
+      <div class="dataset-cards">
+        <div class="dataset-card">
+          <div class="dataset-name">Paper Perceiver IO <span class="dataset-tag">Jaegle 2022</span></div>
+          <p>Encoder-process-<strong>decode</strong> con output queries. Per il linguaggio: 26-40 layer di latent transformer, <strong>201-425M</strong> parametri, decoder a cross-attention con query per posizione/token/modalità. Pre-training su Wikipedia+C4.</p>
+          <p class="dataset-use">Obiettivo: output strutturati e GLUE byte-level competitivo con BERT a parità di FLOPs.</p>
+        </div>
+        <div class="dataset-card">
+          <div class="dataset-name">Nostro Perceiver IO <span class="dataset-tag">RTX 3060</span></div>
+          <p><code>N=128</code> latenti · <code>D=512</code> · <strong>8 teste</strong> · 1 cross-attend stage + 4 transformer blocks · ~9.5-10M parametri · decoder a output query (1 per classificazione, 1 per posizione byte nel MLM).</p>
+          <p class="dataset-use">Stessa idea encode-process-decode, ma scala molto più piccola e pre-training solo su WikiText-103.</p>
+        </div>
+      </div>
+
+      <h2>I nostri risultati Perceiver IO</h2>
       <div class="concept-lab my-experiments-lab" data-lab="my-experiments">
         <div class="lab-head">
           <div>
             <span class="lab-source">Progetto · analysis_results/</span>
-            <h3>Risultati reali per dataset</h3>
-            <p>Seleziona una modalità: la tabella dei risultati misurati, il grafico del progetto e cosa conferma della teoria.</p>
+            <h3>Risultati reali IO</h3>
+            <p>Seleziona il ramo Perceiver IO: classificazione con decoder oppure testo byte-level con MLM e GLUE.</p>
           </div>
-          <div class="lab-toggle" role="tablist" aria-label="Modalità sperimentale">
-            <button type="button" class="active" data-exp-tab="cifar">CIFAR-10</button>
-            <button type="button" data-exp-tab="io">Perceiver IO</button>
-            <button type="button" data-exp-tab="modelnet">ModelNet40 3D</button>
-            <button type="button" data-exp-tab="text">Testo</button>
+          <div class="lab-toggle" role="tablist" aria-label="Esperimenti Perceiver IO">
+            <button type="button" class="active" data-exp-tab="io">IO CIFAR-10</button>
+            <button type="button" data-exp-tab="text">IO testo</button>
           </div>
         </div>
         <div class="exp-panel" id="myExperimentsPanel" aria-live="polite"></div>
       </div>
 
-      <h2>Paper vs noi — confronto diretto</h2>
+      <h2>Paper vs noi - confronto diretto IO</h2>
       <div class="dataset-cards">
         <div class="dataset-card">
-          <div class="dataset-name">Immagini</div>
-          <p><strong>Paper</strong> (ImageNet, 50.176 px): <strong>78.0%</strong> top-1, vs ResNet-50 77.6 e ViT-B/16 77.9.<br><strong>Noi</strong> (CIFAR-10, 1.024 px): <strong>78.20%</strong> (Perceiver IO) / 78.12% (Perceiver).</p>
-          <p class="dataset-use">Dataset diverso, ma in entrambi i casi il Perceiver è competitivo coi baseline con prior 2D.</p>
-        </div>
-        <div class="dataset-card">
-          <div class="dataset-name">Permutation invariance ✓</div>
-          <p><strong>Paper</strong>: Fourier 78.0→78.0 (zero calo); learned PE 78.0→70.9.<br><strong>Noi</strong>: Fourier 78.12% (permutato) ≥ 69.69% (non perm.); Fourier 78.12 &gt; learned 77.60.</p>
-          <p class="dataset-use">Confermato: è la scelta delle Fourier features a dare l'invarianza, non l'architettura.</p>
-        </div>
-        <div class="dataset-card">
-          <div class="dataset-name">Weight sharing ⚠️</div>
-          <p><strong>Paper</strong>: <em>migliora</em> +5.1% (72.9→78.0) riducendo i parametri 7× (326M→44.9M).<br><strong>Noi</strong>: <em>trade-off</em> — senza sharing +5.36% accuracy ma +158% parametri (8.67M vs 3.35M).</p>
-          <p class="dataset-use">Divergenza onesta: sui nostri modelli piccoli il sharing è efficienza, non guadagno di accuracy.</p>
-        </div>
-        <div class="dataset-card">
-          <div class="dataset-name">Point cloud 3D</div>
-          <p><strong>Paper</strong> (ModelNet40): <strong>85.7%</strong> (vs PointNet++ 91.9).<br><strong>Noi</strong>: <strong>84.24%</strong> — gap −1.5, dovuto a batch 128 vs 512.</p>
-          <p class="dataset-use">Stessa architettura su input 3D senza feature geometriche specializzate.</p>
+          <div class="dataset-name">Classificazione con output query</div>
+          <p><strong>Paper</strong>: Perceiver IO usa query di output per produrre risposte strutturate o globali dallo stesso latent bottleneck.<br><strong>Noi</strong>: CIFAR-10 con 1 output query, <strong>78.20%</strong>, pari al miglior Perceiver originale (78.12%).</p>
+          <p class="dataset-use">Conferma locale: aggiungere il decoder non degrada la classificazione globale.</p>
         </div>
         <div class="dataset-card dataset-card--wide">
-          <div class="dataset-name">Testo (Perceiver IO)</div>
-          <p><strong>Paper</strong>: GLUE byte-level <strong>81.2</strong> a parità di FLOPs con BERT (81.0); IO++ <strong>81.8</strong> (425M, 40 layer); BERT-UTF8 crolla a 71.5.<br><strong>Noi</strong>: pre-training MLM su WikiText-103 <strong>82.20%</strong> byte-accuracy; fine-tuning GLUE single-task (QQP 75.65 … MNLI 46.47).</p>
+          <div class="dataset-name">Testo byte-level e GLUE</div>
+          <p><strong>Paper</strong>: GLUE byte-level <strong>81.2</strong> a parità di FLOPs con BERT (81.0); IO++ <strong>81.8</strong> (425M, 40 layer); BERT-UTF8 crolla a 71.5.<br><strong>Noi</strong>: pre-training MLM su WikiText-103 <strong>82.20%</strong> byte-accuracy; fine-tuning GLUE single-task (QQP 75.65 ... MNLI 46.47).</p>
           <p class="dataset-use">Il gap su GLUE è grande perché il nostro pre-training è minuscolo (solo WikiText-103 vs Wikipedia+C4) e usiamo 1 query single-task, non la config multitask del paper.</p>
         </div>
       </div>

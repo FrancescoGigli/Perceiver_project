@@ -2339,7 +2339,8 @@ const LAB_SOURCE_REFS = {
         render(btn.getAttribute("data-exp-tab"), true);
       });
     });
-    render("cifar", false);
+    var initialTab = container.querySelector("[data-exp-tab].active") || tabButtons[0];
+    render(initialTab ? initialTab.getAttribute("data-exp-tab") : "cifar", false);
   }
 
   // --- ch46: selettori di attention maps (evolution + stile-Perceiver) ---
