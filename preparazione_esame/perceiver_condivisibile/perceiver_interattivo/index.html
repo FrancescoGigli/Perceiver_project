@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260610-anim3">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260610-anim3">
-<script defer src="js/interactive-labs.js?v=20260610-anim3"></script>
+<link rel="stylesheet" href="css/style.css?v=20260610-fig2">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260610-fig2">
+<script defer src="js/interactive-labs.js?v=20260610-fig2"></script>
 </head>
 <body>
 
@@ -3560,6 +3560,8 @@ S_{ij} & j \le i \\
         <p>ViT = "tokenizzare l'immagine in patch, poi Transformer standard". È il ponte concettuale tra Transformer testuale e Perceiver: stesso motore di attention, ma il ViT resta legato alla griglia 2D, il Perceiver no.</p>
       </div>
 
+            <div class="paper-fig-label">📄 Dal paper originale (ritagliata dal PDF)</div>
+      <figure class="paper-fig"><img src="../paper_figures/vit_fig1.png" alt="Architettura Vision Transformer" loading="lazy"><figcaption>Il Vision Transformer: l'immagine è divisa in patch → proiezione lineare + positional embedding → Transformer Encoder standard → MLP head per la classe. A destra il blocco encoder (Norm → Multi-Head Attention → Norm → MLP, con residui). — Fig. 1, «ViT» (Dosovitskiy et al., 2021, arXiv:2010.11929)</figcaption></figure>
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-35">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="35"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -5009,6 +5011,9 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       </ul>
 
       <h2>BERT: encoder Transformer bidirezionale e MLM</h2>
+
+      <div class="paper-fig-label">📄 Dal paper originale (ritagliata dal PDF)</div>
+      <figure class="paper-fig"><img src="../paper_figures/bert_fig1.png" alt="Architettura BERT pre-training/fine-tuning" loading="lazy"><figcaption>Il paradigma di BERT: pre-training bidirezionale (sinistra: NSP + Masked LM su frasi mascherate) e fine-tuning (destra: una testa per task — MNLI, NER, SQuAD). Stessa architettura, teste diverse. — Fig. 1, «BERT» (Devlin et al., 2018, arXiv:1810.04805)</figcaption></figure>
       <p><strong>BERT</strong> (Bidirectional Encoder Representations from Transformers) è un <em>encoder</em> Transformer (niente decoder) addestrato in modo self-supervised sul testo. La novità è la <strong>bidirezionalità</strong>: ogni token vede insieme il contesto a sinistra e a destra, a differenza dei modelli autoregressivi tipo GPT che vedono solo il passato.</p>
       <p>Il pretext task principale è il <strong>Masked Language Modeling (MLM)</strong>: si maschera casualmente ~15% dei token e si predicono dal contesto bidirezionale. Dettaglio chiave: di quel 15%, l'<strong>80% diventa <code>[MASK]</code>, il 10% un token casuale, il 10% resta invariato</strong> — questo riduce il <em>mismatch</em> tra training e fine-tuning, dove <code>[MASK]</code> non compare mai. La loss è una cross-entropy sui soli token mascherati.</p>
       <p>Il secondo task originale è la <strong>Next Sentence Prediction (NSP)</strong>: date due frasi A e B, predire se B segue A (binaria sul token <code>[CLS]</code>), costruita bilanciata <strong>50% IsNext / 50% frase casuale (NotNext)</strong>. Studi successivi (RoBERTa) l'hanno mostrata poco utile, ma fa parte del BERT originale.</p>
@@ -6297,6 +6302,6 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   <button class="glossary-popover-link" id="glossaryPopoverLink" type="button">Apri scheda nel glossario</button>
 </div>
 
-<script defer src="js/app.js?v=20260610-anim3"></script>
+<script defer src="js/app.js?v=20260610-fig2"></script>
 </body>
 </html>
