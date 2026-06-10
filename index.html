@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Perceiver - Slides V2</title>
+    <title>Perceiver Project - Materiali</title>
     <style>
       :root {
         color-scheme: light;
@@ -46,17 +46,9 @@
       }
 
       main {
-        width: min(1180px, calc(100% - 32px));
+        width: min(1040px, calc(100% - 32px));
         margin: 0 auto;
-        padding: 32px 0;
-      }
-
-      .header {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 24px;
-        align-items: end;
-        margin-bottom: 24px;
+        padding: 42px 0;
       }
 
       .eyebrow {
@@ -72,16 +64,45 @@
         margin: 0;
         max-width: 820px;
         font-family: Georgia, "Times New Roman", serif;
-        font-size: clamp(2rem, 5vw, 4.5rem);
+        font-size: clamp(2.2rem, 6vw, 5rem);
         line-height: 0.96;
         letter-spacing: 0;
       }
 
-      .meta {
-        margin: 14px 0 0;
-        max-width: 740px;
+      .intro {
+        margin: 16px 0 30px;
+        max-width: 760px;
         color: var(--muted);
-        font-size: 1rem;
+        font-size: 1.05rem;
+      }
+
+      .resources {
+        display: grid;
+        gap: 14px;
+      }
+
+      .resource {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 18px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .resource h2 {
+        margin: 0 0 6px;
+        font-size: clamp(1.12rem, 3vw, 1.55rem);
+        line-height: 1.12;
+        letter-spacing: 0;
+      }
+
+      .resource p {
+        margin: 0;
+        color: var(--muted);
       }
 
       .actions {
@@ -131,44 +152,14 @@
         }
       }
 
-      .viewer {
-        overflow: hidden;
-        min-height: min(78vh, 860px);
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-        box-shadow: var(--shadow);
-      }
-
-      iframe {
-        display: block;
-        width: 100%;
-        height: min(78vh, 860px);
-        border: 0;
-        background: #fff;
-      }
-
-      .fallback {
-        padding: 18px 20px;
-        border-top: 1px solid var(--line);
-        color: var(--muted);
-        background: #fffaf0;
-      }
-
-      .fallback a {
-        color: var(--accent-dark);
-        font-weight: 800;
-      }
-
       @media (max-width: 760px) {
         main {
-          width: min(100% - 20px, 1180px);
-          padding: 18px 0;
+          width: min(100% - 20px, 1040px);
+          padding: 24px 0;
         }
 
-        .header {
+        .resource {
           grid-template-columns: 1fr;
-          gap: 16px;
           align-items: start;
         }
 
@@ -179,38 +170,38 @@
         .button {
           flex: 1 1 150px;
         }
-
-        .viewer,
-        iframe {
-          min-height: 68vh;
-          height: 68vh;
-        }
       }
     </style>
   </head>
   <body>
     <main>
-      <header class="header">
-        <div>
-          <p class="eyebrow">Slides V2</p>
-          <h1>Perceiver Presentation</h1>
-          <p class="meta">
-            Presentazione PDF aggiornata da <code>slides_V2/perceiver_presentation_eng.pdf</code>.
-          </p>
-        </div>
-        <nav class="actions" aria-label="Azioni documento">
-          <a class="button primary" href="perceiver_presentation_eng.pdf">Open PDF</a>
-          <a class="button" href="../preparazione_esame/perceiver_condivisibile/perceiver_interattivo/">HTML interattivo</a>
-          <a class="button" href="perceiver_presentation_eng.pdf" download>Download</a>
-        </nav>
-      </header>
+      <p class="eyebrow">GitHub Pages</p>
+      <h1>Perceiver Project</h1>
+      <p class="intro">
+        Accesso rapido ai materiali pubblicati: trainer HTML interattivo e presentazione PDF.
+      </p>
 
-      <section class="viewer" aria-label="Anteprima PDF">
-        <iframe src="perceiver_presentation_eng.pdf#view=FitH" title="Perceiver Presentation PDF"></iframe>
-        <div class="fallback">
-          Se l'anteprima non viene caricata, apri il
-          <a href="perceiver_presentation_eng.pdf">PDF delle slide</a>.
-        </div>
+      <section class="resources" aria-label="Materiali pubblicati">
+        <article class="resource">
+          <div>
+            <h2>HTML interattivo</h2>
+            <p>Trainer navigabile con moduli, figure e contenuti del percorso Perceiver.</p>
+          </div>
+          <div class="actions">
+            <a class="button primary" href="preparazione_esame/perceiver_condivisibile/perceiver_interattivo/">Apri HTML</a>
+          </div>
+        </article>
+
+        <article class="resource">
+          <div>
+            <h2>Slide PDF V2</h2>
+            <p>Presentazione aggiornata visualizzabile nel browser o scaricabile come PDF.</p>
+          </div>
+          <div class="actions">
+            <a class="button primary" href="slides_V2/">Apri anteprima</a>
+            <a class="button" href="slides_V2/perceiver_presentation_eng.pdf">Apri PDF</a>
+          </div>
+        </article>
       </section>
     </main>
   </body>
