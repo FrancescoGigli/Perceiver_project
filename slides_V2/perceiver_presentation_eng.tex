@@ -824,7 +824,7 @@
       \vspace{0.3em}
       \textbf{Measured result:}
       \begin{itemize}
-        \item Permuting pixels \alert{raises} accuracy: $+$8.43pp
+        \item Permuted vs natural order: $+$8.43pp --- the shuffled task stays fully learnable
         \item Fourier vs learned (permuted): $+$0.52pp
       \end{itemize}
 
@@ -836,6 +836,7 @@
         \item The Perceiver has \textbf{no built-in 2D bias}: position is read only from the PE
         \item With a fixed $\sigma$ in train \emph{and} test, it learns the layout from the Fourier features alone
         \item Fourier PE remains slightly ahead of learned PE in this setting
+        \item Read it as \emph{invariance}, not a gain from shuffling: order carries no information, only the PE does
       \end{itemize}
 
       \vspace{0.5em}
@@ -1271,6 +1272,7 @@
         \item Byte-level input, no subword tokenizer
         \item Smaller model: $\sim$10M vs 201M
         \item STS-B excluded: regression metric
+        \item CoLA acc.\ $\approx$ majority baseline ($\sim$69\%; official metric is MCC)
       \end{itemize}
     \end{column}
   \end{columns}
@@ -1350,9 +1352,9 @@
     \centering\small
     \begin{tabular}{llccl}
       \toprule
-      \textbf{Modality} & \textbf{Model} & \textbf{Best Acc.} & \textbf{Paper} & \textbf{Experiments} \\
+      \textbf{Modality} & \textbf{Model} & \textbf{Best Acc.} & \textbf{Reference} & \textbf{Experiments} \\
       \midrule
-      Images (CIFAR-10) & Perceiver & 78.12\% & $>$90\% & 7 ablations \\
+      Images (CIFAR-10) & Perceiver & 78.12\% & $>$90\%$^{\dagger}$ & 7 ablations \\
       Images (CIFAR-10) & Perceiver IO & \textbf{78.20\%} & --- & 1 \\
       Point Clouds (ModelNet40) & Perceiver & 84.24\% & 85.7\% & 3 augmentations \\
       Text (WikiText-103) & Perceiver IO & 82.20\% MLM & --- & 1 \\
@@ -1361,7 +1363,9 @@
     \end{tabular}
   \end{table}
 
-  \vspace{0.5em}
+  {\scriptsize $^{\dagger}$ Strong ViT/CNN baselines on CIFAR-10; the original Perceiver paper does not benchmark CIFAR-10.}
+
+  \vspace{0.4em}
   \begin{columns}[T]
     \begin{column}{0.48\textwidth}
       \textbf{Measured results:}
@@ -1419,7 +1423,7 @@
           \toprule
           \textbf{Source} & \textbf{Acc.} \\
           \midrule
-          Original Paper & $>$90\% \\
+          ViT/CNN baseline & $>$90\% \\
           This Perceiver IO & 78.20\% \\
           \midrule
           \textbf{Gap} & \textcolor{AccentRed}{\textbf{$\sim$12pp}} \\
@@ -1429,7 +1433,7 @@
 
       \vspace{0.3em}
       \textbf{Larger image gap.}\\
-      Main scale difference: distributed TPU training vs single GPU.
+      Reference is strong ViT/CNN baselines (the Perceiver paper has no CIFAR-10); scale gap: TPU cluster vs single GPU.
     \end{column}
   \end{columns}
 
@@ -1612,9 +1616,9 @@
     \textit{Fourier Features Let Networks Learn High Frequency Functions in Low Dimensional Domains},
     NeurIPS 2020.
 
-    \bibitem{geglu} N.~Shazeer,
-    \textit{GLU Variants Improve Transformer},
-    arXiv 2020.
+    \bibitem{gelu} D.~Hendrycks and K.~Gimpel,
+    \textit{Gaussian Error Linear Units (GELUs)},
+    arXiv 2016.
   \end{thebibliography}
 \end{frame}
 
@@ -1630,8 +1634,8 @@
           {\scriptsize $\rightarrow$ $-$5.36pp for $\sim$2.6$\times$ fewer params}
         \item Why Fourier PE over learned PE?\\
           {\scriptsize $\rightarrow$ More robust to permutation, generalizes better}
-        \item What is the role of GEGLU?\\
-          {\scriptsize $\rightarrow$ Higher non-linear capacity, stable gradients}
+        \item What is the role of GELU?\\
+          {\scriptsize $\rightarrow$ Smooth MLP activation; stable gradients, standard in Transformers}
       \end{enumerate}
     \end{column}
     \begin{column}{0.48\textwidth}
