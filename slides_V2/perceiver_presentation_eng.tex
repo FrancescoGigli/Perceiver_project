@@ -1000,7 +1000,7 @@
 % -- Perceiver IO: Structured Outputs ------------------------------------------------
 \begin{frame}[shrink=5]{Perceiver IO: Structured Outputs}
   \begin{center}
-    \includegraphics[width=0.70\textwidth,height=0.30\textheight,keepaspectratio]{perceiver_io_architecture.png}
+    \includegraphics[width=0.95\textwidth,height=0.40\textheight,keepaspectratio]{perceiverio_arch.png}
   \end{center}
 
   \vspace{0.15em}
@@ -1592,67 +1592,8 @@
 % â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 % Closing materials: references and appendix.
 
-% â”€â”€ Slide 34: References â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-\begin{frame}{References}
-  \small
-  \begin{thebibliography}{9}
-    \bibitem{perceiver} A.~Jaegle et al.,
-    \textit{Perceiver: General Perception with Iterative Attention},
-    ICML 2021.
-
-    \bibitem{perceiverio} A.~Jaegle et al.,
-    \textit{Perceiver IO: A General Architecture for Structured Inputs \& Outputs},
-    ICLR 2022.
-
-    \bibitem{attention} A.~Vaswani et al.,
-    \textit{Attention Is All You Need},
-    NeurIPS 2017.
-
-    \bibitem{lamb} Y.~You et al.,
-    \textit{Large Batch Optimization for Deep Learning: Training BERT in 76 Minutes},
-    ICLR 2020.
-
-    \bibitem{fourierfeatures} M.~Tancik et al.,
-    \textit{Fourier Features Let Networks Learn High Frequency Functions in Low Dimensional Domains},
-    NeurIPS 2020.
-
-    \bibitem{gelu} D.~Hendrycks and K.~Gimpel,
-    \textit{Gaussian Error Linear Units (GELUs)},
-    arXiv 2016.
-  \end{thebibliography}
-\end{frame}
-
 % â”€â”€ Slide 35: Appendix â€“ Expected Questions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-\begin{frame}{Appendix: Expected Questions}
-  \begin{columns}[T]
-    \begin{column}{0.48\textwidth}
-      \textbf{Architecture:}
-      \begin{enumerate}
-        \item Why cross-attention instead of full self-attention?\\
-          {\scriptsize $\rightarrow$ Reduces $\mathcal{O}(M^2)$ to $\mathcal{O}(NM)$}
-        \item How does weight sharing affect performance?\\
-          {\scriptsize $\rightarrow$ $-$5.36pp for $\sim$2.6$\times$ fewer params}
-        \item Why Fourier PE over learned PE?\\
-          {\scriptsize $\rightarrow$ More robust to permutation, generalizes better}
-        \item What is the role of GELU?\\
-          {\scriptsize $\rightarrow$ Smooth MLP activation; stable gradients, standard in Transformers}
-      \end{enumerate}
-    \end{column}
-    \begin{column}{0.48\textwidth}
-      \textbf{Experiments:}
-      \begin{enumerate}\setcounter{enumi}{4}
-        \item Why is the CIFAR-10 gap so large?\\
-          {\scriptsize $\rightarrow$ Hardware limits: batch 64 vs 1024, 96 vs 256 latents}
-        \item Why byte-level tokenization for NLP?\\
-          {\scriptsize $\rightarrow$ Truly modality-agnostic, no external tokenizer}
-        \item How does Perceiver IO improve on Perceiver?\\
-          {\scriptsize $\rightarrow$ Learned output queries vs mean pooling}
-        \item Could this replace ViT/BERT?\\
-          {\scriptsize $\rightarrow$ Not yet at limited scale; promising at Google scale}
-      \end{enumerate}
-    \end{column}
-  \end{columns}
-\end{frame}
+% (References and Expected-Questions slides removed)
 
 % â”€â”€ Slide 36: Thank You â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 \begin{frame}
@@ -1660,17 +1601,7 @@
     {\Huge\color{UnifiBlue}\textbf{Thank you!}}\\[1.5em]
     {\Large\color{UnifiDark} Questions?}\\[2.5em]
     {\color{UnifiDark}Francesco Gigli e Corso Vignoli}\\[0.3em]
-    {\small\color{UnifiDark} Code and models available upon request}\\[1.5em]
-    \begin{tikzpicture}
-      \node[rectangle, draw=UnifiBlue, fill=UnifiBlue!8, rounded corners=5pt,
-            inner sep=10pt, font=\small, text=UnifiDark] {
-        \begin{tabular}{rl}
-          \textbf{Code:} & $\sim$2500 lines PyTorch (from-scratch) \\
-          \textbf{Experiments:} & 20+ training runs, 3 modalities \\
-          \textbf{Reproducibility:} & \texttt{python reproduce.py} \\
-        \end{tabular}
-      };
-    \end{tikzpicture}
+    {\small\color{UnifiDark} Code and models available upon request}
   \end{center}
 \end{frame}
 
