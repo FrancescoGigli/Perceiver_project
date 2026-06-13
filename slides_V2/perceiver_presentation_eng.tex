@@ -601,6 +601,48 @@
   {\small The implementation keeps the architectural mechanism intact; the main differences are scale, data budget and training resources.}
 \end{frame}
 
+% -- Slide 14b: Implementation Differences from the Paper --
+\begin{frame}[shrink=5]{Implementation Differences from the Paper}
+  \vspace{0.15em}
+  \begin{table}
+    \centering\scriptsize
+    \begin{tabular}{>{\raggedright\arraybackslash}p{0.20\textwidth}>{\raggedright\arraybackslash}p{0.34\textwidth}>{\raggedright\arraybackslash}p{0.38\textwidth}}
+      \toprule
+      \textbf{Choice} & \textbf{Original paper (ImageNet)} & \textbf{This project} \\
+      \midrule
+      Input tokenization &
+      Raw pixels, no patching ($M=50{,}176$) &
+      $2{\times}2$ patch embedding (CIFAR-10 $M=256$) \\
+      \addlinespace[2pt]
+      Latent array $N\times D$ &
+      $512\times1024$ &
+      $96\times384$ (CIFAR-10), $128\times512$ (ModelNet40) \\
+      \addlinespace[2pt]
+      Cross-attend iterations $T$ &
+      $8$ &
+      $4$ (CIFAR-10), $2$ (ModelNet40) \\
+      \addlinespace[2pt]
+      Positional encoding &
+      2D Fourier, $K=64$ bands/axis ($258$ dims) &
+      2D Fourier, $64$ dims \\
+      \addlinespace[2pt]
+      Weight sharing &
+      On by default (shared across $T$) &
+      Exposed as an ablation switch (on/off) \\
+      \addlinespace[2pt]
+      Parameters &
+      $30$--$200\text{M}+$ &
+      $3.35$M (CIFAR-10) -- $10$M (IO) \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+
+  \vspace{0.3em}
+  \begin{block}{Kept identical to the paper}
+    \small Core mechanism preserved: cross-attention bottleneck $\to$ weight-shared latent transformer $\to$ mean-pooling (Perceiver) / output-query decoder (IO); GELU MLP, pre-norm LayerNorm, Fourier frequencies linearly spaced to Nyquist.
+  \end{block}
+\end{frame}
+
 % â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 % SECTION 3: Experiments & Results (slides 15-28)
 % â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
