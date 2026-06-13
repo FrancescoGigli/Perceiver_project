@@ -336,28 +336,27 @@
   \small
   \textbf{Once information is in the latent array, depth is spent by reusing the same processor on a compact state.}
 
-  \vspace{0.3em}
+  \vspace{0.4em}
   \begin{center}
-    \includegraphics[width=0.97\textwidth,height=0.35\textheight,keepaspectratio]{perceiver_architecture_overview.png}
+    \includegraphics[width=0.97\textwidth,height=0.42\textheight,keepaspectratio]{perceiver_architecture_overview.png}
   \end{center}
 
-  \vspace{0.05em}
+  \vspace{0.5em}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.48\textwidth}
-      \textbf{What the figure is showing}
+      \textbf{Weight sharing}
       \begin{itemize}
-        \item Cross-attention writes input information into latents.
-        \item Latent Transformer blocks refine only $N$ slots.
-        \item Dashed bracket: parameters reused across repeats.
+        \item The same Latent Transformer block $B_{\theta}$ is reused at every repeat, with shared parameters $\theta$.
+        \item Unrolling depth behaves like an RNN over the latent state:
+          $Z_{t+1}=B_{\theta}(Z_t)$.
       \end{itemize}
     \end{column}
 
     \begin{column}{0.48\textwidth}
       \textbf{Why it matters}
       \begin{itemize}
-        \item The model adds iterative computation without copying a new full processor each time.
-        \item Each repeat sees a new latent state with the same weights:
-          $Z_{t+1}=B_{\theta}(Z_t)$.
+        \item Iterative refinement without instantiating a new processor at each step.
+        \item Parameter count stays fixed as depth grows; computation stays in the $N$-slot latent space.
       \end{itemize}
     \end{column}
   \end{columns}
@@ -368,12 +367,12 @@
   \small
   \textbf{Perceiver receives a flat array, so location has to be part of each input token.}
 
-  \vspace{0.25em}
+  \vspace{0.2em}
   \begin{center}
-    \includegraphics[width=0.95\textwidth,height=0.50\textheight,keepaspectratio]{fourier_features_encoding.png}
+    \includegraphics[width=1.0\textwidth,height=0.53\textheight,keepaspectratio]{fourier_features_encoding.png}
   \end{center}
 
-  \vspace{-0.1em}
+  \vspace{0.35em}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.49\textwidth}
       \textbf{General recipe}
@@ -392,14 +391,14 @@
 \end{frame}
 
 % â”€â”€ Slide 10: Perceiver IO Decoder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-\begin{frame}[shrink=5]{Perceiver Forward Pass: Shape Checkpoints}
+\begin{frame}[shrink=8]{Perceiver Forward Pass: Shape Checkpoints}
   \begin{columns}[T]
     \begin{column}{0.52\textwidth}
       \textbf{Data flow in the original Perceiver:}
       \begin{enumerate}
-        \item Input is flattened and enriched:
+        \item Input array: each token stacks content $\mathbf{x}$ with a Fourier position code $\gamma(\mathbf{p})$,
         \[
-          X=[\text{content}\,\|\,\gamma(\text{position})]\in\mathbb{R}^{M\times C_{\text{tot}}}
+          X=[\,\mathbf{x}\,\|\,\gamma(\mathbf{p})\,]\in\mathbb{R}^{M\times C}.
         \]
         \item Learned latent array:
         \[
@@ -413,14 +412,14 @@
       \end{enumerate}
     \end{column}
     \begin{column}{0.44\textwidth}
-      \textbf{Generic shape checkpoints:}
+      \textbf{Shape checkpoints:}
       \begin{table}
         \centering\scriptsize
         \begin{tabular}{lll}
           \toprule
           \textbf{Object} & \textbf{Shape} & \textbf{Meaning} \\
           \midrule
-          $X$ & $M\times C_{\text{tot}}$ & input array \\
+          $X$ & $M\times C$ & input array (content+pos) \\
           $Z_0$ & $N\times D$ & learned latents \\
           $Q$ & $N\times d_k$ & latent queries \\
           $K,V$ & $M\times d_k,d_v$ & input keys/values \\
@@ -469,9 +468,9 @@
       \end{itemize}
 
       \vspace{0.35em}
-      \begin{alertblock}{Decoder distinction}
-        Perceiver IO replaces pooling with decoder cross-attention driven by output queries.
-      \end{alertblock}
+      \begin{block}{Fixed-shape output}
+        Pooling collapses the $N$ latents into a single vector, so this head emits one global prediction per input.
+      \end{block}
     \end{column}
   \end{columns}
 \end{frame}
