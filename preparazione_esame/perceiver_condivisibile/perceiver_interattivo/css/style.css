@@ -347,6 +347,19 @@
     .chapter-mini-nav-label,
     .chapter-mini-nav button { flex: 0 0 auto; white-space: nowrap; }
     .widget-row label, .widget-row .val { min-width: 64px; }
+
+    /* Surface the context rail on phones (it is display:none in the wider grid):
+       stack it below the lesson so the source-PDF link, theory references and
+       key numbers stay reachable on mobile. */
+    .rail {
+      display: block;
+      position: static;
+      max-height: none;
+      overflow: visible;
+      margin-top: 16px;
+      padding: 24px 22px 70px;
+      border-top: 1px solid var(--border);
+    }
   }
 
   .chapter { display: none; }
