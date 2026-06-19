@@ -323,6 +323,32 @@
     margin-right: 3px;
   }
 
+  /* Jumped-to headings land below the sticky chapter mini-nav, not under it.
+     --mini-nav-h is published by JS (renderChapterMiniNav) = the bar's real
+     height, which varies by chapter and viewport. */
+  .chapter h1, .chapter h2, .chapter h3 { scroll-margin-top: calc(var(--mini-nav-h, 64px) + 14px); }
+
+  /* Mobile-only fixes:
+     - mini-nav becomes a single horizontal-scroll row so the sticky bar stays
+       ~one line tall (was wrapping to 3 rows, ~145px, eating the viewport and
+       hiding jumped-to headings under it);
+     - padding-right keeps the last pill clear of the fixed hamburger;
+     - sliders shrink so widget rows never overflow the viewport. */
+  @media (max-width: 900px) {
+    .chapter-mini-nav {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      margin-right: 44px;        /* inset whole bar left of the fixed hamburger */
+    }
+    .chapter-mini-nav::-webkit-scrollbar { display: none; }
+    .chapter-mini-nav-label,
+    .chapter-mini-nav button { flex: 0 0 auto; white-space: nowrap; }
+    .widget-row label, .widget-row .val { min-width: 64px; }
+  }
+
   .chapter { display: none; }
   .chapter.active { display: block; }
   @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
@@ -1828,7 +1854,7 @@
   .widget-title { font-size: 13px; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
   .widget-row { display: flex; align-items: center; gap: 14px; margin: 10px 0; }
   .widget-row label { font-size: 13px; color: var(--muted); min-width: 90px; font-weight: 500; }
-  .widget-row input[type="range"] { flex: 1; accent-color: var(--primary); }
+  .widget-row input[type="range"] { flex: 1; min-width: 0; accent-color: var(--primary); }
   .widget-row .val { font-family: monospace; font-size: 14px; color: var(--primary); font-weight: 700; min-width: 90px; text-align: right; }
   .bar-group { margin: 12px 0; }
   .bar-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-soft); margin-bottom: 4px; }

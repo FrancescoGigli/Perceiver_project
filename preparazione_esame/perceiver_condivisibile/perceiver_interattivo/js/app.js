@@ -481,6 +481,15 @@ function renderReferenceRail() {
   });
 }
 
+// Publishes the live mini-nav height so headings can clear the sticky bar
+// (its height varies by chapter and viewport: wraps on desktop, 1-row on mobile).
+function updateMiniNavHeightVar() {
+  const nav = document.getElementById("chapterMiniNav");
+  const h = nav && getComputedStyle(nav).display !== "none" ? nav.offsetHeight : 0;
+  document.documentElement.style.setProperty("--mini-nav-h", h + "px");
+}
+window.addEventListener("resize", updateMiniNavHeightVar);
+
 function renderChapterMiniNav() {
   const nav = document.getElementById("chapterMiniNav");
   const chapter = document.querySelector(".chapter.active");
@@ -489,7 +498,7 @@ function renderChapterMiniNav() {
     .filter(heading => !heading.closest(".glossary-entry") && heading.textContent.trim().length > 0)
     .slice(0, 14);
   nav.innerHTML = "";
-  if (headings.length < 2) return;
+  if (headings.length < 2) { updateMiniNavHeightVar(); return; }
   const label = document.createElement("span");
   label.className = "chapter-mini-nav-label";
   label.textContent = "In questo capitolo";
@@ -506,6 +515,7 @@ function renderChapterMiniNav() {
     });
     nav.appendChild(button);
   });
+  updateMiniNavHeightVar();
 }
 
 function slugify(value) {
