@@ -3,6 +3,7 @@ import math
 import pytest
 import torch
 
+from src.utils.seed import set_global_seed
 from src.utils.positional_encoding import FourierPositionalEncoding
 from src.perceiver.input_pe import (
     InputPositionalEncoding,
@@ -343,3 +344,15 @@ def test_permuted_pe_leaves_the_output_unchanged():
         # (diff ~0.05 con il doppio, ~1e-7 con x grezzo). Vedi task-6-report.md.
         b = shuffled(x)
     torch.testing.assert_close(a, b, atol=1e-4, rtol=1e-4)
+
+
+def test_same_seed_gives_identical_initial_weights():
+    set_global_seed(42)
+    a = _model()
+    set_global_seed(42)
+    b = _model()
+    set_global_seed(7)
+    c = _model()
+
+    torch.testing.assert_close(a.latents, b.latents, atol=0, rtol=0)
+    assert not torch.allclose(a.latents, c.latents)
