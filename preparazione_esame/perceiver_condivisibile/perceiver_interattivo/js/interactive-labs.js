@@ -2275,14 +2275,15 @@ const LAB_SOURCE_REFS = {
         + "<li><strong>Fourier vs Learned</strong> (su dati permutati): 78.12% vs 77.60% → +0.52% per Fourier.</li>"
         + "<li><strong>Weight sharing = trade-off</strong>: senza sharing +5.36% accuracy ma +158.7% parametri (8.67M vs 3.35M). Nel mio setup è una scelta di efficienza, non un guadagno di accuracy.</li>"
         + "</ul></div>",
-      io: "<div class='exp-caption'>Perceiver IO — CIFAR-10 (128 latenti, 512 dim, 120 epoche)</div>"
+      io: "<div class='exp-caption'>Perceiver IO — CIFAR-10 (96 latenti, 384 dim, 120 epoche)</div>"
         + "<div class='exp-table-wrap'><table class='exp-table'>"
-        + "<thead><tr><th>Modello</th><th>Latenti</th><th>Output query</th><th>Params</th><th>Accuracy</th><th>Epoch</th></tr></thead><tbody>"
-        + "<tr class='exp-best'><td>Perceiver IO</td><td>128</td><td>1</td><td>9.5M</td><td>78.20%</td><td>120</td></tr>"
-        + "<tr><td>Perceiver (best)</td><td>96</td><td>—</td><td>3.35M</td><td>78.12%</td><td>108</td></tr>"
+        + "<thead><tr><th>Modello</th><th>Dataset</th><th>Output</th><th>Params</th><th>Accuracy</th><th>Epoch</th></tr></thead><tbody>"
+        + "<tr class='exp-best'><td>Perceiver IO</td><td>standard</td><td>1 query</td><td>5.22M</td><td>78.20%</td><td>120</td></tr>"
+        + "<tr><td>Perceiver (exp1, stessa config)</td><td>standard</td><td>mean-pool</td><td>3.35M</td><td>69.69%</td><td>44</td></tr>"
+        + "<tr><td>Perceiver (exp6, run migliore)</td><td>permutato</td><td>mean-pool</td><td>3.35M</td><td>78.12%</td><td>108</td></tr>"
         + "</tbody></table></div>"
         + "<figure><img src='" + IMG + "convergence_chart.png' alt='Efficienza di convergenza'></figure>"
-        + "<div class='exp-takeaway'><strong>Cosa conferma la teoria:</strong> aggiungere il decoder a output query (Perceiver IO) <strong>non degrada</strong> la classificazione: 78.20%, pari al miglior Perceiver (78.12%). Il decoder generalizza l'output senza costare accuracy (Cap. 15).</div>",
+        + "<div class='exp-takeaway'><strong>Cosa conferma la teoria:</strong> il confronto onesto è con <strong>exp1</strong> (stessa config, stesso dataset non permutato): il decoder a output query vale <strong>+8.51 punti</strong> (78.20% vs 69.69%) a costo di 1.6× i parametri — ben oltre la banda di rumore di ±3.5. La riga di exp6 gira su pixel permutati: task diverso, non confrontabile. Nota che il best dell'IO cade all'epoca 120, l'ultima: non aveva finito di imparare (Cap. 15).</div>",
       modelnet: "<div class='exp-caption'>ModelNet40 — Point cloud 3D (Perceiver, 2048 punti, 200 epoche)</div>"
         + "<div class='exp-table-wrap'><table class='exp-table'>"
         + "<thead><tr><th>Augmentation</th><th>Accuracy</th><th>Best epoch</th></tr></thead><tbody>"

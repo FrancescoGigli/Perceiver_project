@@ -1,12 +1,19 @@
-torch
-torchvision
-torch-optimizer
-tensorboard
+# Core
+torch>=2.0
+torchvision>=0.15
+torch-optimizer           # LAMB optimizer
+einops                    # Tensor rearrangement
+
+# Data & ML
 numpy
-einops
-tqdm
 pandas
-prettytable
-matplotlib
 scikit-learn
-# Add other dependencies as needed, e.g., for specific dataset loading or augmentations
+
+# Visualization
+matplotlib
+seaborn
+tensorboard
+
+# Utilities
+tqdm
+prettytable

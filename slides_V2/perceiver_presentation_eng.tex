@@ -63,6 +63,29 @@
 \usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds,shapes.geometric,decorations.pathreplacing}
 \pgfplotsset{compat=1.18}
 
+% â”€â”€ Shared style for inline bar charts (matches the matplotlib PNG charts) â”€â”€â”€â”€
+\definecolor{ChartBlue}{HTML}{1F6BBD}
+\definecolor{ChartNavy}{HTML}{123A6D}
+\pgfplotsset{
+  resultbar/.style={
+    ybar,
+    axis lines*=left,
+    axis line style={gray!45, line width=0.5pt},
+    ymajorgrids,
+    grid style={gray!22, line width=0.5pt},
+    tick style={draw=none},
+    ylabel style={font=\small, color=gray!55!black},
+    y tick label style={font=\scriptsize, color=gray!55!black},
+    x tick label style={font=\scriptsize, color=ChartNavy},
+    nodes near coords,
+    nodes near coords style={font=\scriptsize\bfseries, color=ChartNavy, /pgf/number format/.cd, fixed, fixed zerofill, precision=2},
+    every axis plot/.append style={draw=none, bar shift=0pt},
+    enlarge x limits=0.18,
+    bar width=15pt,
+    axis on top=false,
+  },
+}
+
 % â”€â”€ Figure Paths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 \graphicspath{
   {charts/}
@@ -75,7 +98,7 @@
 % â”€â”€ Metadata â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 \title[Perceiver \& Perceiver IO]{Perceiver \& Perceiver IO}
 \subtitle{Implementation and Experimental Analysis}
-\author[F.Gigli C.Vignoli]{Francesco Gigli e Corso Vignoli}
+\author[F.Gigli C.Vignoli]{Francesco Gigli and Corso Vignoli}
 \institute[UNIFI]{Universit\`a degli Studi di Firenze\\Course B031278 --- Deep Learning}
 \date{}
 
@@ -802,12 +825,12 @@
 \end{frame}
 
 % â”€â”€ Slide 19: Permutation Robustness â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-\begin{frame}[shrink=5]{CIFAR-10: Fixed-Permutation Test}
+\begin{frame}[shrink=12]{CIFAR-10: Fixed-Permutation Test}
   \begin{columns}[T]
     \begin{column}{0.48\textwidth}
       \textbf{Experiment:} train \emph{and} evaluate on pixels shuffled by a single fixed permutation $\sigma$ (same $\sigma$ throughout).
 
-      \vspace{0.5em}
+      \vspace{0.35em}
       \begin{table}
         \centering\small
         \begin{tabular}{lc}
@@ -821,13 +844,14 @@
         \end{tabular}
       \end{table}
 
-      \vspace{0.3em}
+      \vspace{0.25em}
       \textbf{Measured result:}
-      \begin{itemize}
+      \begin{itemize}\itemsep2pt
         \item Permuted vs natural order: $+$8.43pp --- the shuffled task stays fully learnable
         \item Fourier vs learned (permuted): $+$0.52pp
       \end{itemize}
 
+      \vspace{0.2em}
       {\scriptsize Config note: the learned-PE run used a single cross-attention stage (vs 4 in the other ablations); same parameter count.}
     \end{column}
     \begin{column}{0.48\textwidth}
@@ -854,24 +878,21 @@
       \begin{center}
       \begin{tikzpicture}
         \begin{axis}[
-          ybar,
-          width=5.7cm, height=5cm,
-          bar width=16pt,
+          resultbar,
+          width=6cm, height=5cm,
           ymin=65, ymax=82,
-          ylabel={\small Accuracy (\%)},
+          ylabel={Accuracy (\%)},
           symbolic x coords={Base,F.Perm,L.Perm,No WS},
           xtick=data,
-          x tick label style={rotate=28, anchor=east, font=\scriptsize},
-          nodes near coords,
-          nodes near coords style={font=\small\bfseries},
-          enlarge x limits=0.25,
-          axis lines*=left,
         ]
-          \addplot[fill=UnifiBlue!65] coordinates {
+          \addplot[fill=ChartBlue] coordinates {
             (Base,69.69)
             (F.Perm,78.12)
             (L.Perm,77.60)
             (No WS,73.85)
+          };
+          \addplot[fill=AccentGreen, forget plot, nodes near coords={}] coordinates {
+            (F.Perm,78.12)
           };
         \end{axis}
       \end{tikzpicture}
@@ -946,25 +967,21 @@
       \begin{center}
       \begin{tikzpicture}
         \begin{axis}[
-          ybar,
+          resultbar,
           width=6cm, height=5cm,
           bar width=18pt,
           ymin=80, ymax=86,
-          ylabel={\small Accuracy (\%)},
+          ylabel={Accuracy (\%)},
           symbolic x coords={Scale, +Translation, +Rotation},
           xtick=data,
-          x tick label style={rotate=15, anchor=east, font=\small},
-          nodes near coords,
-          nodes near coords style={font=\small\bfseries},
-          enlarge x limits=0.25,
-          axis lines*=left,
-          grid=major,
-          grid style={dashed, gray!30},
         ]
-          \addplot[fill=UnifiBlue!70] coordinates {
+          \addplot[fill=ChartBlue] coordinates {
             (Scale, 84.24)
             (+Translation, 83.67)
             (+Rotation, 83.14)
+          };
+          \addplot[fill=AccentGreen, forget plot, nodes near coords={}] coordinates {
+            (Scale, 84.24)
           };
         \end{axis}
       \end{tikzpicture}
@@ -1600,7 +1617,7 @@
   \begin{center}
     {\Huge\color{UnifiBlue}\textbf{Thank you!}}\\[1.5em]
     {\Large\color{UnifiDark} Questions?}\\[2.5em]
-    {\color{UnifiDark}Francesco Gigli e Corso Vignoli}\\[0.3em]
+    {\color{UnifiDark}Francesco Gigli and Corso Vignoli}\\[0.3em]
     {\small\color{UnifiDark} Code and models available upon request}
   \end{center}
 \end{frame}

@@ -1,10 +1,8 @@
-# CIFAR-10 dataset files
+# Dataset e risultati (troppo grandi per il repo)
 /data/
-
-# Log files and model checkpoints
 /logs/
 
-# Python cache files
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
@@ -18,15 +16,68 @@ build/
 venv/
 env/
 ENV/
+.venv/
 
 # Jupyter Notebook
-.ipynb_checkpoints
+.ipynb_checkpoints/
 
-# IDE specific files
+# IDE
 .idea/
 .vscode/
 *.swp
 *.swo
 
+# AI assistants
+.claude/
+.gemini/
 
-/Perceiver_Paper
+# LaTeX paper (separato)
+/Perceiver_Paper/
+
+# Generated PowerPoint output files
+slides_V2/presentation_v3_*.pptx
+slides_V2/presentation_v2_*.pptx
+
+# PowerPoint lock files
+~$*.pptx
+
+# Snapshot e diagnostica locali del deck (non deliverable)
+slides_V2/backups/
+slides_V2/_diag/
+
+# Vecchia iterazione delle slide, superata da slides_V2/
+/slides/
+
+# Intermedi LaTeX
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.nav
+*.out
+*.snm
+*.toc
+*.lof
+*.synctex.gz
+
+# Lock file di Office
+~$*
+
+# Archivi e sorgenti Word (materiale di lavoro, non deliverable)
+*.zip
+*.rar
+*.docx
+
+# Scratch e materiale scaricato in preparazione_esame/
+/preparazione_esame/PDF_Bibliografia_Perceiver/
+/preparazione_esame/PDF_Bibliografia_Perceiver_immagini_estratte/
+/preparazione_esame/pdf_scaricati/
+/preparazione_esame/materiali_corso/
+/preparazione_esame/temp_images/
+/preparazione_esame/docx_images/
+/preparazione_esame/catalogo_images/
+/preparazione_esame/_*
+/preparazione_esame/*_TEMP.*
+
+# Artefatti di tooling
+.playwright-mcp/

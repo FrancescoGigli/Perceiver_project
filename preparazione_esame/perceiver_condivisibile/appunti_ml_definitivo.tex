@@ -6663,7 +6663,7 @@ Fourier PE & $K=64$ bande, $\text{max\_freq}=32$ \\
 \texttt{exp6\_fourier\_permuted} & Fourier PE + pixel permutati & 3.35M & $\mathbf{78.12\%}$ & 108 \\[2pt]
 \texttt{exp2\_learned\_pe\_permuted} & Learned PE + pixel permutati & 3.35M & $77.60\%$ & 89 \\[2pt]
 \midrule
-\texttt{exp\_cifar10\_perceiver\_io} & Perceiver IO, 128 lat, 512 dim & 9.5M & $\mathbf{78.20\%}$ & 120 \\
+\texttt{exp\_cifar10\_perceiver\_io} & Perceiver IO, 96 lat, 384 dim & 5.22M & $\mathbf{78.20\%}$ & 120 \\
 \bottomrule
 \end{tabular}
 }
@@ -6722,9 +6722,9 @@ Rimuovere il weight sharing porta a $+5.36\%$ di accuracy al costo di $+158.7\%$
 \subsection{CIFAR-10 --- Perceiver IO}
 \label{sec:progetto-cifar-io}
 
-Abbiamo anche addestrato un \textbf{Perceiver IO} su CIFAR-10 per confronto diretto con il Perceiver vanilla. Setup: $N=128$, $D=512$, output queries learnable, decoder con cross-attention. Risultato: $\mathbf{78.20\%}$ di validation accuracy al epoch 120, leggermente superiore al miglior Perceiver (exp6 permuted $78.12\%$) e con una convergenza più fluida.
+Abbiamo anche addestrato un \textbf{Perceiver IO} su CIFAR-10 per confronto diretto con il Perceiver vanilla. Setup: $N=96$, $D=384$ (stessa configurazione latente degli altri esperimenti CIFAR-10), output query learnable singola, decoder con cross-attention. Risultato: $\mathbf{78.20\%}$ di validation accuracy al epoch 120, leggermente superiore al miglior Perceiver (exp6 permuted $78.12\%$) e con una convergenza più fluida.
 
-Interpretazione: il decoder attentional è strettamente più espressivo del pooling + linear, anche in task di classificazione semplice (coerente con Tab.\ 10 di Jaegle et al., 2022 su AudioSet). Il costo è circa $3\times$ parametri ($9.5$M vs $3.35$M).
+Interpretazione: il decoder attentional è strettamente più espressivo del pooling + linear, anche in task di classificazione semplice (coerente con Tab.\ 10 di Jaegle et al., 2022 su AudioSet). Il costo è circa $1.6\times$ parametri ($5.22$M vs $3.35$M, dal \texttt{config.txt} del run).
 
 % -----------------------------------------------------------------------------
 \subsection{ModelNet40 --- Classificazione point cloud}

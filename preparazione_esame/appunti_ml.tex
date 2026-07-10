@@ -2014,6 +2014,49 @@ Legenda dei simboli:
 \end{itemize}
 \end{notabox}
 
+\begin{notabox}[title={\textbf{Esempio end-to-end: forward pass su un'immagine ImageNet}}]
+Ricapitolo numerico di tutte le shape attraverso la pipeline, configurazione canonica del paper (Jaegle et al., 2021, App.~C): immagine $224 \times 224$ RGB, $T=8$ iterazioni cross-att, $L=6$ latent transformer per blocco, $h=8$ teste self-attention, $N=512$ latenti, $D=1024$.
+
+\textbf{Step 1 --- Preparazione input}
+\begin{itemize}\setlength\itemsep{0.1em}
+\item Pixel grezzi: $X_{\text{raw}} \in \mathbb{R}^{50176 \times 3}$ ($224 \cdot 224 = 50\,176$ pixel, 3 canali RGB).
+\item Fourier PE 2D, $K = 64$ bande: posizione $\to$ vettore $2 \cdot 2 \cdot 64 + 2 = 258$ feature.
+\item Concatenazione (sin/cos bande + coord.\ grezze + RGB): $X \in \mathbb{R}^{50176 \times 261}$ ($M = 50\,176$, $C_{\text{tot}} = 261$).
+\end{itemize}
+
+\textbf{Step 2 --- Inizializzazione latenti}
+\[ Z^{(0)} = L \in \mathbb{R}^{512 \times 1024} \quad (\text{parametri appresi, init }\mathcal{N}(0, 0.02^2) \text{ troncata}) \]
+
+\textbf{Step 3 --- Cross-Attention Block 1} ($X \to Z^{(0)}$, single-head $d_{QKV}=261$):
+\begin{itemize}\setlength\itemsep{0.1em}
+\item LayerNorm di $X$ e $L$ (shape invariata).
+\item $Q = L W_Q \in \mathbb{R}^{512 \times 261}$, \quad $K = X W_K, V = X W_V \in \mathbb{R}^{50176 \times 261}$.
+\item Attention map $A = \mathrm{softmax}(QK^\top / \sqrt{261}) \in \mathbb{R}^{512 \times 50176}$.
+\item Aggregazione $F = AV \in \mathbb{R}^{512 \times 261}$, poi $W_o: 261 \to 1024$ produce $\widetilde Z \in \mathbb{R}^{512 \times 1024}$.
+\item Residual $L + \widetilde Z$, LayerNorm, MLP ($1024 \to 4096 \to 1024$ con GELU), residual: $Z^{(1)} \in \mathbb{R}^{512 \times 1024}$.
+\end{itemize}
+
+\textbf{Step 4 --- Latent Transformer Block} ($\times L = 6$ ripetizioni), multi-head $h=8$, $d_{\text{head}}=128$:
+\begin{itemize}\setlength\itemsep{0.1em}
+\item LayerNorm, poi $Q, K, V$ tutti da $Z$: ciascuno $\mathbb{R}^{512 \times 1024}$, reshape multi-head $\mathbb{R}^{512 \times 8 \times 128}$.
+\item Per testa: $A = \mathrm{softmax}(QK^\top/\sqrt{128}) \in \mathbb{R}^{512 \times 512}$, $AV \in \mathbb{R}^{512 \times 128}$.
+\item Concat 8 teste $\to \mathbb{R}^{512 \times 1024}$, $W_O$ projection, residual, MLP, residual: shape preservata.
+\end{itemize}
+
+\textbf{Step 5 --- Iterazione con weight sharing} ($\times T = 8$, dal secondo in poi pesi condivisi): si applica Cross-Att $+$ Latent Transformer in sequenza per $T$ blocchi. Dopo l'ultimo: $Z^{(\text{finale})} \in \mathbb{R}^{512 \times 1024}$.
+
+\textbf{Step 6 --- Pooling globale}: media sui 512 latenti per produrre un singolo vettore:
+\[ h = \frac{1}{512}\sum_{i=1}^{512} Z^{(\text{finale})}_i \in \mathbb{R}^{1024} \]
+
+\textbf{Step 7 --- Classificazione}: layer lineare $W_c: 1024 \to 1000$ + bias, poi softmax:
+\[ z = h W_c + b_c \in \mathbb{R}^{1000}, \quad p = \mathrm{softmax}(z) \in [0,1]^{1000} \quad \sum p_i = 1 \]
+
+\textbf{Step 8 --- Loss} (cross-entropy con etichetta one-hot $y$):
+\[ \mathcal{L} = -\sum_{i=1}^{1000} y_i \log p_i = -\log p_{y_{\text{true}}} \in \mathbb{R} \]
+
+\textbf{Costo totale dell'attention}: $T \cdot N \cdot M + T \cdot L \cdot N^2 = 8 \cdot 512 \cdot 50\,176 + 8 \cdot 6 \cdot 512^2 \approx 2.18 \cdot 10^8$ operazioni di scoring. Un Transformer puro sull'input ($M^2 = 50\,176^2 \approx 2.5 \cdot 10^9$ per \emph{un} layer) sarebbe già $\sim 100\times$ più costoso, e non scalabile in profondità.
+\end{notabox}
+
 \needspace{4\baselineskip}
 \subsection{Backward Pass}
 \label{sec:backward}
@@ -4032,7 +4075,7 @@ Il paper (App.\ C): ``\emph{We used dropout throughout the network in earlier ex
 \subsection{Risultati Sperimentali del Paper Originale}
 \label{sec:results}
 
-Questa sezione raccoglie i risultati sperimentali del Perceiver (ImageNet, AudioSet, ModelNet40) e del Perceiver IO (GLUE, optical flow, multimodale autoencoding). Per ciascun task sono riportati il baseline domain-specific di riferimento (CNN, Transformer, RAFT, \ldots) e il risultato dell'architettura, evidenziando il trade-off tra generalità e accuratezza. I numeri chiave sono riassunti nella sottosezione finale \emph{Numeri chiave per l'esame}, utile come riferimento rapido in sede di discussione orale.
+Questa sezione raccoglie i risultati sperimentali del Perceiver originale (ImageNet, AudioSet, ModelNet40). Per ciascun task sono riportati il baseline domain-specific di riferimento (CNN, Transformer, \ldots) e il risultato dell'architettura, evidenziando il trade-off tra generalità e accuratezza. I numeri chiave sono riassunti nella sottosezione finale \emph{Numeri chiave per l'esame}, utile come riferimento rapido in sede di discussione orale. (I risultati di Perceiver IO sono trattati separatamente in \S\ref{sec:io-results}.)
 
 \subsubsection*{1. Perceiver Originale (Jaegle et al., 2021)}
 
@@ -4123,154 +4166,6 @@ Perceiver (mel + tuned) & --- & --- & 44.2 \\
 \textbf{ModelNet-40 (Point Cloud)}
 
 Il Perceiver ottiene \textbf{85.7\%} di accuracy su ModelNet-40 rispetto a \textbf{91.9\%} di PointNet++. Il Perceiver utilizza solo le coordinate $(x,y,z)$ senza feature geometriche specializzate, il che spiega il gap: dimostra comunque la generalità dell'architettura su input non-strutturati.
-
-\subsubsection*{2. Perceiver IO (Jaegle et al., 2022)}
-
-\paragraph{GLUE benchmark (NLP) --- Tab.\ 1 del paper.} L'esperimento chiave è confrontare Perceiver IO contro BERT a \emph{parità di FLOPs}, con due tokenizzazioni diverse (SentencePiece vs byte UTF-8 grezzi).
-
-{\small
-\begin{longtable}{@{}p{4.5cm} p{2.5cm} c c c c@{}}
-\toprule
-\textbf{Modello} & \textbf{Tokenizer} & \textbf{$M$} & \textbf{$N$} & \textbf{Depth} & \textbf{Avg GLUE} \\
-\midrule
-\endhead
-BERT Base (test, Devlin et al.) & SentencePiece & 512 & -- & 12 & 81.0 \\[2pt]
-BERT Base (ours) & SentencePiece & 512 & -- & 12 & 81.1 \\[2pt]
-\textbf{Perceiver IO Base} & SentencePiece & 512 & 256 & 26 & \textbf{81.2} \\[2pt]
-\midrule
-BERT (matching FLOPs) & UTF-8 bytes & 2048 & -- & 6 & 71.5 \\[2pt]
-\textbf{Perceiver IO} & UTF-8 bytes & 2048 & 256 & 26 & \textbf{81.0} \\[2pt]
-\textbf{Perceiver IO++} & UTF-8 bytes & 2048 & 256 & 40 & \textbf{81.8} \\
-\bottomrule
-\end{longtable}
-}
-
-\begin{notabox}[title={\textbf{Perceiver IO su GLUE: due risultati, uno spesso confuso}}]
-I numeri \textbf{81.0/81.2} riguardano il \emph{confronto diretto a parità di FLOPs}: a budget FLOPs fisso, il Perceiver IO Base (con SentencePiece) batte leggermente BERT Base (81.2 vs 81.1); con byte UTF-8, Perceiver IO raggiunge BERT SentencePiece ($81.0$), mentre BERT UTF-8 (costretto a ridurre drasticamente capacità per pareggiare i FLOPs) crolla a $71.5$.
-
-Il numero \textbf{81.8} viene invece da \emph{Perceiver IO++}: una variante \emph{più grande} (40 layer vs 26, 425M parametri vs 201M, $\sim$240B FLOPs vs 113B) che supera BERT Base mantenendo l'assenza di tokenizzatore. Oppure dallo stesso score che si ottiene con la configurazione \emph{multitask} (\S~seguente).
-
-Osservazione importante: \emph{senza tokenizzatore}, Perceiver IO gestisce sequenze \textbf{4$\times$ più lunghe} (2048 byte $\approx$ 512 SentencePiece token) grazie alla scalabilità lineare del decoder nei confronti della lunghezza di input.
-\end{notabox}
-
-\paragraph{Multitask Perceiver IO (Tab.\ 2 del paper).} Un risultato sperimentale chiave: Perceiver IO può fare \textbf{fine-tuning simultaneo su tutti gli 8 task GLUE} con una singola architettura, usando una \emph{query per task} (8 output queries, una con task\_id embedding per ciascuna delle 8 task). Gli appunti classici hanno un \texttt{[CLS]} token per task, qui si sposta il meccanismo nella costruzione delle query.
-
-{\small
-\begin{longtable}{@{}p{5.5cm} p{3cm} p{3cm}@{}}
-\toprule
-\textbf{Configurazione} & \textbf{Multi-task} & \textbf{Avg GLUE} \\
-\midrule
-\endhead
-Single-task query (baseline UTF-8) & No & 81.0 \\[2pt]
-Shared input token (stile \texttt{[CLS]}) & Sì & 81.5 \\[2pt]
-Task-specific input tokens & Sì & \textbf{81.8} \\[2pt]
-\textbf{Multitask query} (8 output queries) & Sì & \textbf{81.8} \\
-\bottomrule
-\end{longtable}
-}
-
-Il \textbf{multitask query} approach è il più elegante: disaccoppia l'array di output dall'array di input, senza bisogno di token \texttt{[CLS]}. Particolarmente utile quando i task sono numerosi o eterogenei.
-
-\paragraph{Optical Flow (Sintel / KITTI) --- Tab.\ 3 del paper.} Task: stimare il displacement 2D per ogni pixel tra due frame consecutivi.
-
-\textbf{Approccio Perceiver IO:} le due frame sono concatenate lungo la \emph{channel dimension} (3+3=6 canali), poi per ogni pixel si estrae un \textbf{patch $3\times 3$} di contesto spaziale ($3 \times 3 \times 3 \times 2 = 54$ valori per pixel). Si concatena un positional encoding Fourier (64 bande per asse, $258$ extra feature). Per il decoder, la query di ciascun pixel \emph{include la feature di input} in quel punto (non solo la posizione), così il flusso ottico è costruito "aggiungendo" un correttivo all'input.
-
-{\small
-\begin{longtable}{@{}p{3.8cm} p{2.8cm} p{2.8cm} p{2.5cm}@{}}
-\toprule
-\textbf{Rete} & \textbf{Sintel.clean} & \textbf{Sintel.final} & \textbf{KITTI} \\
-\midrule
-\endhead
-PWC-Net (Sun et al., 2018) & 2.17 & 2.91 & 5.76 \\[2pt]
-RAFT (Teed \& Deng, 2020) & 1.95 & 2.57 & \textbf{4.23} \\[2pt]
-\textbf{Perceiver IO} & \textbf{1.81} & \textbf{2.42} & 4.98 \\
-\bottomrule
-\end{longtable}
-}
-
-Metrica: AEPE (Average End-Point Error, più basso è meglio). Perceiver IO ottiene lo \textbf{stato dell'arte su Sintel.final} (2.42) al momento della pubblicazione, \emph{senza cost volumes, senza warping esplicito, senza gerarchia multiscala} --- tutti meccanismi domain-specific che i metodi classici come RAFT usano. Su KITTI RAFT resta il migliore (4.23 vs 4.98), mostrando che l'assenza di inductive bias 2D ha un costo in certi scenari.
-
-\paragraph{Multimodal Autoencoding su Kinetics-700 (Tab.\ 4 del paper).} Task: ricostruire simultaneamente \emph{video + audio + class label} da un input bottlenecked, allenando un singolo modello.
-
-\textbf{Approccio:}
-\begin{itemize}\setlength\itemsep{0.1em}
-\item Input: 16 frame di video a $224\times224$ pre-processati in \textbf{50k patch $1\times 4\times 4$} (16 pixel/patch) + \textbf{1920 audio sample} (16 sample/patch; audio campionato a 48\,kHz) + 1 class label one-hot 700-d.
-\item Ogni modalità è paddata con un \emph{modality embedding} per avere feature dim uniforme (704 dim totali).
-\item Decoder queries: Fourier PE per video ($387$-dim) e audio ($385$-dim) + embedding learnabile per la label ($1024$-dim), tutti paddati a dim $1026$ per query.
-\item Loss: somma pesata di L1 video + L1 audio + cross-entropy label.
-\end{itemize}
-
-{\small
-\begin{longtable}{@{}p{3cm} p{2.5cm} p{2.5cm} p{3cm}@{}}
-\toprule
-\textbf{Compress.\ ratio} & \textbf{Audio PSNR} & \textbf{Video PSNR} & \textbf{Top-1 Accuracy} \\
-\midrule
-\endhead
-88$\times$ (784 latent) & 26.97 & 24.37 & 10.2\% \\[2pt]
-176$\times$ (392 latent) & 25.33 & 24.27 & 8.6\% \\[2pt]
-352$\times$ (196 latent) & 14.15 & 23.21 & 11.5\% \\
-\bottomrule
-\end{longtable}
-}
-
-\begin{notabox}[title={\textbf{Trade-off ricostruzione vs classificazione}}]
-Con pesi della loss bilanciati per privilegiare video/audio, il modello al $88\times$ raggiunge PSNR ragionevoli ma solo $10.2\%$ di accuracy. Aumentando il peso sulla class loss il paper ottiene \textbf{45\% top-1 accuracy} mantenendo $20.7$ PSNR video: dimostra che \emph{le stesse latenti possono codificare} sia il contenuto ricostruibile sia la label semantica.
-\end{notabox}
-
-\paragraph{ImageNet (Tab.\ 7 del paper).}
-
-{\small
-\begin{longtable}{@{}p{5cm} p{2cm} p{2.2cm} p{2cm}@{}}
-\toprule
-\textbf{Modello} & \textbf{Pretrain.} & \textbf{Accuracy} & \textbf{Note} \\
-\midrule
-\endhead
-ResNet-50 (He et al., 2016) & No & 76.9\% & Conv 2D \\[2pt]
-ViT-B/16 (Dosovitskiy et al., 2021) & No & 77.9\% & Patch 2D \\[2pt]
-\textbf{Perceiver IO} (Fourier 2D) & No & 79.0\% & Senza conv 2D \\[2pt]
-Perceiver IO (conv pre-proc.) & No & 82.1\% & Con conv 7$\times$7 + max pool (downsample a $56\times56$) \\[2pt]
-\textbf{Perceiver IO} (learned pos., JFT pretrain) & Sì (JFT) & \textbf{84.5\%} & \textbf{Senza conv 2D}, pretraining su JFT \\
-\bottomrule
-\end{longtable}
-}
-
-\begin{notabox}[title={\textbf{Nota su ``86.4\%'' di ImageNet IO}}]
-Alcune fonti (anche versioni precedenti di questi appunti) riportano per errore un numero tipo \textbf{86.4\%} per Perceiver IO su ImageNet. Il paper ufficiale (Jaegle et al., 2022, \S4.4 e App.\ A) riporta \textbf{84.5\%} top-1 con pretraining JFT e \textbf{senza convoluzioni 2D}. Inoltre il paper dice letteralmente: ``\emph{Perceiver IO surpasses 80\% top-1 accuracy (84.5\% top-1) without using 2D convolutions after pretraining on JFT}''.
-\end{notabox}
-
-\paragraph{StarCraft II (Tab.\ 9 del paper).} Perceiver IO come \emph{drop-in replacement} del Transformer che funge da \textbf{entity encoder} nell'agente \textbf{AlphaStar} (Vinyals et al., 2019, SOTA per StarCraft II).
-
-{\small
-\begin{longtable}{@{}p{3.5cm} p{2cm} p{2cm} p{2cm}@{}}
-\toprule
-\textbf{Entity encoder} & \textbf{Win rate} & \textbf{Params} & \textbf{FLOPs} \\
-\midrule
-\endhead
-Transformer (AlphaStar originale) & 0.87 & 144M & 3.3B \\[2pt]
-\textbf{Perceiver IO} & \textbf{0.87} & 140M & \textbf{0.93B} \\
-\bottomrule
-\end{longtable}
-}
-
-Risultato: stesso win rate (87\% contro Elite bot) con \textbf{$\sim$3.5$\times$ meno FLOPs}, usando un Perceiver IO a 3 layer con latent index dim $32$. Il paper: ``\emph{Perceiver IO works out of the box}'' --- nessun tuning particolare oltre al sweep del latent index dim tra 32 e 64.
-
-\paragraph{AudioSet classification (Tab.\ 10 del paper).} Lo stesso benchmark usato nel Perceiver originale, ma con il decoder di tipo Perceiver IO (attention-based) invece del pooling average+project.
-
-{\small
-\begin{longtable}{@{}p{4.5cm} p{3cm} p{2cm}@{}}
-\toprule
-\textbf{Modello} & \textbf{Input} & \textbf{mAP} \\
-\midrule
-\endhead
-Perceiver (orig.) & Raw audio + video & 42.4 \\[2pt]
-\textbf{Perceiver IO} & Raw audio + video & \textbf{43.3} \\[2pt]
-Perceiver (orig.) & Mel-spectr.\ + video & 43.6 \\[2pt]
-\textbf{Perceiver IO} & Mel-spectr.\ + video & \textbf{44.9} \\
-\bottomrule
-\end{longtable}
-}
-
-Risultato: il decoder attentional di IO migliora consistentemente il decoder pooling del Perceiver originale, senza altre modifiche (\emph{evidenza che IO è strettamente più generale del Perceiver}).
 
 \subsubsection*{3. Numeri chiave per l'esame}
 
@@ -4480,15 +4375,15 @@ Tutto il resto della notazione resta coerente con il Perceiver originale ($N$ la
 
 \begin{notabox}[title={\textbf{Mappa delle appendici del paper Perceiver IO (Jaegle et al., 2022)}}]
 \begin{itemize}\setlength\itemsep{0.1em}
-\item \textbf{App.\ A} --- ImageNet: dettagli sperimentali, pre-processing convoluzionale opzionale (Tab.\ 7 del paper IO), risultato finale $84.5\%$ top-1 senza conv 2D con pretraining JFT. Citata in \S\ref{sec:results}.
-\item \textbf{App.\ B} --- StarCraft II: Perceiver IO come drop-in replacement del Transformer dell'entity encoder di AlphaStar (Tab.\ 9). Citata in \S\ref{sec:results}.
+\item \textbf{App.\ A} --- ImageNet: dettagli sperimentali, pre-processing convoluzionale opzionale (Tab.\ 7 del paper IO), risultato finale $84.5\%$ top-1 senza conv 2D con pretraining JFT. Citata in \S\ref{sec:io-results}.
+\item \textbf{App.\ B} --- StarCraft II: Perceiver IO come drop-in replacement del Transformer dell'entity encoder di AlphaStar (Tab.\ 9). Citata in \S\ref{sec:io-results}.
 \item \textbf{App.\ C} --- AudioSet: configurazioni multimodale audio+video (Tab.\ 10), confronto con Perceiver originale.
 \item \textbf{App.\ D} --- FLOPs calculation: convenzione per il conteggio dei FLOPs adottata nel paper.
 \item \textbf{App.\ E} --- Architectural details: \emph{sezione fondamentale per l'architettura di IO}. Contiene la Figure 5 con lo schema esplicito dei tre moduli (Encode, Process, Decode come attention QKV con input e output diversi), la Figure 6 con il confronto tra attention decoder (IO) e average+project decoder (Perceiver originale), e le formule (1)--(6) dell'attention module (LayerNorm pre-norm $\to$ QKV $\to$ residual $\to$ MLP $\to$ residual).
 \item \textbf{App.\ F} --- Language: dettagli completi delle configurazioni language. Contiene la Tab.\ 11 con gli iperparametri di BERT, Perceiver IO Base, Perceiver IO (UTF-8) e IO++ (dimensioni $N, D, E$, numero di layer, \ldots), i dettagli del pretraining MLM (Tab.\ 12) e del fine-tuning GLUE (Tab.\ 13). Citata più volte in questa sezione.
 \item \textbf{App.\ G} --- Positional encodings for image and audio: parametri delle Fourier features usate per ImageNet IO e per i task video/audio. \textbf{64 bande sin/cos per dimensione} in tutte le configurazioni. La frequenza minima è sempre la frequenza di una singola oscillazione completa sull'input; la massima è la \textbf{frequenza di Nyquist} (es.\ 112 cicli per $224 \times 224$). Input scalato in $[-1, 1]$. Usano 1D Fourier per audio e 3D Fourier per video (spaziotemporale).
-\item \textbf{App.\ H} --- Optical Flow: dettagli dell'approccio (concatenazione frame lungo channel, patch $3 \times 3$, $3 \times 3 \times 3 \times 2 = 54$ valori per pixel) + Tab.\ 16 con ablation su patch size, downsample, depth. Citata in \S\ref{sec:results}.
-\item \textbf{App.\ I} --- Multimodal autoencoding: patch video $1 \times 4 \times 4$, patch audio di 16 sample (48\,kHz $\to$ 1920 sample/frame $\to$ 120 patches), embedding modality, loss pesata video+audio+label, Tab.\ 17. Citata in \S\ref{sec:results}.
+\item \textbf{App.\ H} --- Optical Flow: dettagli dell'approccio (concatenazione frame lungo channel, patch $3 \times 3$, $3 \times 3 \times 3 \times 2 = 54$ valori per pixel) + Tab.\ 16 con ablation su patch size, downsample, depth. Citata in \S\ref{sec:io-results}.
+\item \textbf{App.\ I} --- Multimodal autoencoding: patch video $1 \times 4 \times 4$, patch audio di 16 sample (48\,kHz $\to$ 1920 sample/frame $\to$ 120 patches), embedding modality, loss pesata video+audio+label, Tab.\ 17. Citata in \S\ref{sec:io-results}.
 \end{itemize}
 \end{notabox}
 
@@ -6494,6 +6389,158 @@ $N = 256$ latenti, $D = 1280$ dim latente, $h = 8$ teste, $d_k = d_v = D/h = 160
 \end{notabox}
 
 
+\needspace{4\baselineskip}
+\subsection{Risultati Sperimentali}
+\label{sec:io-results}
+
+Risultati del paper Perceiver IO (Jaegle et al., 2022) sui task chiave: GLUE, optical flow, autoencoding multimodale, ImageNet, StarCraft II, AudioSet. Per ciascun task viene confrontato il baseline domain-specific con la performance di Perceiver IO, evidenziando il trade-off generalità/accuratezza.
+
+\paragraph{GLUE benchmark (NLP) --- Tab.\ 1 del paper.} L'esperimento chiave è confrontare Perceiver IO contro BERT a \emph{parità di FLOPs}, con due tokenizzazioni diverse (SentencePiece vs byte UTF-8 grezzi).
+
+{\small
+\begin{longtable}{@{}p{4.5cm} p{2.5cm} c c c c@{}}
+\toprule
+\textbf{Modello} & \textbf{Tokenizer} & \textbf{$M$} & \textbf{$N$} & \textbf{Depth} & \textbf{Avg GLUE} \\
+\midrule
+\endhead
+BERT Base (test, Devlin et al.) & SentencePiece & 512 & -- & 12 & 81.0 \\[2pt]
+BERT Base (ours) & SentencePiece & 512 & -- & 12 & 81.1 \\[2pt]
+\textbf{Perceiver IO Base} & SentencePiece & 512 & 256 & 26 & \textbf{81.2} \\[2pt]
+\midrule
+BERT (matching FLOPs) & UTF-8 bytes & 2048 & -- & 6 & 71.5 \\[2pt]
+\textbf{Perceiver IO} & UTF-8 bytes & 2048 & 256 & 26 & \textbf{81.0} \\[2pt]
+\textbf{Perceiver IO++} & UTF-8 bytes & 2048 & 256 & 40 & \textbf{81.8} \\
+\bottomrule
+\end{longtable}
+}
+
+\begin{notabox}[title={\textbf{Perceiver IO su GLUE: due risultati, uno spesso confuso}}]
+I numeri \textbf{81.0/81.2} riguardano il \emph{confronto diretto a parità di FLOPs}: a budget FLOPs fisso, il Perceiver IO Base (con SentencePiece) batte leggermente BERT Base (81.2 vs 81.1); con byte UTF-8, Perceiver IO raggiunge BERT SentencePiece ($81.0$), mentre BERT UTF-8 (costretto a ridurre drasticamente capacità per pareggiare i FLOPs) crolla a $71.5$.
+
+Il numero \textbf{81.8} viene invece da \emph{Perceiver IO++}: una variante \emph{più grande} (40 layer vs 26, 425M parametri vs 201M, $\sim$240B FLOPs vs 113B) che supera BERT Base mantenendo l'assenza di tokenizzatore. Oppure dallo stesso score che si ottiene con la configurazione \emph{multitask} (\S~seguente).
+
+Osservazione importante: \emph{senza tokenizzatore}, Perceiver IO gestisce sequenze \textbf{4$\times$ più lunghe} (2048 byte $\approx$ 512 SentencePiece token) grazie alla scalabilità lineare del decoder nei confronti della lunghezza di input.
+\end{notabox}
+
+\paragraph{Multitask Perceiver IO (Tab.\ 2 del paper).} Un risultato sperimentale chiave: Perceiver IO può fare \textbf{fine-tuning simultaneo su tutti gli 8 task GLUE} con una singola architettura, usando una \emph{query per task} (8 output queries, una con task\_id embedding per ciascuna delle 8 task). Gli appunti classici hanno un \texttt{[CLS]} token per task, qui si sposta il meccanismo nella costruzione delle query.
+
+{\small
+\begin{longtable}{@{}p{5.5cm} p{3cm} p{3cm}@{}}
+\toprule
+\textbf{Configurazione} & \textbf{Multi-task} & \textbf{Avg GLUE} \\
+\midrule
+\endhead
+Single-task query (baseline UTF-8) & No & 81.0 \\[2pt]
+Shared input token (stile \texttt{[CLS]}) & Sì & 81.5 \\[2pt]
+Task-specific input tokens & Sì & \textbf{81.8} \\[2pt]
+\textbf{Multitask query} (8 output queries) & Sì & \textbf{81.8} \\
+\bottomrule
+\end{longtable}
+}
+
+Il \textbf{multitask query} approach è il più elegante: disaccoppia l'array di output dall'array di input, senza bisogno di token \texttt{[CLS]}. Particolarmente utile quando i task sono numerosi o eterogenei.
+
+\paragraph{Optical Flow (Sintel / KITTI) --- Tab.\ 3 del paper.} Task: stimare il displacement 2D per ogni pixel tra due frame consecutivi.
+
+\textbf{Approccio Perceiver IO:} le due frame sono concatenate lungo la \emph{channel dimension} (3+3=6 canali), poi per ogni pixel si estrae un \textbf{patch $3\times 3$} di contesto spaziale ($3 \times 3 \times 3 \times 2 = 54$ valori per pixel). Si concatena un positional encoding Fourier (64 bande per asse, $258$ extra feature). Per il decoder, la query di ciascun pixel \emph{include la feature di input} in quel punto (non solo la posizione), così il flusso ottico è costruito "aggiungendo" un correttivo all'input.
+
+{\small
+\begin{longtable}{@{}p{3.8cm} p{2.8cm} p{2.8cm} p{2.5cm}@{}}
+\toprule
+\textbf{Rete} & \textbf{Sintel.clean} & \textbf{Sintel.final} & \textbf{KITTI} \\
+\midrule
+\endhead
+PWC-Net (Sun et al., 2018) & 2.17 & 2.91 & 5.76 \\[2pt]
+RAFT (Teed \& Deng, 2020) & 1.95 & 2.57 & \textbf{4.23} \\[2pt]
+\textbf{Perceiver IO} & \textbf{1.81} & \textbf{2.42} & 4.98 \\
+\bottomrule
+\end{longtable}
+}
+
+Metrica: AEPE (Average End-Point Error, più basso è meglio). Perceiver IO ottiene lo \textbf{stato dell'arte su Sintel.final} (2.42) al momento della pubblicazione, \emph{senza cost volumes, senza warping esplicito, senza gerarchia multiscala} --- tutti meccanismi domain-specific che i metodi classici come RAFT usano. Su KITTI RAFT resta il migliore (4.23 vs 4.98), mostrando che l'assenza di inductive bias 2D ha un costo in certi scenari.
+
+\paragraph{Multimodal Autoencoding su Kinetics-700 (Tab.\ 4 del paper).} Task: ricostruire simultaneamente \emph{video + audio + class label} da un input bottlenecked, allenando un singolo modello.
+
+\textbf{Approccio:}
+\begin{itemize}\setlength\itemsep{0.1em}
+\item Input: 16 frame di video a $224\times224$ pre-processati in \textbf{50k patch $1\times 4\times 4$} (16 pixel/patch) + \textbf{1920 audio sample} (16 sample/patch; audio campionato a 48\,kHz) + 1 class label one-hot 700-d.
+\item Ogni modalità è paddata con un \emph{modality embedding} per avere feature dim uniforme (704 dim totali).
+\item Decoder queries: Fourier PE per video ($387$-dim) e audio ($385$-dim) + embedding learnabile per la label ($1024$-dim), tutti paddati a dim $1026$ per query.
+\item Loss: somma pesata di L1 video + L1 audio + cross-entropy label.
+\end{itemize}
+
+{\small
+\begin{longtable}{@{}p{3cm} p{2.5cm} p{2.5cm} p{3cm}@{}}
+\toprule
+\textbf{Compress.\ ratio} & \textbf{Audio PSNR} & \textbf{Video PSNR} & \textbf{Top-1 Accuracy} \\
+\midrule
+\endhead
+88$\times$ (784 latent) & 26.97 & 24.37 & 10.2\% \\[2pt]
+176$\times$ (392 latent) & 25.33 & 24.27 & 8.6\% \\[2pt]
+352$\times$ (196 latent) & 14.15 & 23.21 & 11.5\% \\
+\bottomrule
+\end{longtable}
+}
+
+\begin{notabox}[title={\textbf{Trade-off ricostruzione vs classificazione}}]
+Con pesi della loss bilanciati per privilegiare video/audio, il modello al $88\times$ raggiunge PSNR ragionevoli ma solo $10.2\%$ di accuracy. Aumentando il peso sulla class loss il paper ottiene \textbf{45\% top-1 accuracy} mantenendo $20.7$ PSNR video: dimostra che \emph{le stesse latenti possono codificare} sia il contenuto ricostruibile sia la label semantica.
+\end{notabox}
+
+\paragraph{ImageNet (Tab.\ 7 del paper).}
+
+{\small
+\begin{longtable}{@{}p{5cm} p{2cm} p{2.2cm} p{2cm}@{}}
+\toprule
+\textbf{Modello} & \textbf{Pretrain.} & \textbf{Accuracy} & \textbf{Note} \\
+\midrule
+\endhead
+ResNet-50 (He et al., 2016) & No & 76.9\% & Conv 2D \\[2pt]
+ViT-B/16 (Dosovitskiy et al., 2021) & No & 77.9\% & Patch 2D \\[2pt]
+\textbf{Perceiver IO} (Fourier 2D) & No & 79.0\% & Senza conv 2D \\[2pt]
+Perceiver IO (conv pre-proc.) & No & 82.1\% & Con conv 7$\times$7 + max pool (downsample a $56\times56$) \\[2pt]
+\textbf{Perceiver IO} (learned pos., JFT pretrain) & Sì (JFT) & \textbf{84.5\%} & \textbf{Senza conv 2D}, pretraining su JFT \\
+\bottomrule
+\end{longtable}
+}
+
+\begin{notabox}[title={\textbf{Nota su ``86.4\%'' di ImageNet IO}}]
+Alcune fonti (anche versioni precedenti di questi appunti) riportano per errore un numero tipo \textbf{86.4\%} per Perceiver IO su ImageNet. Il paper ufficiale (Jaegle et al., 2022, \S4.4 e App.\ A) riporta \textbf{84.5\%} top-1 con pretraining JFT e \textbf{senza convoluzioni 2D}. Inoltre il paper dice letteralmente: ``\emph{Perceiver IO surpasses 80\% top-1 accuracy (84.5\% top-1) without using 2D convolutions after pretraining on JFT}''.
+\end{notabox}
+
+\paragraph{StarCraft II (Tab.\ 9 del paper).} Perceiver IO come \emph{drop-in replacement} del Transformer che funge da \textbf{entity encoder} nell'agente \textbf{AlphaStar} (Vinyals et al., 2019, SOTA per StarCraft II).
+
+{\small
+\begin{longtable}{@{}p{3.5cm} p{2cm} p{2cm} p{2cm}@{}}
+\toprule
+\textbf{Entity encoder} & \textbf{Win rate} & \textbf{Params} & \textbf{FLOPs} \\
+\midrule
+\endhead
+Transformer (AlphaStar originale) & 0.87 & 144M & 3.3B \\[2pt]
+\textbf{Perceiver IO} & \textbf{0.87} & 140M & \textbf{0.93B} \\
+\bottomrule
+\end{longtable}
+}
+
+Risultato: stesso win rate (87\% contro Elite bot) con \textbf{$\sim$3.5$\times$ meno FLOPs}, usando un Perceiver IO a 3 layer con latent index dim $32$. Il paper: ``\emph{Perceiver IO works out of the box}'' --- nessun tuning particolare oltre al sweep del latent index dim tra 32 e 64.
+
+\paragraph{AudioSet classification (Tab.\ 10 del paper).} Lo stesso benchmark usato nel Perceiver originale, ma con il decoder di tipo Perceiver IO (attention-based) invece del pooling average+project.
+
+{\small
+\begin{longtable}{@{}p{4.5cm} p{3cm} p{2cm}@{}}
+\toprule
+\textbf{Modello} & \textbf{Input} & \textbf{mAP} \\
+\midrule
+\endhead
+Perceiver (orig.) & Raw audio + video & 42.4 \\[2pt]
+\textbf{Perceiver IO} & Raw audio + video & \textbf{43.3} \\[2pt]
+Perceiver (orig.) & Mel-spectr.\ + video & 43.6 \\[2pt]
+\textbf{Perceiver IO} & Mel-spectr.\ + video & \textbf{44.9} \\
+\bottomrule
+\end{longtable}
+}
+
+Risultato: il decoder attentional di IO migliora consistentemente il decoder pooling del Perceiver originale, senza altre modifiche (\emph{evidenza che IO è strettamente più generale del Perceiver}).
+
 % =============================================================================
 \section{Implementazione e Risultati Sperimentali del Nostro Progetto}
 \label{sec:progetto}
@@ -7719,6 +7766,33 @@ Il paper del Perceiver (Jaegle et al., 2021) usa LAMB con le seguenti impostazio
 Perché non Adam? Con batch 1024 distribuito su molti dispositivi, Adam presenta instabilità al crescere del batch. LAMB garantisce stabilità mantenendo le stesse prestazioni finali.
 \end{notabox}
 
+\begin{notabox}[title={\textbf{LAMB nel nostro progetto (RTX 3060)}}]
+La nostra implementazione (\S\ref{sec:progetto}) usa LAMB con parametri adattati al budget computazionale ridotto rispetto al paper:
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Parametro} & \textbf{Paper (64 TPU)} & \textbf{Progetto (RTX 3060 12GB)} \\
+\midrule
+Batch size & 1024 (16 per TPU) & 64--128 (limit VRAM) \\
+Learning rate & $2 \times 10^{-3}$ & $4 \times 10^{-3}$ (CIFAR) / $1 \times 10^{-3}$ \\
+Weight decay & 0.1 & 0.1 \\
+Schedule & Plateau 55 + cosine 55 ep & MultiStep / Cosine 200 ep \\
+Gradient clipping & Norma globale 10 & Norma globale 1 \\
+$\beta_1, \beta_2$ & 0.9, 0.999 & 0.9, 0.999 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Perché usare LAMB anche con batch piccoli?} Coerenza con il paper (replicabilità dei risultati) e robustezza: il \emph{trust ratio} per layer aiuta in due situazioni che si verificano comunque nel nostro setup:
+\begin{itemize}\setlength\itemsep{0.1em}
+\item Latent array $L$ (parametri appresi inizializzati piccoli $\sim \mathcal{N}(0, 0.02^2)$): senza trust ratio, Adam aggiornerebbe troppo aggressivamente nelle prime epoche, destabilizzando l'inizializzazione.
+\item Pesi condivisi fra le iterazioni $t = 2, \ldots, T$ del Perceiver: il gradiente è la \emph{somma} su $T-1$ iterazioni, quindi la norma cresce. Il trust ratio rinormalizza automaticamente.
+\end{itemize}
+
+Adam puro o AdamW funzionerebbero comunque (li abbiamo provati come baseline ablation), ma LAMB dà convergenza più stabile soprattutto nelle prime 10 epoche, dove la magnitudine dei pesi cambia rapidamente.
+\end{notabox}
+
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.50\textwidth]{./appunti_images/papers/fig_optimizer_saddle.png}
@@ -8098,6 +8172,27 @@ L'\textbf{exploding gradient} si può mitigare con il \textbf{gradient clipping}
 \end{formulabox}
 
 Il vanishing gradient è invece più insidioso. Nella pratica, le RNN standard riescono a catturare dipendenze solo fino a circa 10 passi temporali. Per sequenze lunghe servono architetture con gate espliciti: LSTM e GRU.
+
+\subsection{Collegamento al Perceiver: latenti come stato ``ricorrente''}
+
+Nel Perceiver il \textbf{latent array} $L \in \mathbb{R}^{N \times D}$ gioca un ruolo concettualmente analogo allo stato nascosto $h_t$ di una RNN, anche se non c'è alcun loop temporale.
+
+\textbf{Parallelo formale} (semplificato):
+\[
+\underbrace{h_{t+1} = f(h_t, x_t)}_{\text{RNN: stato evolve nel tempo}}
+\qquad \longleftrightarrow \qquad
+\underbrace{L^{(t+1)} = \mathrm{LT}\!\bigl(\mathrm{CA}(L^{(t)}, X)\bigr)}_{\text{Perceiver: latenti evolvono iterando}}
+\]
+dove $\mathrm{CA}$ è il Cross-Attention Block (legge l'input $X$) e $\mathrm{LT}$ il Latent Transformer Block.
+
+\textbf{Differenze chiave}:
+\begin{itemize}\setlength\itemsep{0.15em}
+\item \textbf{Accesso all'input}: l'RNN vede un solo $x_t$ alla volta, il Perceiver legge \emph{l'intero $X$ ogni volta} via cross-attention $O(N \cdot M)$. Niente dipendenza dall'ordine.
+\item \textbf{Profondità vs tempo}: l'RNN srotola nel tempo (un passo per token), il Perceiver itera in profondità ($T = 8$ volte su ImageNet) con i \emph{pesi condivisi} fra le iterazioni $t \geq 2$ (\S\ref{sec:weight-sharing}). È il weight sharing che lo rende ``ricorrente'' nello spirito --- ma il backward non soffre del vanishing gradient delle RNN perché ogni iterazione è una piena attention, non una contrazione tramite tanh.
+\item \textbf{Parametri}: l'RNN ha matrici di transizione fisse ($W_{xh}, W_{hh}$); il Perceiver impara $W_Q, W_K, W_V, W_o$ + MLP a ogni blocco. Più espressivo, ma il weight sharing limita la crescita dei parametri al variare di $T$.
+\end{itemize}
+
+\textbf{Perché è una domanda d'esame frequente}: ``Perché il Perceiver fa iterazioni con weight sharing?'' La risposta è: per ottenere il \emph{raffinamento progressivo} tipico di un'RNN (i latenti si arricchiscono man mano), senza pagare il costo del backprop-through-time e mantenendo l'accesso completo all'input.
 
 % ---------------------------------------------------------------------------
 
