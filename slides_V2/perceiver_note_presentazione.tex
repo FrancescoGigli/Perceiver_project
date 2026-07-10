@@ -1,0 +1,989 @@
+% =====================================================================
+% Perceiver & Perceiver IO -- Dispensa da presentazione
+% Struttura: Note presentazione.pptx / presentation_v2_eng.pdf
+% Contenuti: slide V2, paper Perceiver, paper Perceiver IO, appunti locali
+% Compilare con: latexmk -pdf perceiver_note_presentazione.tex
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{lmodern}
+\IfFileExists{microtype.sty}{\usepackage{microtype}}{}
+\usepackage[a4paper,margin=2.25cm,headheight=15pt]{geometry}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs,array,tabularx,longtable}
+\usepackage{enumitem}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,shapes.geometric}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+
+\definecolor{mainblue}{HTML}{123C69}
+\definecolor{deepblue}{HTML}{0B2545}
+\definecolor{softblue}{HTML}{E8F1FA}
+\definecolor{softgreen}{HTML}{E9F7EF}
+\definecolor{softamber}{HTML}{FFF6DE}
+\definecolor{softred}{HTML}{FCEBEA}
+\definecolor{accentgreen}{HTML}{1B7F5A}
+\definecolor{accentamber}{HTML}{B7791F}
+\definecolor{accentred}{HTML}{B3392F}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=mainblue,
+  urlcolor=mainblue,
+  citecolor=mainblue,
+  pdftitle={Perceiver e Perceiver IO -- Dispensa da presentazione},
+  pdfauthor={Francesco Gigli e Corso Vignoli}
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Perceiver \& Perceiver IO}
+\fancyhead[R]{\small Dispensa da presentazione}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\setcounter{tocdepth}{2}
+\setcounter{secnumdepth}{3}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+\setlist[itemize]{itemsep=2pt,topsep=4pt,leftmargin=1.4em}
+\setlist[enumerate]{itemsep=2pt,topsep=4pt,leftmargin=1.7em}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\bigO}{\mathcal{O}}
+\newcommand{\softmax}{\operatorname{softmax}}
+\newcommand{\slide}[1]{\textcolor{mainblue}{\textbf{Slide #1}}}
+
+\newtcolorbox{takeawaybox}[1][]{
+  enhanced,breakable,
+  colback=softgreen,colframe=accentgreen,
+  boxrule=0.8pt,arc=2pt,
+  left=7pt,right=7pt,top=6pt,bottom=6pt,
+  fonttitle=\bfseries,
+  title={Da ricordare},
+  #1
+}
+
+\newtcolorbox{formulaBox}[1][]{
+  enhanced,breakable,
+  colback=softblue,colframe=mainblue,
+  boxrule=0.7pt,arc=2pt,
+  left=7pt,right=7pt,top=6pt,bottom=6pt,
+  fonttitle=\bfseries,
+  title={Formula},
+  #1
+}
+
+\newtcolorbox{examBox}[1][]{
+  enhanced,breakable,
+  colback=softamber,colframe=accentamber,
+  boxrule=0.8pt,arc=2pt,
+  left=7pt,right=7pt,top=6pt,bottom=6pt,
+  fonttitle=\bfseries,
+  title={Per l'esame},
+  #1
+}
+
+\newtcolorbox{riskBox}[1][]{
+  enhanced,breakable,
+  colback=softred,colframe=accentred,
+  boxrule=0.8pt,arc=2pt,
+  left=7pt,right=7pt,top=6pt,bottom=6pt,
+  fonttitle=\bfseries,
+  title={Criticit\`a},
+  #1
+}
+
+\title{\textbf{\textcolor{deepblue}{Perceiver \& Perceiver IO}}\\
+  \large Dispensa in ordine presentazione}
+\author{Francesco Gigli e Corso Vignoli}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\begin{minipage}{0.88\linewidth}
+\small
+Questa dispensa ricostruisce in forma testuale la presentazione su
+\textbf{Perceiver} e \textbf{Perceiver IO}. L'ordine segue la mappa del file
+\texttt{Note presentazione.pptx}; le informazioni sono integrate dai sorgenti
+LaTeX/PDF delle slide e dai due paper principali: Jaegle et al. (2021) e
+Jaegle et al. (2022).
+\end{minipage}
+\end{center}
+
+\vspace{0.5em}
+\begin{takeawaybox}[title={Idea in 60 secondi}]
+Il Perceiver nasce per risolvere una tensione classica: i Transformer sono
+generali ma costano quadraticamente nella lunghezza dell'input, mentre le CNN
+sono scalabili ma incorporano forti assunzioni sul dominio. Il Perceiver
+introduce un \emph{latent array} di dimensione fissa: i latenti leggono l'input
+tramite cross-attention, poi vengono raffinati da self-attention nello spazio
+latente. Perceiver IO aggiunge un decoder a \emph{output queries}, cosi' la
+stessa architettura puo' produrre anche output strutturati.
+\end{takeawaybox}
+
+{\small\tableofcontents}
+\clearpage
+
+% =====================================================================
+\section{Introduzione e motivazione}
+% =====================================================================
+
+\subsection{Il problema: architetture specifiche per modalit\`a}
+\slide{3}
+
+Lo stato dell'arte tradizionale tende ad associare a ogni modalit\`a una
+famiglia architetturale diversa:
+\begin{itemize}
+  \item immagini $\rightarrow$ CNN come ResNet o EfficientNet;
+  \item testo $\rightarrow$ Transformer come BERT o GPT;
+  \item audio $\rightarrow$ CNN 1D, RNN o modelli ibridi;
+  \item point cloud $\rightarrow$ architetture specializzate come PointNet o DGCNN.
+\end{itemize}
+
+Queste scelte funzionano bene perche' incorporano \textbf{bias induttivi}
+utili: localit\`a spaziale nelle immagini, ordine sequenziale nel testo,
+struttura geometrica nei point cloud. Il prezzo e' che ogni nuova modalit\`a
+richiede di ridisegnare parti del modello. Il Perceiver parte dalla domanda
+opposta: quanto possiamo ridurre le assunzioni architetturali senza perdere
+scalabilit\`a?
+
+Il Transformer sarebbe un candidato naturale per un modello generale, perche'
+l'attention non assume una griglia o una topologia specifica. Il problema e'
+il costo della self-attention. Con un input di lunghezza $N$, la matrice di
+attenzione ha dimensione $N \times N$:
+\[
+  \text{SelfAttn}(X) = \softmax\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V,
+  \qquad Q,K,V \in \R^{N \times d_k}.
+\]
+Il costo cresce come $\bigO(N^2 d)$. Un'immagine $224 \times 224$ trattata a
+livello di pixel ha $N=50\,176$: l'attenzione completa produrrebbe oltre
+$2.5$ miliardi di interazioni.
+
+\begin{riskBox}[title={Il collo di bottiglia dei Transformer}]
+La generalit\`a del Transformer non basta se l'input e' molto grande. Senza un
+meccanismo di compressione o sparsificazione, la self-attention piena diventa
+impraticabile per immagini ad alta risoluzione, video, audio lungo o point cloud
+densi.
+\end{riskBox}
+
+\subsection{La soluzione Perceiver}
+\slide{4}
+
+Il Perceiver \cite{jaegle2021perceiver} sostituisce la self-attention diretta
+sull'input con un meccanismo asimmetrico. Invece di far interagire tutti gli
+elementi dell'input tra loro, introduce un insieme compatto di vettori appresi,
+il \textbf{latent array}. Se l'input ha $N$ elementi e i latenti sono $M$, con
+$M \ll N$, i latenti leggono l'input tramite cross-attention:
+\[
+  Q = X_{\text{latent}} W_Q \in \R^{M \times d_k}, \qquad
+  K = X_{\text{input}} W_K \in \R^{N \times d_k}, \qquad
+  V = X_{\text{input}} W_V \in \R^{N \times d_v}.
+\]
+La matrice di attenzione e' rettangolare, $M \times N$, non piu' $N \times N$.
+Il costo principale passa da $\bigO(N^2)$ a $\bigO(NM)$.
+
+Dopo la lettura dell'input, la computazione profonda avviene solo nello spazio
+latente: una pila di blocchi Transformer elabora $M$ latenti, quindi costa
+$\bigO(M^2 L)$, dove $L$ e' il numero di layer latenti. Poiche' $M$ e' fissato
+dall'architettura, la profondit\`a viene disaccoppiata dalla dimensione
+dell'input.
+
+\begin{formulaBox}[title={Complessit\`a del Perceiver}]
+\[
+  \underbrace{\bigO(N^2 d L)}_{\text{Transformer standard}}
+  \quad \longrightarrow \quad
+  \underbrace{\bigO(NM d)}_{\text{cross-attention input--latenti}}
+  +
+  \underbrace{\bigO(M^2 d L)}_{\text{self-attention latente}}.
+\]
+Con $M \ll N$, il termine dipendente dall'input diventa lineare in $N$.
+\end{formulaBox}
+
+Nel progetto la stessa idea viene implementata in PyTorch e testata su tre
+modalit\`a: immagini, point cloud e testo. Questo e' importante perche' non si
+sta solo ripetendo la teoria del paper: si verifica anche quanto l'architettura
+regga in condizioni di calcolo molto piu' limitate rispetto agli esperimenti
+originali di DeepMind.
+
+\subsection{Perceiver IO: output strutturati}
+\slide{5}
+
+Il Perceiver originale e' gia' generale rispetto agli input, ma il suo output
+principale e' una rappresentazione aggregata, adatta soprattutto a compiti di
+classificazione. Perceiver IO \cite{jaegle2022perceiverio} estende il modello
+anche dal lato degli output. L'architettura assume una forma
+\textbf{read-process-write}:
+\begin{enumerate}
+  \item \textbf{Read}: l'input viene letto dai latenti tramite cross-attention.
+  \item \textbf{Process}: i latenti vengono raffinati da self-attention profonda.
+  \item \textbf{Write}: un insieme di \emph{output queries} interroga i latenti
+  e produce l'output desiderato.
+\end{enumerate}
+
+La differenza concettuale e' nel decoder. Ogni output viene associato a una
+query che ne specifica la semantica. Per classificare basta una singola query;
+per un output denso, come optical flow, si possono usare query indicizzate dalle
+coordinate dei pixel; per masked language modeling si usa una query per ogni
+posizione mascherata.
+
+\begin{takeawaybox}
+Perceiver IO non cambia il cuore del Perceiver: cambia il modo in cui si legge
+lo spazio latente in uscita. L'encoder resta agnostico alla modalit\`a, mentre
+le output queries rendono flessibile la forma dell'output.
+\end{takeawaybox}
+
+% =====================================================================
+\section{Architettura}
+% =====================================================================
+
+\subsection{Panoramica completa}
+\slide{7}
+
+L'architettura puo' essere letta come una pipeline con quattro oggetti:
+\begin{itemize}
+  \item \textbf{Input array} $X \in \R^{N \times C}$: sequenza generica ottenuta
+  da pixel, punti 3D, byte di testo o altri elementi;
+  \item \textbf{positional encoding}: coordinate o Fourier features concatenate
+  ai canali originali;
+  \item \textbf{latent array} $Z \in \R^{M \times D}$: bottleneck appreso,
+  compatto e indipendente dalla lunghezza dell'input;
+  \item \textbf{output head/decoder}: pooling nel Perceiver base, output
+  queries nel Perceiver IO.
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}[
+  node distance=0.8cm,
+  block/.style={draw,rounded corners=2pt,thick,align=center,
+    minimum width=2.25cm,minimum height=0.85cm,font=\small},
+  arr/.style={-Stealth,thick}
+]
+\node[block,fill=softblue] (input) {Input\\$N \times C$};
+\node[block,fill=softamber,right=of input] (pe) {Fourier PE\\$N \times C_{\text{tot}}$};
+\node[block,fill=softgreen,right=of pe] (cross) {Cross-attn\\$M \times N$};
+\node[block,fill=softblue,right=of cross] (latent) {Latent\\Transformer};
+\node[block,fill=softgreen,right=of latent] (out) {Output\\head/queries};
+\draw[arr] (input) -- (pe);
+\draw[arr] (pe) -- (cross);
+\draw[arr] (cross) -- (latent);
+\draw[arr] (latent) -- (out);
+\node[below=0.35cm of cross,font=\scriptsize,align=center,text=deepblue]
+  {i latenti interrogano l'input};
+\end{tikzpicture}
+\end{center}
+
+La propriet\`a da ricordare e' che l'input puo' cambiare lunghezza e modalit\`a,
+ma la parte profonda del modello opera sempre su $M$ latenti. Questo rende
+l'architettura adatta a input grandi e multimodali, pur usando blocchi
+Transformer standard nello spazio compresso.
+
+\subsection{Cross-attention: il meccanismo chiave}
+\slide{8}
+
+Nella self-attention standard, query, key e value provengono dallo stesso
+array. Nella cross-attention del Perceiver, invece, le query provengono dai
+latenti, mentre key e value provengono dall'input:
+\[
+  Q = ZW_Q, \qquad K = XW_K, \qquad V = XW_V.
+\]
+Il risultato e' una lettura selettiva dell'input:
+\[
+  \operatorname{CrossAttn}(Z,X)
+  =
+  \softmax\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V.
+\]
+
+Ogni riga della matrice $QK^\top$ corrisponde a un latente; ogni colonna a un
+elemento dell'input. Il latente decide quali parti dell'input leggere, aggrega
+i value con pesi di attenzione e aggiorna la propria rappresentazione. L'input
+non deve interagire direttamente con tutti gli altri input: l'informazione passa
+attraverso il bottleneck latente.
+
+\begin{examBox}
+Se ti chiedono ``perche' la complessit\`a diventa lineare?'', la risposta breve
+e': perche' la matrice di attenzione non e' piu' $N \times N$, ma $M \times N$.
+Dato che $M$ e' fissato e molto piu' piccolo di $N$, il costo cresce
+linearmente con la lunghezza dell'input.
+\end{examBox}
+
+\subsection{Latent Transformer e weight sharing}
+\slide{9}
+
+Dopo la cross-attention, i latenti contengono informazione letta dall'input.
+Serve pero' una fase di elaborazione interna: i latenti devono comunicare tra
+loro, comporre feature e raffinare la rappresentazione. Questa fase e' il
+\textbf{latent Transformer}: una sequenza di blocchi pre-norm con
+self-attention, residual connections e MLP espansiva.
+
+Poiche' la self-attention avviene solo sui latenti, il costo e'
+$\bigO(M^2)$, non $\bigO(N^2)$. Nel progetto, ad esempio, una configurazione
+CIFAR-10 usa $M=96$ latenti e profondit\`a ricorrente, una dimensione molto
+piu' gestibile dell'input completo.
+
+Il \textbf{weight sharing} riapplica lo stesso blocco per piu' iterazioni. La
+lettura intuitiva e' simile a un RNN nello spazio latente: lo stesso processore
+raffina lo stato piu' volte. Il vantaggio e' una forte riduzione dei parametri;
+lo svantaggio e' una possibile perdita di capacit\`a rispetto a blocchi tutti
+indipendenti.
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Configurazione CIFAR-10} & \textbf{Parametri} & \textbf{Accuratezza} \\
+\midrule
+Shared baseline & $3.35$M & $69.69\%$ \\
+Weight-sharing control & $3.35$M & $68.70\%$ \\
+No sharing & $11.0$M & $73.61\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{takeawaybox}
+Il weight sharing e' un compromesso: meno parametri e memoria, ma meno
+capacit\`a rispetto a layer separati. Nel progetto produce circa un terzo dei
+parametri della versione non condivisa, mantenendo prestazioni competitive.
+\end{takeawaybox}
+
+\subsection{Fourier positional encoding}
+\slide{10}
+
+L'attention e' permutation-equivariant: se permutiamo gli elementi di input e
+non forniamo informazioni di posizione, il modello non sa dove si trovino pixel,
+punti o token. Per immagini e point cloud questa informazione e' fondamentale.
+Il Perceiver concatena ai canali originali un positional encoding basato su
+Fourier features.
+
+Per una coordinata $x_i$ e una frequenza $f_k$, si usano termini sinusoidali:
+\[
+  \gamma(x_i)
+  =
+  \left[
+    \sin(2\pi f_k x_i),\;
+    \cos(2\pi f_k x_i)
+  \right]_{k=1}^{K}.
+\]
+Nel documento delle slide, per immagini si ottengono $2$ coordinate grezze piu'
+$64$ componenti Fourier, concatenate ai canali RGB; per point cloud si usano
+coordinate 3D; per testo una coordinata posizionale lungo la sequenza.
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Setting CIFAR-10} & \textbf{Accuratezza} & \textbf{Differenza} \\
+\midrule
+Con Fourier PE & $72.23\%$ & baseline \\
+Solo RGB, senza PE & $35.41\%$ & $-36.82$ pp \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{takeawaybox}[title={Risultato sperimentale piu' forte}]
+Il positional encoding e' il componente piu' critico nella riproduzione su
+CIFAR-10: senza posizione il modello tratta l'immagine quasi come un insieme
+non ordinato di patch/pixel e l'accuratezza si dimezza.
+\end{takeawaybox}
+
+\subsection{Decoder Perceiver IO con output queries}
+\slide{11}
+
+Nel Perceiver IO il decoder usa una cross-attention opposta rispetto
+all'encoder. Nell'encoder, i latenti interrogano l'input; nel decoder, le
+output queries interrogano i latenti:
+\[
+  Q_{\text{dec}} = Q_{\text{out}} W_Q, \qquad
+  K_{\text{dec}} = Z W_K, \qquad
+  V_{\text{dec}} = Z W_V.
+\]
+L'output e':
+\[
+  Y =
+  \softmax\!\left(\frac{Q_{\text{dec}}K_{\text{dec}}^\top}{\sqrt{d_k}}\right)
+  V_{\text{dec}}
+  \in \R^{O \times E},
+\]
+dove $O$ e' il numero di query di output. Questo numero non deve coincidere ne'
+con la lunghezza dell'input $N$ ne' con il numero di latenti $M$.
+
+Questa separazione e' il punto di forza di Perceiver IO: la rete puo' mantenere
+uno spazio latente compatto, ma produrre output di forma molto diversa a seconda
+del compito.
+
+\subsection{Design delle output queries per task}
+\slide{12}
+
+\begin{center}
+\begin{tabularx}{\linewidth}{l l X}
+\toprule
+\textbf{Task} & \textbf{Query} & \textbf{Output} \\
+\midrule
+Classificazione & $O=1$, vettore appreso & logit di classe \\
+Optical flow & $O=H \times W$, coordinate dei pixel & vettori di flusso per pixel \\
+Masked LM & una query per posizione mascherata & distribuzione sul vocabolario \\
+Multimodale & query/task embedding variabili & output misti o multi-task \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Nel progetto, la classificazione su CIFAR-10 e ModelNet40 usa una singola query
+o una testa equivalente di aggregazione; il masked language modeling su
+WikiText-103 usa query associate alle posizioni mascherate e predice byte su un
+vocabolario di dimensione $256$.
+
+\subsection{Analisi della complessit\`a computazionale}
+\slide{13}
+
+La complessit\`a dei tre casi principali puo' essere riassunta cosi':
+\[
+\begin{aligned}
+  \text{Transformer standard} &: \bigO(N^2 d L),\\
+  \text{Perceiver} &: \bigO((NM + M^2L)d),\\
+  \text{Perceiver IO} &: \bigO(((N+O)M + M^2L)d).
+\end{aligned}
+\]
+Il termine aggiuntivo di Perceiver IO e' $OM$, dovuto al decoder che fa
+attendere le output queries ai latenti.
+
+Esempio dalle slide: con $N=1024$, $M=96$, $L=4$,
+\[
+  N^2 = 1\,048\,576,
+  \qquad
+  NM + M^2L = 1024 \cdot 96 + 96^2 \cdot 4 = 135\,168.
+\]
+La riduzione e' circa $7.8\times$. Su immagini piu' grandi il vantaggio cresce:
+con $224 \times 224$ elementi, un Transformer pieno arriva a circa
+$2.5 \times 10^9$ interazioni, mentre un Perceiver con $M=512$ resta nell'ordine
+di decine di milioni.
+
+\subsection{GELU e ottimizzatore LAMB}
+\slide{14}
+
+Nei blocchi Transformer si usa una MLP con attivazione GELU:
+\[
+  \operatorname{GELU}(x) = x \Phi(x)
+  \approx x \sigma(1.702x).
+\]
+GELU e' liscia e non monotona, ed e' diventata standard in molte architetture
+Transformer. Alcune varianti usano anche GEGLU, cioe' una versione gated:
+\[
+  \operatorname{GEGLU}(x)
+  =
+  (xW_1) \odot \operatorname{GELU}(xW_2).
+\]
+
+Per l'ottimizzazione il progetto usa LAMB \cite{you2020lamb}, un ottimizzatore
+pensato per training a batch grandi. L'idea e' scalare l'update layer-wise con
+un \emph{trust ratio}, dipendente dalla norma dei pesi e dalla norma
+dell'update. Questo aiuta quando gradienti e scale dei layer sono molto diversi.
+
+\begin{riskBox}
+LAMB funziona al meglio con batch grandi. Nel progetto, i vincoli hardware
+limitano batch size e numero di latenti; questo spiega parte del divario tra i
+risultati originali e la riproduzione.
+\end{riskBox}
+
+\subsection{Implementazione: struttura del codice}
+\slide{15}
+
+La presentazione descrive un'implementazione \emph{from scratch} in PyTorch e
+PyTorch Lightning. La divisione logica e':
+\begin{itemize}
+  \item modelli: Perceiver, Perceiver IO, attention, positional encoding,
+  ottimizzatore LAMB;
+  \item data module: CIFAR-10, ModelNet40, WikiText-103, GLUE;
+  \item script esperimenti: training e ablation per immagini, point cloud,
+  testo;
+  \item utility: analisi, riproducibilit\`a e generazione risultati.
+\end{itemize}
+
+La dimensione indicativa e' circa $2500$ linee: abbastanza piccola da restare
+leggibile, ma completa per verificare tre modalit\`a e piu' ablation.
+
+% =====================================================================
+\section{Esperimenti e risultati}
+% =====================================================================
+
+\subsection{CIFAR-10: setup sperimentale}
+\slide{17}
+
+L'obiettivo su CIFAR-10 e' validare il Perceiver su immagini senza usare bias
+convoluzionali. Il modello riceve patch/pixel con positional encoding e deve
+imparare da dati relativamente piccoli rispetto a ImageNet.
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{Parametro} & \textbf{Valore} \\
+\midrule
+Latenti & $96 \times 384$ \\
+Cross-attention stages & $4$ \\
+Transformer blocks & $4$, condivisi \\
+Attention heads & $3$ \\
+Patch size & $2 \times 2$ \\
+Dropout & $0.2$ \\
+Optimizer & LAMB \\
+Learning rate & $0.004$ \\
+Batch size & $64$ \\
+Epochs & $120$ \\
+Parametri & circa $3.35$M \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Le ablation principali sono: rimozione o variazione del positional encoding,
+weight sharing contro blocchi non condivisi, robustezza alla permutazione dei
+pixel e confronto Perceiver base contro Perceiver IO.
+
+\subsection{CIFAR-10: risultati delle ablation}
+\slide{18}
+
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+\textbf{Configurazione} & \textbf{Accuratezza} \\
+\midrule
+Perceiver IO & $78.20\%$ \\
+No weight sharing & $73.61\%$ \\
+Fourier control & $72.23\%$ \\
+Baseline Fourier & $69.69\%$ \\
+Weight-sharing control & $68.70\%$ \\
+Fourier permuted & $62.31\%$ \\
+Learned PE permuted & $55.12\%$ \\
+RGB only, senza PE & $35.41\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Tre osservazioni emergono chiaramente:
+\begin{enumerate}
+  \item il positional encoding e' indispensabile;
+  \item Perceiver IO migliora il Perceiver base grazie a una lettura piu'
+  flessibile dello spazio latente;
+  \item il weight sharing riduce fortemente i parametri, ma perde qualche punto
+  rispetto a blocchi separati.
+\end{enumerate}
+
+\subsection{Impatto del positional encoding}
+\slide{19}
+
+Senza positional encoding il modello non distingue la struttura spaziale. In
+termini pratici, un'immagine diventa un insieme di valori RGB: l'informazione su
+``dove'' si trova ogni colore viene persa. Questo spiega il crollo da
+$72.23\%$ a $35.41\%$.
+
+Il risultato conferma l'ipotesi del paper originale: un'architettura molto
+generale puo' evitare bias forti come convoluzioni o pooling locali, ma non puo'
+rinunciare completamente alla posizione. La posizione non e' un dettaglio: e'
+parte del dato.
+
+\subsection{Weight sharing: efficienza contro accuratezza}
+\slide{20}
+
+Il confronto piu' diretto e':
+\begin{itemize}
+  \item shared baseline: $3.35$M parametri, $69.69\%$;
+  \item no sharing: $11.0$M parametri, $73.61\%$.
+\end{itemize}
+La versione non condivisa guadagna $3.92$ punti percentuali, ma usa circa
+$3.3\times$ piu' parametri. In termini di efficienza, il weight sharing
+mantiene una quota significativa della performance usando molte meno risorse.
+
+\begin{examBox}
+Una buona risposta orale: ``Il weight sharing trasforma il blocco in un
+processore ricorrente dei latenti. Riduce i parametri e regolarizza, ma limita
+la capacit\`a perche' ogni iterazione deve usare gli stessi pesi.''
+\end{examBox}
+
+\subsection{Robustezza alla permutazione dei pixel}
+\slide{21}
+
+L'esperimento applica una permutazione fissa alle posizioni dei pixel. I
+risultati mostrano che Fourier PE degrada meno del positional encoding appreso:
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Configurazione} & \textbf{Accuratezza} & \textbf{Drop} \\
+\midrule
+Fourier PE normale & $72.23\%$ & -- \\
+Fourier PE permutato & $62.31\%$ & $-9.92$ pp \\
+Learned PE permutato & $55.12\%$ & $-17.11$ pp \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+L'interpretazione e' che le Fourier features codificano regolarit\`a
+multi-scala e mantengono una struttura piu' robusta, mentre un positional
+encoding appreso tende a memorizzare posizioni assolute e soffre di piu' quando
+la geometria viene alterata.
+
+\subsection{Perceiver contro Perceiver IO su CIFAR-10}
+\slide{22}
+
+Su CIFAR-10, Perceiver IO raggiunge $78.20\%$, contro $72.23\%$ del Perceiver
+con Fourier PE. Il guadagno e' di $5.97$ punti percentuali.
+
+La ragione e' che l'output query agisce come aggregatore appreso. Il Perceiver
+base usa una forma piu' semplice di pooling sui latenti; Perceiver IO, invece,
+lascia che una query impari quali latenti leggere e come combinarli per il
+task. Questo aggiunge capacit\`a e rende la lettura dello spazio latente piu'
+flessibile.
+
+\subsection{ModelNet40: setup e risultati}
+\slide{23}
+
+ModelNet40 testa la capacit\`a del modello su point cloud 3D. Qui il Perceiver
+e' particolarmente naturale: un point cloud e' un insieme di punti, non una
+griglia regolare come un'immagine.
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{Parametro} & \textbf{Valore} \\
+\midrule
+Latenti & $128 \times 512$ \\
+Cross-attention stages & $2$ \\
+Transformer blocks & $6$, condivisi \\
+Punti per oggetto & $2048$ \\
+Optimizer & LAMB \\
+Epochs & $200$ \\
+Batch size & $128$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Risultati:
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+\textbf{Configurazione} & \textbf{Accuratezza} \\
+\midrule
+Baseline con scaling & $84.16\%$ \\
+Scaling + rotation & $83.06\%$ \\
+Scaling + translation & $82.90\%$ \\
+Paper originale & $85.7\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Il gap rispetto al paper e' solo $1.54$ punti percentuali, un risultato molto
+buono considerando batch e hardware piu' limitati.
+
+\subsection{Effetti della data augmentation su ModelNet40}
+\slide{24}
+
+In questo caso, l'augmentation aggressiva peggiora leggermente. La spiegazione
+plausibile e' tripla:
+\begin{itemize}
+  \item il modello ha capacit\`a limitata rispetto alla configurazione originale;
+  \item rotazioni e traslazioni richiedono piu' dati o piu' epoche per essere
+  assorbite;
+  \item il positional encoding Fourier usa coordinate assolute, quindi una
+  trasformazione geometrica sposta anche la codifica posizionale.
+\end{itemize}
+
+Il punto non e' che l'augmentation sia sempre negativa, ma che va calibrata con
+capacita' del modello, budget di training e tipo di positional encoding.
+
+\subsection{WikiText-103: pre-training MLM byte-level}
+\slide{25}
+
+Per il testo, la scelta piu' coerente con l'idea di architettura
+modality-agnostic e' usare input byte-level. Il vocabolario ha dimensione
+$256$, una per ogni byte, e non richiede tokenizzatori BPE o WordPiece.
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{Aspetto} & \textbf{Valore} \\
+\midrule
+Dataset & WikiText-103 \\
+Tokenizzazione & byte-level UTF-8 \\
+Vocabolario & $256$ \\
+Sequence length & $1024$ \\
+Mask probability & $15\%$ \\
+Modello & Perceiver IO \\
+Parametri & circa $10$M \\
+Epochs & $50$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Il vantaggio e' la generalit\`a: niente tokenizzatore specifico per lingua o
+dominio. Lo svantaggio e' che le sequenze diventano piu' lunghe e il modello
+non riceve direttamente unit\`a subword semanticamente dense.
+
+\subsection{GLUE: fine-tuning su 8 task}
+\slide{26}
+
+La pipeline di transfer learning e':
+\begin{enumerate}
+  \item pre-training MLM su WikiText-103;
+  \item trasferimento dei pesi dell'encoder;
+  \item sostituzione delle output queries con una query di classificazione;
+  \item fine-tuning sui task GLUE.
+\end{enumerate}
+
+I task coprono fenomeni diversi:
+\begin{itemize}
+  \item singola frase: CoLA, SST-2;
+  \item similarit\`a/parafrasi: MRPC, STS-B, QQP;
+  \item inferenza linguistica: MNLI, QNLI, RTE.
+\end{itemize}
+
+Il setup di fine-tuning indicato dalle slide usa $30$ epoche, learning rate
+$5 \times 10^{-4}$ e input byte-level.
+
+\subsection{Analisi per task GLUE}
+\slide{27}
+
+I risultati sono sopra la majority baseline sulla maggior parte dei task, con
+buona performance su SST-2 e maggiori difficolt\`a su task piu' sottili come
+CoLA o MNLI. Questo e' coerente con le limitazioni del modello:
+\begin{itemize}
+  \item il byte-level rende le sequenze piu' lunghe;
+  \item il modello e' molto piu' piccolo di BERT base;
+  \item manca il vantaggio semantico di una tokenizzazione subword;
+  \item il pre-training e' limitato dal budget computazionale.
+\end{itemize}
+
+Il messaggio non e' che Perceiver IO batta sempre BERT in questa riproduzione,
+ma che la stessa architettura puo' passare da immagini e point cloud al testo
+senza cambiare il meccanismo centrale.
+
+\subsection{Convergenza tra modalit\`a}
+\slide{28}
+
+Le tre modalit\`a convergono con tempi diversi:
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+\textbf{Modalit\`a} & \textbf{Epoche indicative} \\
+\midrule
+Point cloud & circa $50$ \\
+GLUE fine-tuning & $15$--$30$ \\
+CIFAR-10 & circa $120$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+I point cloud hanno input relativamente basso-dimensionali e convergono piu'
+rapidamente. GLUE beneficia del pre-training. CIFAR-10, invece, e' difficile
+perche' il modello vede informazione molto grezza e non usa bias convoluzionali.
+
+\subsection{Attention maps}
+\slide{29}
+
+Le attention maps mostrano qualitativamente l'effetto del positional encoding.
+Con Fourier PE, la cross-attention impara pattern spazialmente coerenti; senza
+PE, l'entropia resta piu' alta e i pattern appaiono meno strutturati. Questo
+supporta la lettura quantitativa: la posizione permette ai latenti di
+specializzarsi su regioni o strutture dell'input.
+
+\subsection{Riassunto complessivo degli esperimenti}
+\slide{30}
+
+\begin{center}
+\begin{tabularx}{\linewidth}{l X l}
+\toprule
+\textbf{Modalit\`a} & \textbf{Risultato principale} & \textbf{Nota} \\
+\midrule
+Immagini & Perceiver $72.23\%$, Perceiver IO $78.20\%$ & PE decisivo \\
+Point cloud & ModelNet40 $84.16\%$ & vicino al paper \\
+Testo & MLM + GLUE fine-tuning & byte-level, 8 task \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Nel complesso: oltre 20 training run, tre modalit\`a, ablation su componenti
+chiave e una pipeline riproducibile. Il valore della riproduzione e' mostrare
+non solo cosa funziona nel paper, ma cosa resta solido con risorse limitate.
+
+% =====================================================================
+\section{Criticit\`a e discussione}
+% =====================================================================
+
+\subsection{Gap rispetto al paper originale}
+\slide{32}
+
+Il gap e' molto diverso tra point cloud e immagini:
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Dataset} & \textbf{Paper} & \textbf{Progetto} & \textbf{Gap} \\
+\midrule
+ModelNet40 & $85.7\%$ & $84.16\%$ & $1.54$ pp \\
+CIFAR-10 / immagini & $>90\%$ & $78.20\%$ & circa $12$ pp \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Su ModelNet40 la riproduzione e' molto vicina. Su immagini il gap e'
+significativo e dipende soprattutto dal budget computazionale: batch piu'
+piccolo, meno latenti, modello piu' piccolo e meno tempo di training.
+
+\subsection{Limitazioni hardware e scelte implementative}
+\slide{33}
+
+Il confronto con gli esperimenti originali e' sbilanciato:
+\begin{center}
+\begin{tabularx}{\linewidth}{l X X}
+\toprule
+\textbf{Aspetto} & \textbf{Paper DeepMind} & \textbf{Progetto} \\
+\midrule
+Hardware & centinaia di TPU v3 & una GPU consumer \\
+Batch size & fino a $1024$ & $64$--$128$ \\
+Latenti & $256$--$512$ & $96$--$128$ \\
+Parametri & decine/centinaia di milioni & $3.35$--$10$M \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Le conseguenze sono dirette: LAMB e' meno efficace con batch piccoli, meno
+latenti riducono la capacit\`a del bottleneck, e i modelli piu' piccoli faticano
+di piu' sulle immagini grezze.
+
+\subsection{Possibili miglioramenti}
+\slide{34}
+
+Le direzioni di miglioramento piu' naturali sono:
+\begin{itemize}
+  \item aumentare il numero di latenti con gradient checkpointing;
+  \item usare cross-attention multi-scala, da rappresentazioni coarse a fine;
+  \item esplorare positional encoding relativi, come RoPE o ALiBi;
+  \item aumentare il batch effettivo con gradient accumulation;
+  \item usare mixed precision FP16/BF16;
+  \item introdurre augmentation moderne su immagini, come CutMix e MixUp;
+  \item usare tokenizzazione subword per confronti NLP piu' forti;
+  \item confrontare con efficient Transformer come Linformer o Performer.
+\end{itemize}
+
+\subsection{Lezioni apprese}
+\slide{35}
+
+Le lezioni principali sono quattro:
+\begin{enumerate}
+  \item il Perceiver e' realmente modality-agnostic nella struttura;
+  \item Perceiver IO migliora la lettura dello spazio latente;
+  \item il positional encoding e' il componente piu' critico;
+  \item il compute disponibile determina fortemente il gap sulle immagini.
+\end{enumerate}
+
+\begin{takeawaybox}[title={Takeaway principale}]
+La generalit\`a non elimina la necessit\`a di informazione strutturale. Il
+Perceiver evita convoluzioni, RNN e moduli specifici, ma deve comunque sapere
+dove si trovano gli elementi dell'input.
+\end{takeawaybox}
+
+\subsection{Conclusioni}
+\slide{36}
+
+Il Perceiver dimostra che una singola architettura attentiva puo' trattare
+modalit\`a diverse mantenendo costo lineare nella dimensione dell'input. Il
+latent bottleneck rende trattabili input grandi, mentre il latent Transformer
+mantiene la potenza espressiva dei Transformer.
+
+Perceiver IO completa il quadro rendendo generali anche gli output. Con le
+output queries, lo stesso spazio latente puo' essere letto per classificazione,
+language modeling, output densi o task multimodali.
+
+I limiti restano importanti: il modello richiede molto compute per competere
+con architetture specializzate su immagini; dipende fortemente dal positional
+encoding; e il bottleneck latente puo' perdere dettagli fini se troppo piccolo.
+Tuttavia, come direzione di ricerca, e' un passo convincente verso modelli di
+percezione general-purpose.
+
+% =====================================================================
+\section{Riferimenti}
+% =====================================================================
+\slide{37}
+
+\begin{thebibliography}{9}
+\bibitem{jaegle2021perceiver}
+Andrew Jaegle, Felix Gimeno, Andrew Brock, Andrew Zisserman, Oriol Vinyals,
+Joao Carreira.
+\newblock \emph{Perceiver: General Perception with Iterative Attention}.
+\newblock ICML, 2021.
+
+\bibitem{jaegle2022perceiverio}
+Andrew Jaegle et al.
+\newblock \emph{Perceiver IO: A General Architecture for Structured Inputs and Outputs}.
+\newblock ICLR, 2022.
+
+\bibitem{vaswani2017attention}
+Ashish Vaswani et al.
+\newblock \emph{Attention Is All You Need}.
+\newblock NeurIPS, 2017.
+
+\bibitem{you2020lamb}
+Yang You et al.
+\newblock \emph{Large Batch Optimization for Deep Learning: Training BERT in 76 Minutes}.
+\newblock ICLR, 2020.
+
+\bibitem{tancik2020fourier}
+Matthew Tancik et al.
+\newblock \emph{Fourier Features Let Networks Learn High Frequency Functions}.
+\newblock NeurIPS, 2020.
+
+\bibitem{shazeer2020glu}
+Noam Shazeer.
+\newblock \emph{GLU Variants Improve Transformer}.
+\newblock arXiv, 2020.
+\end{thebibliography}
+
+% =====================================================================
+\appendix
+\section{Domande attese all'esame}
+\slide{38}
+
+\subsection{Perche' cross-attention invece di self-attention piena?}
+Per ridurre la complessit\`a da $\bigO(N^2)$ a $\bigO(NM)$. I latenti sono
+molto meno numerosi degli elementi di input, quindi l'attenzione rettangolare
+$M \times N$ e' molto piu' economica della matrice quadrata $N \times N$.
+
+\subsection{Che effetto ha il weight sharing?}
+Riduce i parametri e rende il blocco simile a un processore ricorrente nello
+spazio latente. Nel progetto produce circa $3\times$ meno parametri rispetto
+alla versione non condivisa, ma perde alcuni punti di accuratezza.
+
+\subsection{Perche' Fourier PE e non solo learned PE?}
+Le Fourier features danno una codifica multi-scala delle coordinate e risultano
+piu' robuste quando la struttura spaziale viene perturbata. Il learned PE puo'
+funzionare, ma tende a legarsi alle posizioni assolute viste in training.
+
+\subsection{Perche' il gap su CIFAR-10 e' grande?}
+Perche' la configurazione riprodotta e' molto piu' piccola di quella originale:
+batch size minore, meno latenti, meno parametri e molto meno compute. Inoltre
+le immagini grezze sono difficili senza bias convoluzionali.
+
+\subsection{Perche' usare byte-level tokenization?}
+Per restare coerenti con l'idea modality-agnostic: un vocabolario di $256$ byte
+non richiede tokenizzatori specifici. Il costo e' avere sequenze piu' lunghe e
+meno informazione semantica pre-strutturata rispetto a BPE/WordPiece.
+
+\subsection{Come migliora Perceiver IO rispetto al Perceiver base?}
+Perceiver IO sostituisce un readout semplice con output queries apprese o
+strutturate. Questo permette di interrogare i latenti in modo task-specific e
+di produrre output con forma arbitraria.
+
+\subsection{Puo' sostituire ViT o BERT?}
+Non necessariamente nelle configurazioni piccole. Il valore del Perceiver e'
+la generalit\`a e la scalabilit\`a su input grandi e multimodali. Per competere
+con modelli specializzati servono compute, dati e dimensioni comparabili.
+
+\section*{Chiusura}
+\slide{39}
+
+\begin{center}
+\Large\textbf{Perceiver = input grandi, architettura unica, bottleneck latente.}\\[0.5em]
+\large Perceiver IO = la stessa idea, ma anche per output strutturati.
+\end{center}
+
+\end{document}

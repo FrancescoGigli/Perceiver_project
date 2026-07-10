@@ -1,0 +1,19 @@
+﻿Perceiver - pacchetto condivisibile
+===================================
+
+Apri questo file nel browser:
+
+  perceiver_interattivo/index.html
+
+La cartella contiene solo i file necessari alla lezione interattiva:
+
+- HTML principale
+- immagini usate nella lezione
+- appunti_ml_definitivo.pdf
+- appunti_ml_definitivo.tex
+
+Nota: le formule usano MathJax da CDN. Con internet attivo vengono renderizzate in modo pulito.
+Senza internet resta comunque visibile il contenuto fallback delle formule, ma meno elegante.
+
+I link nel pannello "Fonte negli appunti" aprono il PDF con #page=N. Se il browser non rispetta
+il numero pagina, apri manualmente appunti_ml_definitivo.pdf e vai al range indicato.

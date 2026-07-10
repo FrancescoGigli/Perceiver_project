@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Perceiver — Lezione interattiva</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --bg-soft: #f3f4f8;
+    --card: #ffffff;
+    --primary: #1a237e;
+    --primary-soft: #e8eaf6;
+    --primary-softer: #f3f4fb;
+    --accent: #e65100;
+    --success: #2e7d32;
+    --success-soft: #e8f5e9;
+    --text: #1a1a1a;
+    --text-soft: #3c3c3c;
+    --muted: #6e6e76;
+    --border: #e6e6ec;
+    --shadow: 0 1px 2px rgba(20,20,40,.04), 0 8px 24px rgba(26,35,126,.05);
+    --shadow-hover: 0 2px 6px rgba(20,20,40,.06), 0 12px 36px rgba(26,35,126,.09);
+    --radius: 10px;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --t: 180ms var(--ease-out);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  /* === LAYOUT === */
+  .layout {
+    display: grid;
+    grid-template-columns: 270px minmax(0, 1fr) 290px;
+    gap: 36px;
+    max-width: 1400px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+  @media (max-width: 1280px) {
+    .layout { grid-template-columns: 260px minmax(0, 1fr); max-width: 1080px; gap: 28px; }
+    .rail { display: none; }
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; max-width: 100%; gap: 0; }
+    .sidebar { position: fixed; top: 0; left: 0; height: 100vh; transform: translateX(-100%); z-index: 100; }
+    .sidebar.open { transform: translateX(0); }
+    .menu-toggle { display: block !important; }
+  }
+
+  /* === SIDEBAR === */
+  .sidebar {
+    background: var(--card); border-right: 1px solid var(--border);
+    padding: 26px 22px; overflow-y: auto;
+    transition: transform var(--t);
+    width: 270px;
+  }
+  .brand { font-size: 18px; font-weight: 700; color: var(--primary); letter-spacing: 0; }
+  .sub { font-size: 12px; color: var(--muted); margin-top: 2px; margin-bottom: 18px; }
+  .progress-track { height: 5px; background: var(--bg-soft); border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), #5c6bc0); transition: width 400ms ease-out; }
+  .progress-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 18px; display: flex; justify-content: space-between; }
+  .toc { list-style: none; }
+  .toc li {
+    padding: 7px 10px; margin-bottom: 2px;
+    border-radius: 7px; cursor: pointer;
+    color: var(--text-soft); font-size: 13.5px;
+    transition: background-color var(--t), border-color var(--t), color var(--t);
+    display: flex; align-items: center; gap: 9px;
+    border: 1px solid transparent;
+  }
+  .toc li:hover { background: var(--bg-soft); color: var(--primary); }
+  .toc li.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; border-color: rgba(26,35,126,0.1); }
+  .toc-num {
+    flex-shrink: 0; width: 22px; height: 22px;
+    background: var(--bg-soft); color: var(--muted);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+    transition: background-color var(--t), color var(--t);
+  }
+  .toc li.active .toc-num { background: var(--primary); color: white; }
+  .toc li.done .toc-num { background: var(--success); color: white; }
+  .toc li.done .toc-num::before { content: "✓"; }
+  .toc li.done .toc-num-text { display: none; }
+  .toc-title { flex: 1; line-height: 1.25; }
+  .sidebar-foot { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); line-height: 1.6; }
+  .sidebar-foot button { background: none; border: none; color: var(--muted); cursor: pointer; text-decoration: underline; font-size: 11px; padding: 0; }
+  .sidebar-foot button:hover { color: #c62828; }
+
+  /* === RIGHT RAIL === */
+  .rail { padding: 30px 8px 60px; align-self: start; position: sticky; top: 0; max-height: 100vh; overflow-y: auto; }
+  .rail-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
+  .rail-title { font-size: 10.5px; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .rail-pipe { line-height: 2.1; }
+  .rail-pipe-chip { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 10.5px; background: var(--bg-soft); color: var(--muted); margin-right: 1px; }
+  .rail-pipe-chip.on { background: var(--primary); color: white; font-weight: 700; }
+  .rail-pipe-arr { font-size: 9px; color: #ccc; margin: 0 1px; }
+  .rail-numbers { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  .rail-numbers > div { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; font-size: 12px; border-bottom: 1px dashed var(--border); }
+  .rail-numbers > div:last-child, .rail-numbers > div:nth-last-child(2) { border-bottom: none; }
+  .rail-numbers span { color: var(--muted); font-family: "SFMono-Regular", Menlo, monospace; }
+  .rail-numbers strong { color: var(--primary); font-family: "SFMono-Regular", Menlo, monospace; font-weight: 700; }
+  .rail-idea { font-size: 13px; color: var(--text-soft); line-height: 1.55; }
+  .rail-idea code { background: var(--bg-soft); padding: 0 4px; border-radius: 3px; font-family: "SFMono-Regular", Menlo, monospace; font-size: 12px; color: var(--primary); border: 1px solid var(--border); }
+  .rail-idea strong { color: var(--text); font-weight: 650; }
+  .rail-idea em { color: var(--primary); font-style: italic; }
+
+  .menu-toggle { display: none; position: fixed; top: 14px; right: 14px; width: 42px; height: 42px; border-radius: 50%; border: none; background: var(--primary); color: white; cursor: pointer; z-index: 99; box-shadow: var(--shadow); font-size: 18px; }
+
+  /* === CONTENT === */
+  .content { padding: 40px 14px 80px; max-width: 760px; width: 100%; }
+  @media (max-width: 900px) { .content { padding: 64px 22px 80px; max-width: 100%; } }
+
+  .chapter { display: none; animation: slideIn 220ms var(--ease-out); }
+  .chapter.active { display: block; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .chap-meta { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; font-weight: 600; }
+  .chap-badge { background: var(--primary); color: white; padding: 3px 10px; border-radius: 4px; font-size: 11px; letter-spacing: 0.04em; }
+  .chap-time::before { content: "⏱ "; opacity: 0.7; }
+
+  h1 { font-size: 30px; font-weight: 700; color: var(--primary); line-height: 1.2; letter-spacing: 0; margin-bottom: 16px; }
+  .intro { font-size: 17px; line-height: 1.55; color: var(--text-soft); margin-bottom: 30px; font-weight: 400; }
+  h2 { font-size: 21px; font-weight: 650; color: var(--primary); margin: 34px 0 12px; letter-spacing: 0; }
+  h3 { font-size: 16px; font-weight: 650; color: var(--text); margin: 22px 0 8px; }
+  p { margin-bottom: 12px; color: var(--text-soft); }
+
+  code { background: var(--bg-soft); border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 13.5px; color: var(--primary); }
+  strong { color: var(--text); font-weight: 650; }
+  em { font-style: italic; color: var(--text-soft); }
+  ul, ol { margin: 10px 0 16px 24px; }
+  ul li, ol li { margin-bottom: 6px; color: var(--text-soft); }
+
+  .display-eq { background: var(--primary-softer); border-left: 3px solid var(--primary); padding: 14px 18px; margin: 14px 0; border-radius: 0 8px 8px 0; font-family: "SFMono-Regular", Menlo, monospace; font-size: 14px; color: var(--text); overflow-x: auto; line-height: 1.7; white-space: pre-wrap; }
+
+  figure { margin: 22px 0; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); transition: box-shadow var(--t), transform var(--t); }
+  figure:hover { box-shadow: var(--shadow-hover); }
+  figure img { display: block; width: 100%; height: auto; background: white; }
+  figcaption { padding: 12px 18px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); background: #fbfbfd; line-height: 1.5; }
+
+  .idea { background: var(--success-soft); border: 1px solid #c8e6c9; border-left: 4px solid var(--success); padding: 16px 18px; border-radius: 8px; margin: 26px 0; }
+  .idea-label { font-size: 11px; font-weight: 700; color: var(--success); text-transform: uppercase; letter-spacing: 0.08em; display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .idea-label::before { content: "💡"; font-size: 14px; }
+  .idea p { color: var(--text); margin-bottom: 6px; }
+  .idea p:last-child { margin-bottom: 0; }
+
+  .esempio { background: #e0f7fa; border: 1px solid #b2ebf2; border-left: 4px solid #00838f; padding: 14px 16px; border-radius: 8px; margin: 18px 0; font-size: 14px; }
+  .esempio-label { font-size: 11px; font-weight: 700; color: #00695c; text-transform: uppercase; letter-spacing: 0.08em; display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .esempio-label::before { content: "🔢"; font-size: 14px; }
+  .esempio p { color: var(--text); margin-bottom: 6px; }
+  .esempio ul { margin: 6px 0 6px 22px; }
+  .esempio li { color: var(--text); }
+
+  .nota { background: var(--bg-soft); border-radius: 8px; padding: 12px 16px; margin: 16px 0; font-size: 14px; color: var(--text-soft); border-left: 3px solid #bdbdbd; }
+  .nota .nota-label { font-weight: 700; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em; display: block; margin-bottom: 6px; }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
+  th, td { padding: 8px 11px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { font-weight: 650; color: var(--primary); background: var(--bg-soft); font-size: 12.5px; }
+  td { color: var(--text-soft); }
+  td strong { color: var(--text); }
+
+  /* Interactive widget */
+  .widget { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; margin: 24px 0; box-shadow: var(--shadow); }
+  .widget-title { font-size: 13px; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+  .widget-row { display: flex; align-items: center; gap: 14px; margin: 10px 0; }
+  .widget-row label { font-size: 13px; color: var(--muted); min-width: 90px; font-weight: 500; }
+  .widget-row input[type="range"] { flex: 1; accent-color: var(--primary); }
+  .widget-row .val { font-family: monospace; font-size: 14px; color: var(--primary); font-weight: 700; min-width: 90px; text-align: right; }
+  .bar-group { margin: 12px 0; }
+  .bar-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-soft); margin-bottom: 4px; }
+  .bar-label strong { font-family: monospace; color: var(--text); }
+  .bar { height: 20px; background: var(--bg-soft); border-radius: 6px; overflow: hidden; position: relative; }
+  .bar-fill { height: 100%; border-radius: 6px; transition: width 200ms ease-out; }
+  .bar-fill.quad { background: linear-gradient(90deg, #ef5350, #c62828); }
+  .bar-fill.linear { background: linear-gradient(90deg, #66bb6a, #2e7d32); }
+  .widget-note { margin-top: 12px; font-size: 12px; color: var(--muted); font-style: italic; }
+
+  /* Pipeline strip inline */
+  .pipe { display: flex; flex-wrap: wrap; gap: 5px; margin: 12px 0; align-items: center; }
+  .pipe-chip { padding: 3px 9px; font-size: 11px; border-radius: 999px; background: var(--bg-soft); color: var(--muted); font-weight: 500; }
+  .pipe-chip.on { background: var(--primary); color: white; font-weight: 700; }
+  .pipe-arr { color: #ccc; font-size: 10px; }
+
+  /* Nav buttons */
+  .nav-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 48px; padding-top: 22px; border-top: 1px solid var(--border); gap: 12px; flex-wrap: wrap; }
+  .btn { padding: 11px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: background-color var(--t), border-color var(--t), color var(--t), transform var(--t), box-shadow var(--t); font-family: inherit; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-secondary { background: var(--card); color: var(--text-soft); border: 1px solid var(--border); }
+  .btn-secondary:hover:not(:disabled) { background: var(--bg-soft); color: var(--primary); border-color: var(--primary); }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover:not(:disabled) { background: #283593; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,35,126,0.2); }
+  .btn:active:not(:disabled) { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .checkbox-done { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-soft); cursor: pointer; user-select: none; padding: 8px 14px; border-radius: 8px; transition: background-color var(--t), color var(--t), transform var(--t); }
+  .checkbox-done input { display: none; }
+  .checkbox-done .check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: background-color var(--t), border-color var(--t), color var(--t), transform var(--t); }
+  .checkbox-done input:checked + .check { background: var(--success); border-color: var(--success); color: white; }
+  .checkbox-done input:checked + .check::before { content: "✓"; font-weight: 700; }
+  .checkbox-done:hover { background: var(--bg-soft); }
+  .checkbox-done input:checked ~ .check-label { color: var(--success); font-weight: 600; }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<button class="menu-toggle" id="menuToggle" aria-label="Menu">☰</button>
+
+<div class="layout">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">Perceiver</div>
+    <div class="sub">Lezione interattiva</div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-label">
+      <span>Progresso</span>
+      <span id="progressText">0 / 14</span>
+    </div>
+    <ul class="toc" id="toc"></ul>
+    <div class="sidebar-foot">
+      Basato sulle dispense<br>
+      <code>appunti_ml_definitivo.pdf</code> e <code>perceiver_teoria_v2.pdf</code>
+      <br><br>
+      <button id="resetBtn">Resetta progresso</button>
+    </div>
+  </aside>
+
+  <main class="content" id="content">
+
+    <!-- ============ CAP 1 — Il problema ============ -->
+    <section class="chapter" data-chapter="1">
+      <div class="chap-meta"><span class="chap-badge">Cap. 1</span><span class="chap-time">~6 min</span></div>
+      <h1>Il problema della complessità quadratica</h1>
+      <p class="intro">Prima di capire <em>cos'è</em> il Perceiver, conviene capire <em>perché esiste</em>. Tutto parte da un limite fondamentale di due famiglie di reti che dominavano il deep learning.</p>
+
+      <h2>CNN: scalabili ma specializzate</h2>
+      <p>Le <strong>reti convoluzionali</strong> hanno un costo computazionale lineare nel numero di input — <code>O(MKL)</code>, dove M sono i pixel, K la dimensione del kernel, L i layer. Perfette per le immagini perché sfruttano la struttura 2D locale: i vicini sulla griglia contano, i lontani no.</p>
+      <p>Ed è proprio questo il loro limite. La convoluzione 2D presuppone una griglia regolare di pixel. Per l'audio serve una conv 1D, per il video conv 3D, per i point cloud architetture completamente diverse (PointNet, PointNet++). <strong>Cambiare dominio = riprogettare la rete da capo.</strong></p>
+
+      <h2>Transformer: generali ma quadratici</h2>
+      <p>Il <strong>Transformer</strong> ha un'unica primitiva — la <em>self-attention</em> — che funziona su qualsiasi sequenza di vettori. Non sa nulla di immagini, audio, testo: vede solo un insieme. Per questo è general-purpose.</p>
+      <p>Il prezzo? Ogni elemento confronta sé stesso con <em>tutti</em> gli altri. Per M input, la matrice di attenzione è <code>M×M</code> ⇒ costo <code>O(M²)</code>. Su testo (poche centinaia di token) gestibile. Su un'immagine ImageNet 224×224 (= <strong>50.176 pixel</strong>) la matrice avrebbe <strong>~2.5 miliardi di entry</strong>. Impraticabile.</p>
+
+      <div class="widget">
+        <div class="widget-title">Prova tu: come esplode la complessità</div>
+        <div class="widget-row">
+          <label for="cmpM">M (input)</label>
+          <input type="range" id="cmpM" min="100" max="50176" step="100" value="50176">
+          <span class="val" id="cmpMVal">50.176</span>
+        </div>
+        <div class="bar-group">
+          <div class="bar-label">Self-attention <strong>O(M²)</strong> <span id="cmpQuad"></span></div>
+          <div class="bar"><div class="bar-fill quad" id="cmpQuadBar" style="width:100%"></div></div>
+        </div>
+        <div class="bar-group">
+          <div class="bar-label">Cross-attention <strong>O(M·N)</strong> con N=512 <span id="cmpLin"></span></div>
+          <div class="bar"><div class="bar-fill linear" id="cmpLinBar" style="width:1%"></div></div>
+        </div>
+        <div class="widget-note">Sposta lo slider e vedi quanto cresce la differenza. Con M=50.176 e N=512 è ~100× di riduzione.</div>
+      </div>
+
+      <h2>La via d'uscita: latent bottleneck</h2>
+      <p>Il <strong>Perceiver</strong> prende il meglio di entrambi: la <em>generalità</em> del Transformer e la <em>scalabilità</em> delle CNN. Come? Introduce un <strong>latent bottleneck</strong>: un collo di bottiglia di dimensione fissa <code>N ≪ M</code> attraverso cui far passare l'input.</p>
+      <div class="display-eq">O(M²)  ⟶  O(MN) + O(N²)</div>
+      <p>Il costo dell'attenzione crolla. E poiché N è <em>fisso</em> (es. 512), il costo cresce solo <strong>linearmente</strong> in M. Stesso modello per immagini, audio, video, point cloud: non serve riprogettare niente.</p>
+
+      <figure id="visual-bottleneck">
+        <img src="./perceiver_assets/bottleneck.svg" alt="Schema del latent bottleneck del Perceiver">
+        <figcaption>Il Perceiver evita la self-attention diretta sull'input enorme: prima comprime tutto in N latenti fissi, poi spende profondita computazionale nello spazio latente.</figcaption>
+      </figure>
+
+      <div class="idea">
+        <div class="idea-label">Idea chiave</div>
+        <p>Un solo modello per tutte le modalità, a costo <strong>lineare</strong> nell'input. Il prezzo: l'input va prima <em>compresso</em> in N ≪ M latenti. Tutto il resto dell'architettura discende da questa scelta.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-1" disabled>← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="1"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-1">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 2 — Self vs Cross ============ -->
+    <section class="chapter" data-chapter="2">
+      <div class="chap-meta"><span class="chap-badge">Cap. 2</span><span class="chap-time">~5 min</span></div>
+      <h1>Dalla self- alla cross-attention</h1>
+      <p class="intro">Capito il problema (O(M²)), vediamo concretamente <em>come</em> il Perceiver lo aggira. La chiave è una piccola modifica all'attention.</p>
+
+      <h2>Self-attention: la versione classica</h2>
+      <p>Nel Transformer standard, Query, Key e Value sono <strong>tutti calcolati dallo stesso input X</strong>. Ogni token "guarda" tutti gli altri token, e il risultato è una matrice di attenzione <code>M×M</code> (quadrata).</p>
+
+      <h2>Cross-attention: l'asimmetria</h2>
+      <p>Il Perceiver introduce un <strong>secondo array</strong>: i <em>latenti</em> L. E qui sta il trucco:</p>
+      <ul>
+        <li>Le <strong>Query Q</strong> vengono dai latenti L (sono solo N, pochi).</li>
+        <li>Le <strong>Key K</strong> e i <strong>Value V</strong> continuano a venire dall'input X (sono M, tanti).</li>
+      </ul>
+      <p>Il prodotto <code>QKᵀ</code> diventa una matrice <strong>rettangolare</strong> <code>N×M</code>. Il costo crolla da <code>O(M²)</code> a <code>O(MN)</code>.</p>
+
+      <figure>
+        <img src="./appunti_images/media/image89.jpeg" alt="Self vs cross attention">
+        <figcaption>Self-Attention (sinistra): Q, K, V vengono tutti dallo stesso input X. Cross-Attention (destra): Q viene da un altro array (i latenti), K e V dall'input. È l'asimmetria delle <em>sorgenti</em> a definire la cross-attention.</figcaption>
+      </figure>
+
+      <h2>L'intuizione: Q, K, V come domanda-etichetta-contenuto</h2>
+      <div class="nota">
+        <span class="nota-label">Memorizza</span>
+        <strong>Q</strong> = una <em>domanda</em> ("cosa sto cercando?"). <strong>K</strong> = un'<em>etichetta</em> ("io rappresento questo"). <strong>V</strong> = il <em>contenuto</em> informativo. L'attenzione confronta ogni domanda con tutte le etichette e restituisce una media pesata dei contenuti più pertinenti.
+      </div>
+
+      <h2>I latenti non sono input, sono parametri</h2>
+      <p>Punto cruciale: i latenti <code>L ∈ ℝ^(N×D)</code> sono <strong>parametri appresi del modello</strong>, NON derivano dall'input. Sono "unità di memoria" — una base compatta che il modello usa per riassumere qualsiasi cosa gli si dia in pasto. Sono uguali per ogni esempio del batch e cambiano solo durante il training, mai durante l'inferenza.</p>
+
+      <table>
+        <thead><tr><th>Aspetto</th><th>Self-Attention</th><th>Cross-Attention (Perceiver)</th></tr></thead>
+        <tbody>
+          <tr><td>Sorgente Q</td><td>Input X (M token)</td><td><strong>Latenti L (N latenti)</strong></td></tr>
+          <tr><td>Sorgente K, V</td><td>Input X (M token)</td><td>Input X (M token)</td></tr>
+          <tr><td>Matrice attenzione</td><td>M×M (quadrata)</td><td><strong>N×M (rettangolare)</strong></td></tr>
+          <tr><td>Complessità</td><td>O(M²)</td><td><strong>O(MN), con N≪M</strong></td></tr>
+        </tbody>
+      </table>
+
+      <div class="idea">
+        <div class="idea-label">Idea chiave</div>
+        <p>La cross-attention è un piccolo gruppo di N latenti che "<strong>interroga</strong>" gli M elementi dell'input. L'asimmetria <code>N ≪ M</code> è ciò che rompe la quadraticità del Transformer.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-2">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="2"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-2">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 3 — Architettura ============ -->
+    <section class="chapter" data-chapter="3">
+      <div class="chap-meta"><span class="chap-badge">Cap. 3</span><span class="chap-time">~5 min</span></div>
+      <h1>L'architettura in tre stadi</h1>
+      <p class="intro">Hai capito il principio (cross-attention con latenti). Adesso vediamo come è organizzata <em>l'intera</em> rete.</p>
+
+      <figure>
+        <img src="./interactive_trainer/img/fig1_architecture.png" alt="Architettura del Perceiver">
+        <figcaption>Il Byte Array (M×C) entra da sinistra, viene letto dal Latent Array (N×D) tramite Cross-Attention, poi i latenti sono raffinati dal Latent Transformer, infine mediati (Average + Project) per produrre i Logits. I pesi sono condivisi tra le T iterazioni (linea tratteggiata in alto).</figcaption>
+      </figure>
+
+      <h2>I tre stadi</h2>
+      <ol>
+        <li><strong>Encoder a cross-attention</strong>: legge l'input enorme <code>X ∈ ℝ^(M×C_tot)</code> e lo <em>comprime</em> nel latent array <code>L ∈ ℝ^(N×D)</code>.</li>
+        <li><strong>Latent transformer</strong>: raffina L con <em>self-attention</em> profonda, interamente nello spazio compresso (N×D).</li>
+        <li><strong>Testa di pooling + classificazione</strong>: aggrega gli N latenti finali e produce i logit per le classi.</li>
+      </ol>
+      <p>Il blocco (encoder + latent transformer) viene poi <strong>ripetuto T volte</strong>: il modello "rilegge" l'input più volte, raffinando progressivamente i latenti. Vedremo questa ricorrenza al capitolo 9.</p>
+
+      <h2>Le due proprietà che lo definiscono</h2>
+      <p>Da questa scelta architettonica discendono i due tratti distintivi del Perceiver:</p>
+      <ul>
+        <li>Lo stesso modello gestisce modalità diverse (immagini, audio, point cloud, ...) <strong>senza modifiche</strong>.</li>
+        <li>La <strong>profondità della rete è disaccoppiata</strong> dalla lunghezza dell'input: puoi impilare layer nel latent transformer senza che il costo cresca con M.</li>
+      </ul>
+
+      <h2>I numeri di ImageNet (da tenere a mente)</h2>
+      <p>Questi sono i valori usati nel paper per la configurazione ImageNet — li incontrerai in tutto il forward pass:</p>
+      <table>
+        <thead><tr><th>Simbolo</th><th>Valore</th><th>Significato</th></tr></thead>
+        <tbody>
+          <tr><td><code>M</code></td><td><strong>50.176</strong></td><td>pixel di input (224×224)</td></tr>
+          <tr><td><code>C</code></td><td>3</td><td>canali grezzi (RGB)</td></tr>
+          <tr><td><code>C_tot</code></td><td><strong>261</strong></td><td>canali per pixel dopo Fourier (3 RGB + 258 Fourier)</td></tr>
+          <tr><td><code>N</code></td><td><strong>512</strong></td><td>numero di latenti (N ≪ M)</td></tr>
+          <tr><td><code>D</code></td><td><strong>1024</strong></td><td>dimensione di ogni latente</td></tr>
+          <tr><td><code>d_QKV</code></td><td>261</td><td>dim. interna cross-attention = min(D, C_tot)</td></tr>
+          <tr><td><code>T</code></td><td><strong>8</strong></td><td>iterazioni con weight sharing</td></tr>
+          <tr><td><code>ℓ</code></td><td>6</td><td>self-attention per blocco del latent transformer</td></tr>
+          <tr><td><code>H</code></td><td>8</td><td>teste self-attention (d_head = 128)</td></tr>
+          <tr><td><code>K</code></td><td>64</td><td>bande di frequenza Fourier per asse</td></tr>
+        </tbody>
+      </table>
+
+      <div class="idea">
+        <div class="idea-label">Idea chiave</div>
+        <p>Tre stadi: <em>encoder</em> (cross-att comprime) → <em>latent transformer</em> (self-att raffina nei latenti) → <em>pooling + classificatore</em>. Il blocco encoder+transformer si ripete T=8 volte con weight sharing.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-3">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="3"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-3">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 4 — Input: byte array ============ -->
+    <section class="chapter" data-chapter="4">
+      <div class="chap-meta"><span class="chap-badge">Cap. 4</span><span class="chap-time">~4 min</span></div>
+      <h1>Input: il byte array</h1>
+      <p class="intro">Iniziamo il forward pass. Il primo passo è trasformare un input grezzo (un'immagine, un waveform, un point cloud) in un formato che il Perceiver possa digerire <em>uniformemente</em>.</p>
+
+      <div class="pipe">
+        <span class="pipe-chip on">Input</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Fourier</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Latenti</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Cross-Att</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Latent Tr.</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">×T</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Pooling</span>
+      </div>
+
+      <h2>Rappresentazione uniforme: M × C</h2>
+      <p>Qualsiasi input viene "appiattito" in un <strong>byte array</strong> di forma <code>M × C</code>: M elementi, ciascuno con C canali. È una <em>rappresentazione uniforme</em>: lo stesso formato per ogni modalità — è da qui che nasce la generalità del Perceiver.</p>
+      <ul>
+        <li><strong>Immagine RGB 224×224</strong>: M = 224×224 = <strong>50.176</strong> pixel, C = 3 (R, G, B).</li>
+        <li><strong>Audio</strong>: M = numero di sample, C = 1 (mono) o 2 (stereo).</li>
+        <li><strong>Video</strong>: M = frame × pixel/frame, C = canali per pixel.</li>
+        <li><strong>Point cloud</strong>: M = numero di punti, C = 3 (coordinate x, y, z).</li>
+      </ul>
+      <p>Nessuna delle strutture domain-specific (convoluzioni 2D per immagini, mel-spectrogram per audio, ecc.) viene usata. Tutto è ridotto a una matrice di numeri.</p>
+
+      <h2>ImageNet: come si arriva al byte array</h2>
+      <p>Per un'immagine RGB <code>224 × 224</code>:</p>
+      <ol>
+        <li>Ogni pixel è rappresentato da 3 valori (canali RGB).</li>
+        <li>L'immagine può essere vista come matrice <code>[224 × 224] (M) × [3] (C)</code>.</li>
+        <li>Il numero totale di pixel è <code>224 × 224 = 50.176</code>.</li>
+        <li>Il numero totale di valori (byte) è <code>224 × 224 × 3 = 150.528</code>.</li>
+      </ol>
+      <p>L'immagine viene poi "linearizzata" (semplice <code>reshape</code> della griglia in una sequenza):</p>
+      <div class="display-eq">Byte Array = [ r₁, g₁, b₁,  r₂, g₂, b₂,  …,  r₅₀₁₇₆, g₅₀₁₇₆, b₅₀₁₇₆ ]</div>
+
+      <figure id="visual-byte-array">
+        <img src="./perceiver_assets/byte_array.svg" alt="Schema del byte array M per C">
+        <figcaption>Il byte array M×C: ogni riga è un elemento dell'input (un pixel) con i suoi C canali. Da qui si generano le Key K e i Value V per la cross-attention.</figcaption>
+      </figure>
+
+      <div class="esempio">
+        <div class="esempio-label">Checkpoint dimensioni — fine §1.4.1</div>
+        <p>A questo punto abbiamo l'immagine cruda organizzata come matrice:</p>
+        <table>
+          <thead><tr><th>Oggetto</th><th>Forma simbolica</th><th>ImageNet</th><th>Contenuto di una riga</th></tr></thead>
+          <tbody>
+            <tr><td>Byte array (grezzo)</td><td><code>M × C</code></td><td><code>50.176 × 3</code></td><td>R, G, B del pixel</td></tr>
+          </tbody>
+        </table>
+        <p>È solo il contenuto "cromatico" dei pixel. <strong>Manca l'informazione posizionale</strong>: questo byte array da solo, dato al Perceiver, non distinguerebbe due immagini che differiscono solo per una permutazione dei pixel. La prossima sezione aggiunge la posizione tramite Fourier features.</p>
+      </div>
+
+      <div class="idea">
+        <div class="idea-label">Idea chiave</div>
+        <p>Il byte array <code>M × C</code> è la <strong>lingua franca</strong> del Perceiver: qualunque sia la modalità di input (immagine, audio, video, point cloud), tutto finisce qui. Da questo formato uniforme nasce la generalità del modello.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-4">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="4"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-4">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 5 — Fourier features ============ -->
+    <section class="chapter" data-chapter="5">
+      <div class="chap-meta"><span class="chap-badge">Cap. 5</span><span class="chap-time">~7 min</span></div>
+      <h1>Positional encoding: le Fourier features</h1>
+      <p class="intro">Il byte array dice <em>cosa</em> contiene ogni elemento, ma non <em>dove</em> si trova. È un problema, perché l'attention è cieca alla posizione. Le Fourier features risolvono il problema in modo elegante.</p>
+
+      <div class="pipe">
+        <span class="pipe-chip">Input</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip on">Fourier</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Latenti</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Cross-Att</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Latent Tr.</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">×T</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Pooling</span>
+      </div>
+
+      <h2>Il problema: l'attention è cieca alla posizione</h2>
+      <p>Un pixel con valore <code>[R, G, B]</code> contiene solo informazione di colore, ma <strong>non contiene informazione di posizione</strong>. Senza posizione, il modello non potrebbe distinguere due immagini identiche ma traslate, né accorgersi che permutare i pixel cambia l'immagine.</p>
+      <p>Per il Transformer su testo, il problema è risolto con sinusoidi sommate agli embedding. Per il Perceiver — che lavora su modalità arbitrarie — serve una soluzione più flessibile.</p>
+
+      <h2>La soluzione: Fourier features</h2>
+      <p>Le <strong>Fourier features</strong> sono una tecnica di mappatura che trasforma una posizione scalare (o vettoriale) <code>x</code> in uno spazio ad alta dimensione applicando seno e coseno a K frequenze diverse.</p>
+      <p>Formalmente, per ogni dimensione spaziale <code>d</code>, dato il valore di coordinata <code>x_d ∈ [-1, 1]</code>:</p>
+      <div class="display-eq">PE(x_d) = [ sin(f₁·π·x_d), cos(f₁·π·x_d), …, sin(f_K·π·x_d), cos(f_K·π·x_d),  x_d ]</div>
+      <p>cioè: <strong>2K valori sinusoidali</strong> (K frequenze, ognuna con sin e cos) <strong>+ 1 coordinata grezza</strong>. Le basse frequenze catturano posizioni globali ("metà sinistra vs destra"), le alte catturano posizioni precise.</p>
+
+      <figure>
+        <img src="./appunti_images/papers/fig_positional_encoding.png" alt="Positional encoding plot">
+        <figcaption>Le Fourier features mappano una posizione scalare in un vettore di sinusoidi a frequenze multiple: le basse frequenze catturano la posizione globale, le alte i dettagli fini.</figcaption>
+      </figure>
+
+      <h2>Tre scelte di design da memorizzare</h2>
+
+      <h3>1. Frequenze linearly spaced (non esponenziali come NeRF)</h3>
+      <p>Le frequenze <code>f_k</code> sono <strong>linearly spaced</strong> tra 1 e <code>μ/2</code>, dove <code>μ/2</code> è la <strong>frequenza di Nyquist</strong> corrispondente al sampling rate di riferimento. Per ImageNet 224×224: <code>μ = 224</code>, <code>μ/2 = 112</code>.</p>
+      <p>NeRF (Mildenhall et al., 2020) usa invece frequenze <em>esponenziali</em>: <code>f_k = 2^k</code>. Perché il Perceiver non le usa?</p>
+      <div class="nota">
+        <span class="nota-label">Citazione dal paper (App. D)</span>
+        "<em>la parametrizzazione NeRF produce frequenze molto alte anche con un numero moderato di bande — ad esempio la 64-esima banda avrebbe frequenza 2⁶⁴ ≈ 1.8×10¹⁹</em>". Con K=64 bande, NeRF darebbe numeri ingestibili. Il paper riporta <strong>instabilità di training</strong> già oltre k≈15 con la parametrizzazione esponenziale.
+      </div>
+
+      <h3>2. Si concatena anche la coordinata grezza x_d</h3>
+      <p>Le Fourier features (sin/cos) sono <strong>periodiche</strong>: frequenze alte possono mappare posizioni diverse nello stesso valore (ambiguità). Concatenando il valore grezzo <code>x_d</code> (che è <em>unico</em> per ogni posizione), il modello ha sempre accesso alla posizione esatta, senza ambiguità.</p>
+      <p>Le sinusoidi forniscono sensibilità multi-scala; il valore grezzo fornisce l'<strong>identità posizionale</strong>.</p>
+
+      <h3>3. Si concatena al colore, non si somma</h3>
+      <p>Perché concatenare e non sommare? Perché la <em>concatenazione</em> preserva l'informazione di colore e posizione <strong>separatamente</strong>, mentre la somma le mescolerebbe in modo ambiguo. I Transformer per il linguaggio invece sommano il positional encoding agli embedding — il Perceiver fa la scelta opposta.</p>
+
+      <h2>Il calcolo di C_tot = 261</h2>
+      <div class="widget">
+        <div class="widget-title">Calcolatore di C_tot</div>
+        <div class="widget-row">
+          <label for="fK">K (bande)</label>
+          <input type="range" id="fK" min="1" max="128" value="64">
+          <span class="val" id="fKVal">64</span>
+        </div>
+        <div class="widget-row">
+          <label for="fD">d (assi spaziali)</label>
+          <input type="range" id="fD" min="1" max="3" value="2">
+          <span class="val" id="fDVal">2</span>
+        </div>
+        <div class="widget-row">
+          <label for="fC">C (canali grezzi)</label>
+          <input type="range" id="fC" min="1" max="10" value="3">
+          <span class="val" id="fCVal">3</span>
+        </div>
+        <div class="display-eq" id="fResult">C_tot = 3 + 2·(2·64 + 1) = 3 + 258 = 261</div>
+        <div class="widget-note">Per ImageNet (immagine 2D RGB con K=64): C_tot=261. Per audio 1D mono con K=64: 130. Per point cloud 3D con K=64: 387.</div>
+      </div>
+
+      <div class="esempio">
+        <div class="esempio-label">Esempio concreto: un pixel rosso in posizione (0.3, 0.7)</div>
+        <ul>
+          <li>Canali RGB: <code>[255, 0, 0]</code> (normalizzati: <code>[1.0, 0, 0]</code>).</li>
+          <li>Posizione normalizzata: <code>(x, y) = (0.3, 0.7)</code>.</li>
+          <li>Fourier per x=0.3 con 3 frequenze illustrative (f₁=1, f₂=2, f₃=4):
+            <div class="display-eq" style="background:white;font-size:12px;">[0.3, sin(0.3π), cos(0.3π), sin(0.6π), cos(0.6π), sin(1.2π), cos(1.2π)]
+= [0.3, 0.809, 0.588, 0.951, -0.309, -0.588, 0.809]</div>
+          </li>
+          <li>Analogamente per y=0.7.</li>
+          <li>Vettore finale: <code>[1.0, 0, 0, 0.3, 0.809, …, 0.7, …] ∈ ℝ²⁶¹</code></li>
+        </ul>
+      </div>
+
+      <div class="esempio">
+        <div class="esempio-label">Checkpoint dimensioni — fine §1.4.2</div>
+        <p>Dopo l'aggiunta delle Fourier features, ogni pixel è descritto da C_tot=261 numeri invece di C=3:</p>
+        <table>
+          <thead><tr><th>Oggetto</th><th>Forma</th><th>ImageNet</th><th>Contenuto</th></tr></thead>
+          <tbody>
+            <tr><td>Byte array (grezzo)</td><td>M × C</td><td>50.176 × 3</td><td>RGB</td></tr>
+            <tr><td><strong>Byte array X (con Fourier PE)</strong></td><td><strong>M × C_tot</strong></td><td><strong>50.176 × 261</strong></td><td>3 RGB + 258 Fourier</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="idea">
+        <div class="idea-label">Idea chiave</div>
+        <p>Le Fourier features danno al modello la <strong>posizione</strong>. È questa scelta — non l'architettura in sé — a rendere il Perceiver <strong>invariante alle permutazioni</strong> dei pixel: la posizione viaggia <em>dentro</em> l'input, non nell'ordine degli indici. Lo vedremo concretamente al capitolo 12.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-5">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="5"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-5">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 6 — Latent array ============ -->
+    <section class="chapter" data-chapter="6">
+      <div class="chap-meta"><span class="chap-badge">Cap. 6</span><span class="chap-time">~4 min</span></div>
+      <h1>Il latent array</h1>
+      <p class="intro">Adesso abbiamo l'input pronto (byte array + Fourier). Manca l'altro protagonista: il latent array, che la cross-attention metterà in comunicazione con l'input.</p>
+
+      <div class="pipe">
+        <span class="pipe-chip">Input</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Fourier</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip on">Latenti</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Cross-Att</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Latent Tr.</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">×T</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Pooling</span>
+      </div>
+
+      <h2>Una matrice di parametri appresi</h2>
+      <p>Il <strong>latent array</strong> <code>L ∈ ℝ^(N×D)</code> è una matrice di N vettori latenti. Per ImageNet: <code>512 × 1024</code>. È <strong>interamente appresa</strong>: sono parametri del modello, esattamente come i pesi di una conv layer o di un linear layer.</p>
+      <ul>
+        <li><strong>N</strong> = numero di latenti (slot, "unità di memoria"). Per ImageNet: 512.</li>
+        <li><strong>D</strong> = dimensione del canale/embedding di ogni latente. Per ImageNet: 1024.</li>
+      </ul>
+      <p>Questi vettori <strong>non derivano</strong> direttamente dall'input e <strong>non hanno legame spaziale</strong> con token/pixel specifici: sono una <em>base compatta</em> che il modello usa per <em>riassumere</em> l'input.</p>
+
+      <div class="nota">
+        <span class="nota-label">Attenzione</span>
+        I latenti sono uguali per ogni esempio del batch e cambiano solo durante il training (mai durante l'inferenza). Pensali come una base compatta condivisa, non come un input.
+      </div>
+
+      <figure id="visual-latent-array">
+        <img src="./perceiver_assets/latent_array.svg" alt="Schema del latent array appreso">
+        <figcaption>Il latent array N×D: matrice appresa che genera le Query Q per la cross-attention.</figcaption>
+      </figure>
+
+      <h2>Inizializzazione: piccolo è meglio</h2>
+      <p>Ogni elemento di L è campionato da una gaussiana <em>stretta</em>:</p>
+      <div class="display-eq">L_ij ~ 𝒩(0, 0.02²),    troncata a [-2, 2]</div>
+      <p>I valori partono quasi tutti minuscoli (~±0.02). <strong>Perché così piccoli?</strong></p>
+      <ul>
+        <li><strong>Stabilità dei gradienti</strong>: se i latenti partissero con valori grandi, i prodotti <code>QKᵀ</code> sarebbero enormi, la softmax saturerebbe, e i gradienti diventerebbero instabili.</li>
+        <li><strong>Neutralità</strong>: media zero significa che nessun latente ha un "vantaggio" iniziale su un altro.</li>
+        <li><strong>Sicurezza numerica</strong>: il troncamento a [-2, 2] esiste per sicurezza, ma con σ=0.02 è rarissimo che si producano valori oltre 0.1.</li>
+        <li><strong>Specializzazione graduale</strong>: partendo con valori piccoli e neutri, i latenti vengono "riempiti" progressivamente dall'informazione dell'input, e col tempo ciascuno si specializza (bordi, colori, texture, pattern globali...).</li>
+      </ul>
+
+      <h2>I due array che si incontrano</h2>
+      <p>A questo punto abbiamo gli ingredienti che la cross-attention combinerà:</p>
+      <table>
+        <thead><tr><th>Oggetto</th><th>Forma</th><th>ImageNet</th><th>Natura</th></tr></thead>
+        <tbody>
+          <tr><td>Byte array X</td><td>M × C_tot</td><td>50.176 × 261</td><td>input (3 RGB + 258 Fourier)</td></tr>
+          <tr><td><strong>Latent array L</strong></td><td><strong>N × D</strong></td><td><strong>512 × 1024</strong></td><td>parametri appresi, init 𝒩(0, 0.02²) troncata</td></tr>
+        </tbody>
+      </table>
+      <p>Osservazioni chiave:</p>
+      <ul>
+        <li>Le due matrici hanno <strong>dimensione-feature diversa</strong> (261 vs 1024). Sarà la cross-attention a farle incontrare in uno spazio comune (<code>d_QKV = min = 261</code>).</li>
+        <li>Il <strong>numero di righe</strong> è molto diverso (50.176 vs 512): è questa asimmetria che dà <code>O(MN)</code> invece di <code>O(M²)</code>.</li>
+        <li>Il vincolo fondamentale: <code>N ≪ M</code>. Qui N/M = 512/50.176 ≈ 1%.</li>
+      </ul>
+
+      <div class="idea">
+        <div class="idea-label">Idea chiave</div>
+        <p>I latenti sono <strong>parametri</strong>, non dati. Il loro numero N è fisso e piccolo (512). Il loro contenuto è imparato dal training. È questa asimmetria <code>N ≪ M</code> a dare al Perceiver tutta la sua efficienza.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-6">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="6"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-6">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 7 — Cross-attention block ============ -->
+    <section class="chapter" data-chapter="7">
+      <div class="chap-meta"><span class="chap-badge">Cap. 7</span><span class="chap-time">~9 min</span></div>
+      <h1>Il blocco di cross-attention</h1>
+      <p class="intro">Il cuore del Perceiver. Vediamo passo per passo come gli N latenti "leggono" gli M elementi dell'input. È il capitolo più tecnico della lezione.</p>
+
+      <div class="pipe">
+        <span class="pipe-chip">Input</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Fourier</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Latenti</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip on">Cross-Att</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Latent Tr.</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">×T</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Pooling</span>
+      </div>
+
+      <figure>
+        <img src="./appunti_images/media/image43.png" alt="Cross-attention 3 step">
+        <figcaption>I 3 step della cross-attention: (1) calcolo delle matrici Q, K, V dalle due sorgenti diverse; (2) mappa di attenzione rettangolare N×M; (3) aggregazione delle feature F=A·V.</figcaption>
+      </figure>
+
+      <h2>Passo 1 — LayerNorm pre-attention</h2>
+      <p>Prima di ogni cosa, entrambi gli array (X e L) attraversano una <strong>LayerNorm</strong>. La LN normalizza ogni riga (ogni pixel, ogni latente) a media 0 e varianza 1, poi applica due parametri appresi γ e β. Niente di magico: stabilizza i valori che entrano nell'attention.</p>
+      <div class="display-eq">x̂_j = γ_j · (x_j - μ) / (σ + ε) + β_j    (ε ≈ 10⁻⁵)</div>
+      <div class="nota">
+        <span class="nota-label">Pre-norm</span>
+        Il Perceiver usa il pattern <em>pre-norm</em> (paper App. C): la LN è applicata <strong>prima</strong> del blocco (non dopo). Così il residuo resta un percorso "pulito" su cui il gradiente fluisce senza attraversare la LN ⇒ training stabile su reti profonde. Lo stesso schema di GPT-2.
+      </div>
+
+      <h2>Passo 2 — dimensione interna d_QKV</h2>
+      <p>Q, K, V devono avere la stessa dimensione-feature per poter fare il prodotto <code>QKᵀ</code>. Si sceglie:</p>
+      <div class="display-eq">d_QKV = min(D, C_tot) = min(1024, 261) = 261</div>
+      <p><strong>Perché il minimo?</strong> L'input ha già solo 261 canali: proiettare K e V in dimensione maggiore (es. 1024) non aggiungerebbe informazione, sarebbe spreco di parametri e FLOPs. Scegliere il minimo tiene Q, K, V in dimensione compatta e usa 1024 solo dove serve davvero (come spazio dei latenti).</p>
+
+      <h2>Passo 3 — proiezioni Q, K, V</h2>
+      <p>Tre matrici di pesi apprese, <strong>senza bias</strong> (paper App. C: "linear layers" senza bias):</p>
+      <div class="display-eq">Q = L̃ · W_Q,    W_Q ∈ ℝ^(D × d_QKV)   = ℝ^(1024 × 261)    ⇒  Q ∈ ℝ^(512 × 261)      (dai latenti)
+K = X̃ · W_K,    W_K ∈ ℝ^(C_tot × d_QKV) = ℝ^(261 × 261)    ⇒  K ∈ ℝ^(50.176 × 261)   (dall'input)
+V = X̃ · W_V,    W_V ∈ ℝ^(C_tot × d_QKV) = ℝ^(261 × 261)    ⇒  V ∈ ℝ^(50.176 × 261)   (dall'input)</div>
+      <p>Le matrici W sono <strong>apprese</strong>: imparano a produrre query, key e value "ottimali" per il matching (riduzione di feature rumorose, ecc.). Inizializzate con Xavier Uniform.</p>
+      <p><strong>L'asimmetria chiave</strong>: Q ha poche righe (N=512), K e V ne hanno tante (M=50.176). Stessa dimensione-feature (261), ma forma molto diversa. È da qui che nascerà la matrice rettangolare N×M.</p>
+
+      <h2>Passo 4 — scaled dot-product attention</h2>
+      <p>Quattro operazioni combinano Q, K, V:</p>
+      <div class="display-eq">(a) score:        S  = Q · Kᵀ              ∈ ℝ^(512 × 50.176)
+(b) scaling:      S' = S / √d_QKV  =  S/√261 ≈ S/16
+(c) softmax:      A_ij = e^(S'_ij) / Σₖ e^(S'_ik)  ∈ ℝ^(512 × 50.176)
+(d) aggregazione: F = A · V         ∈ ℝ^(512 × 261)</div>
+
+      <h3>(a) Score: prodotto QKᵀ</h3>
+      <p>Misuriamo la <em>compatibilità</em> tra ogni query e ogni key. Due vettori allineati ⇒ score alto. Due vettori in direzioni diverse ⇒ score basso. La matrice risultante è 512×50.176: ogni riga è un latente, ogni colonna un pixel, e l'entry <code>(i,j)</code> dice "quanto il latente <em>i</em> trova interessante il pixel <em>j</em>".</p>
+
+      <h3>(b) Perché lo scaling per √d_QKV?</h3>
+      <p>Senza scaling, gli score avrebbero deviazione standard ≈ <code>√d_QKV ≈ 16</code> (dopo LayerNorm Q e K hanno varianza 1, e sommare 261 prodotti porta la varianza a 261). La softmax saturerebbe (tutta la massa su un solo pixel) e i gradienti si annullerebbero. Dividendo per √d_QKV si riporta la varianza degli score a ~1.</p>
+
+      <h3>(c) Softmax per riga</h3>
+      <p>La softmax (applicata <em>indipendentemente a ciascuna riga</em>) trasforma score reali in probabilità: tutti i valori in [0,1], sommano a 1 su ogni riga. Ogni latente ottiene così un "budget di attenzione" da distribuire sui 50.176 pixel.</p>
+
+      <h3>(d) Aggregazione: F = A·V</h3>
+      <p>Ogni latente diventa una <strong>media pesata</strong> dei Value dell'input, secondo i pesi A calcolati nello step (c). Output: F ∈ ℝ^(512 × 261).</p>
+
+      <figure id="visual-attention-pipeline">
+        <img src="./perceiver_assets/attention_pipeline.svg" alt="Pipeline della scaled dot-product attention">
+        <figcaption>Pipeline della scaled dot-product attention: prodotto QKᵀ, scaling per √d_QKV, softmax per riga, prodotto finale con V. (Il passo "Mask" non è usato: il Perceiver è non-causale.)</figcaption>
+      </figure>
+
+      <h2>Passo 5 — output projection + residual</h2>
+      <p>F vive in dimensione 261 (la dim di d_QKV). Va riportato a D=1024 per poterlo sommare ai latenti:</p>
+      <div class="display-eq">Z' = F · W_o + b_o,    W_o ∈ ℝ^(261 × 1024)  ⇒  Z' ∈ ℝ^(512 × 1024)
+L' = L + Z'                     (residual connection)</div>
+
+      <h2>Passo 6 — MLP (feed-forward)</h2>
+      <p>Pre-norm, espansione a 4D, attivazione GELU, compressione, residual:</p>
+      <div class="display-eq">L̃' = LN(L')
+H  = L̃' · W₁ + b₁,    W₁ ∈ ℝ^(1024 × 4096),  H ∈ ℝ^(512 × 4096)
+H' = GELU(H)
+φ  = H' · W₂ + b₂,    W₂ ∈ ℝ^(4096 × 1024)
+L̂  = L' + φ                    (residual finale)</div>
+      <p>L'espansione a 4D=4096 e il pattern hidden=4× sono standard GPT-2. Output finale del blocco:</p>
+      <div class="display-eq">L̂ ∈ ℝ^(512 × 1024)    — stessa forma di L</div>
+
+      <h2>Riepilogo: il blocco completo</h2>
+      <table>
+        <thead><tr><th>#</th><th>Operazione</th><th>Formula</th><th>Dimensione</th></tr></thead>
+        <tbody>
+          <tr><td colspan="4"><strong>Cross-Attention</strong></td></tr>
+          <tr><td>1</td><td>LayerNorm pre-att.</td><td>L̃ = LN(L), X̃ = LN(X)</td><td>invariate</td></tr>
+          <tr><td>2</td><td>Q</td><td>Q = L̃·W_Q, W_Q ∈ 1024×261</td><td>512×261</td></tr>
+          <tr><td>2</td><td>K</td><td>K = X̃·W_K, W_K ∈ 261×261</td><td>50176×261</td></tr>
+          <tr><td>2</td><td>V</td><td>V = X̃·W_V, W_V ∈ 261×261</td><td>50176×261</td></tr>
+          <tr><td>3</td><td>Scaled scores</td><td>S = QKᵀ/√261</td><td>512×50176</td></tr>
+          <tr><td>4</td><td>Softmax</td><td>A_ij = e^S_ij / Σ e^S_ik</td><td>512×50176</td></tr>
+          <tr><td>5</td><td>Aggregazione</td><td>F = A·V</td><td>512×261</td></tr>
+          <tr><td>6</td><td>Output projection</td><td>Z' = F·W_o + b_o</td><td>512×1024</td></tr>
+          <tr><td>7</td><td>Residual</td><td>L' = L + Z'</td><td>512×1024</td></tr>
+          <tr><td colspan="4"><strong>MLP (pre-norm, GELU, hidden 4D)</strong></td></tr>
+          <tr><td>8</td><td>LN pre-MLP</td><td>L̃' = LN(L')</td><td>512×1024</td></tr>
+          <tr><td>9</td><td>Espansione + GELU</td><td>H' = GELU(L̃'·W₁ + b₁)</td><td>512×4096</td></tr>
+          <tr><td>9</td><td>Compressione</td><td>φ = H'·W₂ + b₂</td><td>512×1024</td></tr>
+          <tr><td>10</td><td>Residual post-MLP</td><td>L̂ = L' + φ</td><td>512×1024</td></tr>
+        </tbody>
+      </table>
+
+      <div class="idea">
+        <div class="idea-label">Idea chiave</div>
+        <p>Output del blocco: <strong>stessa forma di L</strong> (<code>512×1024</code>). Il blocco non cambia la dimensione del latent array, solo il suo <em>contenuto</em> — ora arricchito dell'informazione letta dall'input. È questa invarianza dimensionale che permette di ripetere il blocco T volte (cap. 9).</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-7">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="7"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-7">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 8 — Latent transformer ============ -->
+    <section class="chapter" data-chapter="8">
+      <div class="chap-meta"><span class="chap-badge">Cap. 8</span><span class="chap-time">~5 min</span></div>
+      <h1>Il latent transformer</h1>
+      <p class="intro">Dopo la cross-attention, i latenti contengono l'informazione dell'input. Adesso viene la parte "di pensiero" della rete: il latent transformer raffina i latenti facendoli comunicare tra loro.</p>
+
+      <div class="pipe">
+        <span class="pipe-chip">Input</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Fourier</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Latenti</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Cross-Att</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip on">Latent Tr.</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">×T</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Pooling</span>
+      </div>
+
+      <h2>Self-attention sui soli latenti</h2>
+      <p>Il latent transformer è una pila di <code>ℓ = 6</code> blocchi di <strong>self-attention</strong> che operano <em>solo sui latenti</em> (N×D), senza più toccare l'input. Qui i latenti "comunicano tra loro": è il passo che <em>integra</em> l'informazione raccolta dalla cross-attention.</p>
+
+      <figure>
+        <img src="./appunti_images/papers/perceiver_orig_fig1_full.png" alt="Latent transformer nel Perceiver">
+        <figcaption>Il latent transformer si alterna alla cross-attention e opera <em>solo</em> sui latenti tramite self-attention profonda (Jaegle et al., 2021, Fig. 1).</figcaption>
+      </figure>
+
+      <h2>Multi-head self-attention</h2>
+      <p>Qui <strong>Q, K, V vengono tutti dai latenti</strong> (non dall'input):</p>
+      <div class="display-eq">Q = L̃ · W_q,   K = L̃ · W_k,   V = L̃ · W_v    (W ∈ ℝ^(1024 × 128) per testa)
+A = softmax( QKᵀ / √d_head ) ∈ ℝ^(512 × 512)</div>
+      <p>La matrice di attenzione è <strong>quadrata</strong> N×N = 512×512, ma piccola: costo <code>O(N²)</code> trascurabile grazie al bottleneck. Il modello usa <strong>H=8 teste</strong> in parallelo, ciascuna in dimensione <code>d_head = D/H = 128</code>.</p>
+
+      <div class="nota">
+        <span class="nota-label">Perché multi-head</span>
+        Invece di una sola attention in dimensione D=1024, se ne calcolano 8 in parallelo, ciascuna in dimensione 128. Ogni testa può specializzarsi su un tipo di relazione diverso (es. una guarda pattern locali, un'altra globali). I risultati si concatenano: il costo totale resta lo stesso di una singola attention in dimensione D.
+      </div>
+
+      <h2>Architettura GPT-2</h2>
+      <p>La struttura di ogni blocco del latent transformer è quella standard del decoder GPT-2 (Radford et al. 2019):</p>
+      <ol>
+        <li>LayerNorm</li>
+        <li>Multi-head self-attention</li>
+        <li>Residual connection</li>
+        <li>LayerNorm</li>
+        <li>MLP (hidden 4D, GELU)</li>
+        <li>Residual connection</li>
+      </ol>
+      <p>Non causale (niente maschere): ogni latente può vedere tutti gli altri liberamente. Il blocco è ripetuto ℓ=6 volte all'interno del latent transformer.</p>
+
+      <h2>Cross-attention vs latent transformer: il confronto</h2>
+      <table>
+        <thead><tr><th>Aspetto</th><th>Cross-Attention</th><th>Latent Transformer</th></tr></thead>
+        <tbody>
+          <tr><td>Sorgente Q</td><td>latenti</td><td>latenti</td></tr>
+          <tr><td>Sorgente K, V</td><td><strong>input X</strong></td><td><strong>latenti</strong></td></tr>
+          <tr><td>Tipo</td><td>cross-attention</td><td>self-attention</td></tr>
+          <tr><td>Dim. interna</td><td>d_QKV = 261</td><td>D = 1024 (8 teste × 128)</td></tr>
+          <tr><td>Matrice attenzione</td><td>512×50.176 (rettangolare)</td><td>512×512 (quadrata)</td></tr>
+          <tr><td>Costo</td><td>O(MN)</td><td>O(N²) — piccolo</td></tr>
+        </tbody>
+      </table>
+
+      <div class="idea">
+        <div class="idea-label">Idea chiave</div>
+        <p>La <strong>profondità</strong> del modello vive qui, nello spazio latente compresso. Impilare molti layer costa <code>O(N²)</code>, <em>non</em> <code>O(M²)</code>. Ecco perché la profondità della rete è <strong>disaccoppiata</strong> dalla dimensione dell'input — uno dei punti chiave del paper.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-8">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="8"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-8">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 9 — Weight sharing ============ -->
+    <section class="chapter" data-chapter="9">
+      <div class="chap-meta"><span class="chap-badge">Cap. 9</span><span class="chap-time">~6 min</span></div>
+      <h1>Weight sharing e iterazioni</h1>
+      <p class="intro">Una delle idee più importanti del Perceiver: il blocco cross-attention + latent transformer non viene applicato una volta sola, ma <strong>ripetuto T volte</strong> condividendo i pesi. Questo trasforma il modello in qualcosa di sorprendente.</p>
+
+      <div class="pipe">
+        <span class="pipe-chip">Input</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Fourier</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Latenti</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Cross-Att</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Latent Tr.</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip on">×T</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Pooling</span>
+      </div>
+
+      <h2>T iterazioni con pesi condivisi</h2>
+      <p>Il blocco (cross-att + latent transf) viene riapplicato <strong>T = 8 volte</strong> agli stessi latenti, condividendo i pesi tra le iterazioni — con un'eccezione importante: <strong>il primo blocco ha pesi propri</strong>.</p>
+
+      <figure>
+        <img src="./appunti_images/media/image75.png" alt="Weight sharing">
+        <figcaption>Il Perceiver completo con weight sharing (Jaegle et al., 2021, Fig. 1). I blocchi Cross-Attention e Latent Transformer si ripetono T volte condividendo i pesi (linee tratteggiate in alto).</figcaption>
+      </figure>
+
+      <div class="nota">
+        <span class="nota-label">Perché il primo blocco è escluso</span>
+        Alla prima iterazione i latenti sono "neutri" (init <code>𝒩(0, 0.02²)</code>); dalla seconda in poi sono già "popolati" di informazione. Due regimi così diversi non possono condividere gli stessi pesi senza causare <strong>instabilità di training</strong>. Quindi CA₁ e LT₁ hanno pesi unici; CA₂...CA_T e LT₂...LT_T condividono ciascuno un set di pesi.
+      </div>
+
+      <h2>Formalmente è un RNN</h2>
+      <p>Questa struttura ha una forma matematica precisa: il Perceiver con weight sharing è <strong>formalmente un RNN</strong>.</p>
+      <table>
+        <thead><tr><th>Componente RNN</th><th>Nel Perceiver</th></tr></thead>
+        <tbody>
+          <tr><td>Stato ricorrente</td><td>latent array <code>L^(t)</code> (dim fissa 512×1024)</td></tr>
+          <tr><td>Input (costante nel tempo)</td><td>byte array <code>X</code></td></tr>
+          <tr><td>Funzione di transizione</td><td>il blocco shared (cross-att + latent transf)</td></tr>
+          <tr><td>Stato iniziale</td><td>L^(0) (parametro appreso)</td></tr>
+        </tbody>
+      </table>
+      <p>A differenza di un RNN classico, però, a <em>ogni</em> passo i latenti accedono all'<strong>intero input simultaneamente</strong>, non a un elemento alla volta. È un RNN che "rilegge tutto" ogni volta.</p>
+
+      <h2>L'effetto: meno parametri, più accuratezza</h2>
+      <p>Il weight sharing non è solo un'ottimizzazione: è un <strong>regolarizzatore potente</strong>. Dal Tab. 7 del paper:</p>
+      <table>
+        <thead><tr><th>Configurazione</th><th>Parametri</th><th>Train</th><th>Val</th><th>Gap</th></tr></thead>
+        <tbody>
+          <tr><td>Senza weight sharing</td><td>~326M</td><td>87.7%</td><td>72.9%</td><td>−14.8% (forte overfitting)</td></tr>
+          <tr><td><strong>Con weight sharing</strong></td><td><strong>~45M</strong></td><td>79.5%</td><td><strong>78.0%</strong></td><td>−1.5% (no overfitting)</td></tr>
+        </tbody>
+      </table>
+      <p>⇒ <strong>~7× meno parametri E +5.1% di accuracy</strong>. Senza sharing il modello memorizza troppo (gap train/val di 14.8%); con sharing il gap si riduce a 1.5%. Costringendo il modello a usare lo stesso "modulo di raffinamento" in tutte le iterazioni, si forza una generalizzazione migliore.</p>
+
+      <h2>Cosa succede nel backward pass</h2>
+      <div class="esempio">
+        <div class="esempio-label">Esempio numerico — gradienti di un peso condiviso</div>
+        <p>Sia <code>w = 2.0</code> un peso condiviso tra le iterazioni <code>t=2</code> e <code>t=3</code>. Nel backward ogni istanza produce un contributo:</p>
+        <div class="display-eq" style="background:white;">∂L/∂w⁽²⁾ = −0.3,    ∂L/∂w⁽³⁾ = +0.1</div>
+        <p>I contributi si <strong>sommano</strong> (come in un RNN srotolato — BPTT, back-propagation through time):</p>
+        <div class="display-eq" style="background:white;">∂L/∂w_sh = −0.3 + 0.1 = −0.2</div>
+        <p>Con learning rate <code>η = 0.01</code>:</p>
+        <div class="display-eq" style="background:white;">w ← w − η · (−0.2) = 2.0 + 0.002 = <strong>2.002</strong></div>
+        <p>In PyTorch questo accade automaticamente: quando più nodi del grafo computazionale puntano allo stesso <code>nn.Parameter</code>, i gradienti calcolati in <code>backward()</code> vengono accumulati sul <code>.grad</code> del parametro.</p>
+      </div>
+
+      <div class="idea">
+        <div class="idea-label">Idea chiave</div>
+        <p>Il weight sharing trasforma il Perceiver in un <strong>RNN</strong> che raffina <em>progressivamente</em> i latenti, rileggendo l'input T volte con lo stesso "modulo di raffinamento". Agisce da <strong>regolarizzatore</strong>: meno parametri, niente overfitting, più accuratezza.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-9">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="9"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-9">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 10 — Output ============ -->
+    <section class="chapter" data-chapter="10">
+      <div class="chap-meta"><span class="chap-badge">Cap. 10</span><span class="chap-time">~3 min</span></div>
+      <h1>Output: pooling e classificatore</h1>
+      <p class="intro">Dopo T iterazioni di raffinamento, dai latenti finali bisogna arrivare a una predizione. Tre passi semplici.</p>
+
+      <div class="pipe">
+        <span class="pipe-chip">Input</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Fourier</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Latenti</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Cross-Att</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">Latent Tr.</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip">×T</span><span class="pipe-arr">→</span>
+        <span class="pipe-chip on">Pooling</span>
+      </div>
+
+      <figure id="visual-output-head">
+        <img src="./perceiver_assets/output_head.svg" alt="Schema della testa di output del Perceiver">
+        <figcaption>Testa di output: i latenti finali vengono mediati (Average) e proiettati (Project) nei logit per la classificazione.</figcaption>
+      </figure>
+
+      <h2>I tre passi</h2>
+      <p><strong>1. Global average pooling</strong> — media degli N latenti finali, riga per riga:</p>
+      <div class="display-eq">h = (1/N) · Σᵢ Lᵢ^(T)    ∈ ℝ^D = ℝ^1024</div>
+      <p>Da N=512 vettori si ottiene un singolo vettore <code>h</code> di dimensione 1024.</p>
+
+      <p><strong>2. Classificatore lineare</strong> — proietta nello spazio delle classi (1000 per ImageNet):</p>
+      <div class="display-eq">z = h · W_c + b_c,    W_c ∈ ℝ^(1024 × 1000),  b_c ∈ ℝ^1000  ⇒  z ∈ ℝ^1000   (logits)</div>
+
+      <p><strong>3. Softmax + argmax</strong> — logit → probabilità → classe:</p>
+      <div class="display-eq">p_i = e^(z_i) / Σⱼ e^(z_j),     ŷ = argmax_i p_i</div>
+
+      <h2>Due dettagli che il paper sottolinea</h2>
+      <ul>
+        <li><strong>Niente token [CLS]</strong>: a differenza di BERT/GPT, il Perceiver non usa un token speciale per il pooling. La media è la soluzione più diretta e <em>non introduce nuovi parametri</em>.</li>
+        <li><strong>Pooling prima della proiezione</strong> (fix del paper, App. F). Le due operazioni (pooling e proiezione lineare) commutano matematicamente, ma fare il pooling prima riduce il costo computazionale (proietti UN vettore invece di N) e stabilizza il training.</li>
+      </ul>
+
+      <div class="idea">
+        <div class="idea-label">Idea chiave</div>
+        <p>Il pooling medio comprime gli N latenti in un <strong>solo</strong> vettore <code>h ∈ ℝ^D</code>, di dimensione fissa — qualunque sia N. Questo permette di collegare un classificatore lineare standard, identico per qualsiasi modalità di input. Massima generalità con minimo sforzo.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-10">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="10"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-10">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 11 — Training ============ -->
+    <section class="chapter" data-chapter="11">
+      <div class="chap-meta"><span class="chap-badge">Cap. 11</span><span class="chap-time">~4 min</span></div>
+      <h1>Dettagli di training (ImageNet)</h1>
+      <p class="intro">L'architettura è chiara. Adesso vediamo come si allena. Tre dettagli importanti: ottimizzatore, schedule, e una scelta controintuitiva sul dropout.</p>
+
+      <h2>L'ottimizzatore: LAMB</h2>
+      <p>Il paper usa <strong>LAMB</strong> (You et al., 2020), non Adam. Citazione dal paper: il Perceiver è <em>più facile da ottimizzare</em> con LAMB rispetto ad Adam.</p>
+      <p>LAMB (Layer-wise Adaptive Moments for Batch training) è un ottimizzatore studiato per allenamenti con batch grandi: applica una normalizzazione per-layer del rate di aggiornamento, evitando che alcuni layer "saltino troppo" mentre altri restano fermi.</p>
+
+      <h2>Schedule del learning rate: step decay</h2>
+      <ul>
+        <li><strong>Epoche totali</strong>: 120</li>
+        <li><strong>LR iniziale</strong>: <code>4 × 10⁻³</code></li>
+        <li><strong>Step decay</strong>: ÷10 alle epoche <strong>84, 102, 114</strong></li>
+        <li>Niente cosine annealing, niente warmup</li>
+      </ul>
+      <p>Schema "vecchia scuola": rate alto per la maggior parte del training, poi tre tagli netti verso la fine per fissare i pesi.</p>
+
+      <h2>Niente dropout (e perché)</h2>
+      <p>Sorprendentemente, il Perceiver <strong>non usa dropout</strong>. Citazione dal paper (App. C):</p>
+      <div class="nota">
+        "<em>We used dropout throughout the network in earlier experiments, but we found this led to degraded performance, so no dropout is used.</em>"
+      </div>
+      <p>L'intuizione: il modello ha già forti <strong>pressioni regolarizzanti</strong>:</p>
+      <ul>
+        <li>Il <strong>latent bottleneck</strong> N≪M comprime brutalmente l'informazione.</li>
+        <li>Il <strong>weight sharing</strong> riduce i parametri di ~7×.</li>
+        <li>Il <strong>weight decay</strong> nell'ottimizzatore.</li>
+        <li>La <strong>data augmentation</strong> aggressiva: RandAugment (Cubuk et al., 2020).</li>
+      </ul>
+      <p>Aggiungere dropout sopra tutto questo soffoca la capacità del modello invece di aiutarlo.</p>
+
+      <h2>Dimensione del modello</h2>
+      <p><strong>~45M parametri</strong>, paragonabile a una ResNet usata su ImageNet. Tutto sommato, non un modello enorme — e gran parte di quei parametri sta nella prima cross-attention + latent transformer (gli unici non condivisi).</p>
+
+      <div class="idea">
+        <div class="idea-label">Idea chiave</div>
+        <p>Training "essenziale": <strong>LAMB</strong>, 120 epoche con <em>step decay</em>, <strong>niente dropout</strong>, ~45M parametri. La regolarizzazione viene dall'architettura (bottleneck + weight sharing), non dai trucchi di training.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-11">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="11"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-11">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 12 — Risultati ============ -->
+    <section class="chapter" data-chapter="12">
+      <div class="chap-meta"><span class="chap-badge">Cap. 12</span><span class="chap-time">~6 min</span></div>
+      <h1>I risultati che "vendono" il Perceiver</h1>
+      <p class="intro">Abbiamo visto tutta l'architettura e il training. Adesso: <em>funziona</em>? E cosa dimostra di unico rispetto agli altri modelli? Questo è il capitolo cruciale per l'esame.</p>
+
+      <h2>ImageNet su pixel grezzi: competitivo senza prior 2D</h2>
+      <p>Top-1 accuracy sulla validation set di ImageNet (Tab. 1 del paper):</p>
+      <table>
+        <thead><tr><th>Modello</th><th>Top-1</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td>ResNet-50</td><td>77.6%</td><td>conv 2D</td></tr>
+          <tr><td>ViT-B/16</td><td>77.9%</td><td>patch 2D</td></tr>
+          <tr><td>Transformer puro (64×64, FF)</td><td>57.0%</td><td>costretto a downsamplare per O(M²)</td></tr>
+          <tr><td><strong>Perceiver (FF)</strong></td><td><strong>78.0%</strong></td><td><strong>50.176 pixel grezzi, nessuna conv 2D</strong></td></tr>
+        </tbody>
+      </table>
+      <p>Il Perceiver è competitivo con ResNet-50 e ViT-B/16 (entrambi con forte prior 2D) lavorando direttamente sui pixel grezzi. Il Transformer puro fallisce perché la complessità O(M²) lo costringe a comprimere l'input a 64×64, perdendo dettaglio.</p>
+
+      <h2>Permutation invariance: il colpo di scena</h2>
+      <p>Ed eccoci al risultato che il paper usa per argomentare la <em>vera</em> generalità del Perceiver. L'esperimento: <strong>mescolare i pixel</strong> di <em>tutte</em> le immagini con la <em>stessa</em> permutazione fissa. Un modello che codifica la posizione "nell'input" (via Fourier features) dovrebbe essere immune.</p>
+      <table>
+        <thead><tr><th>Modello</th><th>ImageNet <em>raw</em></th><th>ImageNet <em>permuted</em></th><th>Δ</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Perceiver (Fourier features)</strong></td><td><strong>78.0</strong></td><td><strong>78.0</strong></td><td>0.0</td></tr>
+          <tr><td>Perceiver (learned position encoding)</td><td>78.0</td><td>70.9</td><td>−7.1</td></tr>
+          <tr><td>ViT-B/16 (FF)</td><td>76.7</td><td>61.7</td><td>−15.0</td></tr>
+          <tr><td>ResNet-50 (FF)</td><td>73.5</td><td><strong>39.4</strong></td><td>−34.1</td></tr>
+        </tbody>
+      </table>
+
+      <figure id="visual-permutation-result">
+        <img src="./interactive_trainer/img/fig3_attention_maps.png" alt="Mappe di attenzione del Perceiver">
+        <figcaption>Mappe di attenzione: ogni latente puo imparare a guardare parti diverse dell'input. Il risultato sulla permutazione mostra che il modello non dipende da un bias 2D rigido.</figcaption>
+      </figure>
+
+      <div class="idea">
+        <div class="idea-label">Idea chiave — il risultato che vende il Perceiver</div>
+        <p>Il Perceiver con Fourier features è <strong>invariante alla permutazione</strong>: 78.0 → 78.0, zero calo. La ResNet crolla (73.5 → 39.4) perché la conv 2D <em>assume</em> che i vicini nella griglia siano correlati. La versione con learned position encoding scende a 70.9 ⇒ è la scelta delle <strong>Fourier features</strong>, non l'architettura in sé, a dare l'invarianza. Il paper usa questo per dimostrare che il Perceiver <em>non</em> sfrutta alcun bias 2D nascosto: è davvero general-purpose.</p>
+      </div>
+
+      <h2>Altri domini, stesso modello</h2>
+      <p>Senza modificare l'architettura, il Perceiver è stato applicato anche ad altre modalità:</p>
+      <table>
+        <thead><tr><th>Dominio</th><th>Perceiver</th><th>Baseline specializzato</th></tr></thead>
+        <tbody>
+          <tr><td>AudioSet (audio raw)</td><td>38.3 mAP</td><td>CNN-14: 43.1 mAP</td></tr>
+          <tr><td>AudioSet (audio + video)</td><td>43.5 mAP</td><td>—</td></tr>
+          <tr><td>ModelNet-40 (point cloud, solo xyz)</td><td>85.7%</td><td>PointNet++: 91.9%</td></tr>
+        </tbody>
+      </table>
+      <p>Su ModelNet il gap è dovuto al fatto che il Perceiver usa <em>solo</em> le coordinate (x, y, z) grezze, senza feature geometriche specializzate. Conferma comunque la generalità.</p>
+
+      <h2>Effetto del weight sharing (recap)</h2>
+      <table>
+        <thead><tr><th>Configurazione</th><th>Top-1 val</th><th>Parametri</th></tr></thead>
+        <tbody>
+          <tr><td>Senza weight sharing</td><td>72.9%</td><td>~326M</td></tr>
+          <tr><td><strong>Con weight sharing</strong></td><td><strong>78.0%</strong></td><td><strong>~45M</strong></td></tr>
+        </tbody>
+      </table>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-12">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="12"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-12">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 13 — Ablation ============ -->
+    <section class="chapter" data-chapter="13">
+      <div class="chap-meta"><span class="chap-badge">Cap. 13</span><span class="chap-time">~6 min</span></div>
+      <h1>Ablation: cosa conta davvero</h1>
+      <p class="intro">Quali componenti del Perceiver sono indispensabili e quali sono dettagli? Gli ablation studies del paper rispondono. Sono il modo migliore per capire l'architettura "smontandola".</p>
+
+      <div class="nota">
+        <span class="nota-label">Attenzione: ablation su un modello ridotto</span>
+        Per le ablation su N, D, ℓ, T il paper (App. B) usa un <em>modello base</em> intenzionalmente più piccolo del migliore di Tab. 1: senza weight sharing, 4 self-attention per blocco, 2 cross-attends, D=512, batch 64. Le accuracy stanno tra ~60% e ~76% — i trend qualitativi sono informativi, i numeri NON sono direttamente confrontabili col 78.0% del main model.
+      </div>
+
+      <h2>1. Il latent bottleneck è essenziale</h2>
+      <p>Esperimento estremo: si rimuove <em>completamente</em> il latent transformer e si usano solo cross-attention ripetute. Questo elimina il bottleneck latente.</p>
+      <table>
+        <thead><tr><th>Cross-attends (senza self-att.)</th><th>Accuracy</th></tr></thead>
+        <tbody>
+          <tr><td>4</td><td>39.4%</td></tr>
+          <tr><td>8</td><td>45.3%</td></tr>
+          <tr><td>12</td><td>OOM (Out of Memory)</td></tr>
+          <tr><td><strong>8 con self-att. (modello completo)</strong></td><td><strong>78.0%</strong> (+32.7%)</td></tr>
+        </tbody>
+      </table>
+      <p>Senza il latent transformer, il modello collassa: la mancanza di comunicazione tra i latenti dopo ogni cross-attention impedisce l'integrazione delle informazioni. <strong>Il bottleneck latente non serve solo a ridurre i costi: è il meccanismo che consente l'integrazione globale dell'informazione.</strong></p>
+
+      <h2>2. Interleaved &gt; at-start (il modo di alternarle)</h2>
+      <p>Si confrontano due strategie per le cross-attention:</p>
+      <ul>
+        <li><strong>Interleaved</strong>: cross → self → cross → self → ... (pesi cross condivisi).</li>
+        <li><strong>At-start</strong>: tutte le cross applicate in sequenza prima del processo latente.</li>
+      </ul>
+      <table>
+        <thead><tr><th>Configurazione</th><th>Cross-attends T</th><th>Accuracy</th></tr></thead>
+        <tbody>
+          <tr><td>Interleaved</td><td>1</td><td>76.7%</td></tr>
+          <tr><td>Interleaved</td><td>2</td><td>76.5%</td></tr>
+          <tr><td>Interleaved</td><td>4</td><td>76.5%</td></tr>
+          <tr><td><strong>Interleaved</strong></td><td><strong>8</strong></td><td><strong>78.0%</strong></td></tr>
+          <tr><td>At start</td><td>8</td><td>73.7%</td></tr>
+        </tbody>
+      </table>
+      <p>Con 8 cross-attend tutte all'inizio, il modello deve comprimere l'intera informazione in un'unica lettura prolungata. Con interleaved, alterna fasi di "lettura" e "ragionamento" latente: ogni re-lettura avviene con latenti già parzialmente raffinati. <strong>Il modello deve ri-leggere l'input più volte in modo adattivo.</strong></p>
+
+      <h2>3. Weight sharing = regolarizzatore</h2>
+      <table>
+        <thead><tr><th>Configurazione</th><th>Val (%)</th><th>Train (%)</th><th>Gap</th></tr></thead>
+        <tbody>
+          <tr><td>Senza weight sharing (326M)</td><td>72.9%</td><td>87.7%</td><td>−14.8%</td></tr>
+          <tr><td><strong>Con weight sharing (45M)</strong></td><td><strong>78.0%</strong></td><td>79.5%</td><td>−1.5%</td></tr>
+        </tbody>
+      </table>
+      <p>Già visto al cap. 9, ma qui in numeri completi: il weight sharing è il <strong>più potente</strong> dei regolarizzatori del Perceiver. 7× meno parametri E +5.1% accuracy.</p>
+
+      <figure id="visual-weight-sharing-table">
+        <img src="./lezioni/paper_figures/table7_weight_sharing.png" alt="Tabella del paper sul weight sharing">
+        <figcaption>Tabella originale del paper sul weight sharing: riduce drasticamente i parametri e migliora la validazione, quindi non e solo una scorciatoia computazionale.</figcaption>
+      </figure>
+
+      <h2>4. Fourier features: numero di bande</h2>
+      <p>Più bande di frequenza catturano dettagli spaziali più fini. I risultati migliorano <strong>fino al valore di Nyquist</strong> (determinato dalla risoluzione dell'immagine). Oltre la frequenza di Nyquist non si ottiene alcun beneficio: le frequenze in più sono ridondanti.</p>
+      <div class="display-eq">K ≥ ⌊min(H, W) / 2⌋,    f_max = min(H, W) / 2</div>
+      <p>Per ImageNet (224×224): K=64, f_max=112 — esattamente la frequenza di Nyquist.</p>
+
+      <h2>5. Effetti di N, D, ℓ</h2>
+      <table>
+        <thead><tr><th>Parametro</th><th>Effetto</th></tr></thead>
+        <tbody>
+          <tr><td>N (latenti)</td><td>↑ aiuta monotonamente (256→512→1024 entro l'intervallo testato)</td></tr>
+          <tr><td>D (dim canale)</td><td>↑ aiuta fino a un punto; oltre, overfitting (senza weight sharing)</td></tr>
+          <tr><td>ℓ (self-att per blocco)</td><td>↑ aiuta ma con rendimenti decrescenti (2→4 guadagno grande, 4→8 piccolo)</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Lezioni dagli ablation</h2>
+      <ul>
+        <li><strong>Il latent bottleneck è essenziale</strong>: senza, ≤45% accuracy.</li>
+        <li><strong>Interleaved &gt; at-start</strong>: rileggere l'input più volte, con latenti raffinati progressivamente.</li>
+        <li><strong>Weight sharing</strong>: 7× meno params, +5.1% accuracy.</li>
+        <li><strong>Fourier</strong>: più bande fino a Nyquist, oltre non serve.</li>
+        <li><strong>Config ottimale ImageNet</strong>: N=512, D=1024, T=8 interleaved + weight sharing, ℓ=6, K=64.</li>
+      </ul>
+
+      <div class="idea">
+        <div class="idea-label">Idea chiave</div>
+        <p>Smontando il Perceiver, tutto torna alle tre intuizioni: <strong>bottleneck</strong> per integrare globalmente, <strong>iterazione</strong> per raffinare, <strong>weight sharing</strong> per generalizzare. Tutto il resto è dettaglio implementativo.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-13">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="13"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-13">Successivo →</button>
+      </div>
+    </section>
+
+    <!-- ============ CAP 14 — Backward pass ============ -->
+    <section class="chapter" data-chapter="14">
+      <div class="chap-meta"><span class="chap-badge">Cap. 14</span><span class="chap-time">~5 min</span></div>
+      <h1>Backward pass: i risultati chiave</h1>
+      <p class="intro">Il backward pass del Perceiver è meccanico: chain rule applicata blocco per blocco. Però ci sono <em>tre risultati</em> che vale la pena conoscere a memoria, soprattutto per l'orale.</p>
+
+      <h2>Ordine del backward</h2>
+      <p>Il backward attraversa l'architettura in <strong>ordine inverso</strong> rispetto al forward:</p>
+      <div class="display-eq">Loss → Softmax → Classifier → Pooling → Latent Transformer → Cross-Attention → Input Embedding</div>
+      <p>Si parte dalla loss <code>ℒ</code> e si propaga indietro fino all'input, calcolando i gradienti per ogni parametro lungo la strada.</p>
+
+      <figure id="visual-backward-flow">
+        <img src="./perceiver_assets/backward_flow.svg" alt="Schema del backward pass nel Perceiver">
+        <figcaption>Il backward segue il grafo al contrario. Per l'esame contano soprattutto: <code>p - y</code>, somma dei gradienti sui pesi condivisi e residual come percorso diretto del gradiente.</figcaption>
+      </figure>
+
+      <h2>Risultato 1: il celebre ∂ℒ/∂z = p − y</h2>
+      <p>Il forward finale ha questa struttura:</p>
+      <div class="display-eq">Logits z  →  Softmax  →  p  →  Cross-Entropy con y_true  →  ℒ</div>
+      <p>Combinando softmax + cross-entropy, il gradiente rispetto ai logit è notevolmente <strong>pulito</strong>:</p>
+      <div class="display-eq">∂ℒ/∂z = p − y</div>
+      <p>cioè: la differenza tra la probabilità predetta <code>p</code> e il vettore one-hot della classe vera <code>y</code>. Nessuna derivata complicata, nessuna divisione, nessuna instabilità numerica. Per questo softmax e cross-entropy <em>vanno insieme</em>: derivate separate sarebbero un casino, combinate si semplificano.</p>
+      <div class="nota">
+        <span class="nota-label">Domanda d'esame quasi certa</span>
+        Saper derivare (o almeno enunciare) <code>∂ℒ/∂z = p − y</code> è una delle domande più frequenti in qualsiasi corso di deep learning con softmax+CE. Memorizzalo a livello automatico.
+      </div>
+
+      <h2>Risultato 2: gradienti dei pesi condivisi (BPTT)</h2>
+      <p>Quando un peso <code>W</code> è usato in <em>più</em> blocchi del forward (caso del weight sharing del Perceiver), nel backward ogni istanza produce un contributo. Per il training corretto, questi contributi <strong>si sommano</strong>:</p>
+      <div class="display-eq">∂ℒ/∂W_sh = Σ_{t=2}^{T}  ∂ℒ/∂W^(t)</div>
+      <p>È lo stesso meccanismo di un RNN srotolato (BPTT, back-propagation through time). In PyTorch è automatico: quando più nodi del grafo computazionale puntano allo stesso <code>nn.Parameter</code>, i gradienti calcolati in <code>backward()</code> vengono accumulati sul <code>.grad</code> del parametro.</p>
+
+      <div class="esempio">
+        <div class="esempio-label">Esempio numerico con T=3 iterazioni</div>
+        <p>Sia <code>w = 2.0</code> un peso condiviso tra <code>t=2</code> e <code>t=3</code>. Nel backward:</p>
+        <div class="display-eq" style="background:white;">∂ℒ/∂w^(2) = −0.3,   ∂ℒ/∂w^(3) = +0.1</div>
+        <p>Il gradiente effettivo è la somma:</p>
+        <div class="display-eq" style="background:white;">∂ℒ/∂w_sh = −0.3 + 0.1 = −0.2</div>
+        <p>Con learning rate <code>η = 0.01</code>:</p>
+        <div class="display-eq" style="background:white;">w ← 2.0 − 0.01 · (−0.2) = <strong>2.002</strong></div>
+        <p><strong>Attenzione</strong>: fare l'aggiornamento <em>due volte</em> (una con −0.3 e una con +0.1) darebbe un risultato diverso e sbagliato. L'accumulazione deve avvenire <em>prima</em> del passo dell'ottimizzatore, non dopo.</p>
+      </div>
+
+      <h3>Pesi del primo blocco: non partecipano alla somma</h3>
+      <p>I pesi di <code>CA₁</code> e <code>LT₁</code> sono parametri separati (cap. 9): i loro gradienti stanno in un accumulatore diverso, non si sommano con quelli dei blocchi shared, e vengono aggiornati in modo indipendente.</p>
+
+      <h2>Risultato 3: residual connection = "gradient highway"</h2>
+      <p>Una residual connection è <code>L' = L + f(L)</code>. Nel backward:</p>
+      <div class="display-eq">∂ℒ/∂L = ∂ℒ/∂L' · (I + ∂f/∂L)</div>
+      <p>Il termine <strong>identità</strong> <code>I</code> garantisce che il gradiente trovi sempre un "percorso diretto" indietro, anche se la parte <code>∂f/∂L</code> si attenua o esplode. Per questo le ResNet (e il Perceiver) riescono ad addestrare reti molto profonde senza vanishing gradient.</p>
+
+      <h2>Cosa NON memorizzare</h2>
+      <p>Le derivazioni dettagliate dei gradienti di:</p>
+      <ul>
+        <li>LayerNorm (3 termini: <code>1/(σ+ε)</code> volte la media e tutto il calcolo della deviazione)</li>
+        <li>Scaled dot-product attention rispetto a Q, K, V (tre formule lunghe)</li>
+        <li>Output projection W_o, MLP W₁, W₂</li>
+      </ul>
+      <p>Sono <em>chain rule applicata meccanicamente</em>. Sapere che si fanno e capire il <em>flow</em> conta più che ricordare ogni formula. Per memorizzare: forward + i tre risultati sopra bastano.</p>
+
+      <div class="idea">
+        <div class="idea-label">Idea chiave</div>
+        <p>Del backward del Perceiver, ricorda <strong>tre cose</strong>: (1) <code>∂ℒ/∂z = p − y</code> per softmax+CE; (2) i gradienti dei pesi condivisi si <strong>sommano</strong> (BPTT); (3) le <strong>residual</strong> creano un "gradient highway" che permette le reti profonde.</p>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" id="prev-14">← Precedente</button>
+        <label class="checkbox-done"><input type="checkbox" data-done="14"><span class="check"></span><span class="check-label">Ho capito</span></label>
+        <button class="btn btn-primary" id="next-14" disabled>Fine 🎉</button>
+      </div>
+
+      <div id="finalRecap" class="hidden" style="margin-top:40px;padding:30px;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-radius:14px;text-align:center;">
+        <h2 style="color:var(--success);margin-top:0">🎉 Hai completato la lezione!</h2>
+        <p>Adesso conosci il Perceiver da zero: dal problema della quadraticità, fino al backward pass e ai risultati di permutation invariance.</p>
+        <p style="font-size:14px;color:var(--muted);margin-top:18px;">Per testare la memoria → <code>perceiver_quiz.html</code> (75 flashcard con spaced repetition).<br>
+        Per il ripasso visivo → <code>perceiver_teoria_v2.pdf</code> (23 pagine con striscia-pipeline).</p>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="rail" id="rail">
+    <div class="rail-section">
+      <div class="rail-title">Sei qui nella pipeline</div>
+      <div class="rail-pipe" id="railPipeline"></div>
+    </div>
+    <div class="rail-section">
+      <div class="rail-title">Numeri chiave (ImageNet)</div>
+      <div class="rail-numbers">
+        <div><span>M</span><strong>50.176</strong></div>
+        <div><span>N</span><strong>512</strong></div>
+        <div><span>D</span><strong>1024</strong></div>
+        <div><span>C_tot</span><strong>261</strong></div>
+        <div><span>T</span><strong>8</strong></div>
+        <div><span>ℓ</span><strong>6</strong></div>
+        <div><span>H</span><strong>8</strong></div>
+        <div><span>K_F</span><strong>64</strong></div>
+        <div><span>d_QKV</span><strong>261</strong></div>
+        <div><span>d_head</span><strong>128</strong></div>
+        <div><span>Acc.</span><strong>78.0%</strong></div>
+        <div><span>Params</span><strong>~45M</strong></div>
+      </div>
+    </div>
+    <div class="rail-section">
+      <div class="rail-title">Idea del capitolo</div>
+      <div class="rail-idea" id="railIdea"></div>
+    </div>
+  </aside>
+</div>
+
+<script>
+"use strict";
+
+const TOTAL = 14;
+const CHAPTER_TITLES = [
+  "Il problema",
+  "Self → Cross-attention",
+  "Architettura in 3 stadi",
+  "Input: il byte array",
+  "Fourier features",
+  "Il latent array",
+  "Cross-attention block",
+  "Latent transformer",
+  "Weight sharing & iterazioni",
+  "Output: pooling + classif.",
+  "Training (ImageNet)",
+  "Risultati & permutation",
+  "Ablation studies",
+  "Backward pass"
+];
+const STORAGE_KEY = "perceiver_lezione_v2";
+
+let state = loadState();
+let currentChapter = state.current || 1;
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
+  catch (e) { return {}; }
+}
+function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {} }
+if (!state.done) state.done = {};
+
+// === TOC ===
+function renderToc() {
+  const toc = document.getElementById("toc");
+  toc.innerHTML = "";
+  for (let i = 1; i <= TOTAL; i++) {
+    const li = document.createElement("li");
+    li.className = (i === currentChapter ? "active " : "") + (state.done[i] ? "done" : "");
+    li.innerHTML = `<div class="toc-num"><span class="toc-num-text">${i}</span></div><div class="toc-title">${CHAPTER_TITLES[i-1]}</div>`;
+    li.addEventListener("click", () => goTo(i));
+    toc.appendChild(li);
+  }
+}
+function renderProgress() {
+  const doneCount = Object.values(state.done).filter(Boolean).length;
+  const pct = Math.round(100 * doneCount / TOTAL);
+  document.getElementById("progressFill").style.width = pct + "%";
+  document.getElementById("progressText").textContent = `${doneCount} / ${TOTAL}`;
+}
+
+// === RIGHT RAIL ===
+const RAIL_DATA = {
+  1:  { stage: 0, idea: "<strong>Latent bottleneck</strong> = un solo modello per tutte le modalità, a costo <em>lineare</em> nell'input." },
+  2:  { stage: 0, idea: "<strong>Cross-attention</strong>: Q dai latenti, K/V dall'input ⇒ matrice <em>N×M</em> rettangolare." },
+  3:  { stage: 0, idea: "3 stadi: encoder cross-att → latent transformer → pooling. Blocco ripetuto <em>T</em> volte." },
+  4:  { stage: 1, idea: "<strong>Byte array M×C</strong>: rappresentazione uniforme per qualsiasi modalità." },
+  5:  { stage: 2, idea: "Le <strong>Fourier features</strong> iniettano la posizione <em>nell'input</em> ⇒ permutation invariance." },
+  6:  { stage: 3, idea: "I latenti <code>L</code> sono <em>parametri appresi</em>, N≪M. Iniziano neutri, si specializzano col training." },
+  7:  { stage: 4, idea: "<code>Q=L̃W_Q, K=X̃W_K, V=X̃W_V</code>. Scaled dot → softmax → A·V → output proj + residual + MLP." },
+  8:  { stage: 5, idea: "Self-attention sui soli latenti, costo <code>O(N²)</code>. Architettura GPT-2." },
+  9:  { stage: 6, idea: "<strong>Weight sharing</strong> ⇒ il Perceiver è un RNN. 7× meno params <em>e</em> +5.1% accuracy." },
+  10: { stage: 7, idea: "Pooling medio (no <code>[CLS]</code>), classificatore lineare, softmax → argmax." },
+  11: { stage: 0, idea: "Training: <strong>LAMB</strong>, 120 epoche, step decay, <em>no dropout</em>, ~45M params." },
+  12: { stage: 0, idea: "<strong>78.0 → 78.0</strong> sotto permutazione: la generalità del Perceiver, dimostrata." },
+  13: { stage: 0, idea: "Senza latent transf: ≤45%. Interleaved &gt; at-start. Weight sharing è il regolarizzatore principale." },
+  14: { stage: 0, idea: "<code>∂ℒ/∂z = p − y</code>. Pesi condivisi: gradienti si <em>sommano</em> (BPTT). Residual = gradient highway." }
+};
+const PIPE_STAGES = ["Input", "Fourier", "Latenti", "Cross-Att", "Latent Tr.", "×T", "Pooling"];
+
+function renderRail() {
+  const data = RAIL_DATA[currentChapter] || { stage: 0, idea: "" };
+  const html = PIPE_STAGES.map((label, i) => {
+    const id = i + 1;
+    const cls = id === data.stage ? "rail-pipe-chip on" : "rail-pipe-chip";
+    const arr = i < PIPE_STAGES.length - 1 ? '<span class="rail-pipe-arr">→</span>' : '';
+    return `<span class="${cls}">${label}</span>${arr}`;
+  }).join("");
+  document.getElementById("railPipeline").innerHTML = html;
+  document.getElementById("railIdea").innerHTML = data.idea;
+}
+
+// === NAVIGATION ===
+function goTo(n) {
+  if (n < 1 || n > TOTAL) return;
+  currentChapter = n;
+  state.current = n;
+  saveState();
+  document.querySelectorAll(".chapter").forEach(s => s.classList.remove("active"));
+  const target = document.querySelector(`[data-chapter="${n}"]`);
+  if (target) target.classList.add("active");
+  renderToc();
+  renderRail();
+  document.getElementById("content").scrollTop = 0;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  document.getElementById("sidebar").classList.remove("open");
+  const cb = document.querySelector(`[data-done="${n}"]`);
+  if (cb) cb.checked = !!state.done[n];
+  if (n === TOTAL) {
+    const recap = document.getElementById("finalRecap");
+    if (Object.values(state.done).filter(Boolean).length === TOTAL) recap.classList.remove("hidden");
+    else recap.classList.add("hidden");
+  }
+}
+
+for (let i = 1; i <= TOTAL; i++) {
+  const prev = document.getElementById("prev-" + i);
+  const next = document.getElementById("next-" + i);
+  if (prev) prev.addEventListener("click", () => goTo(i - 1));
+  if (next) next.addEventListener("click", () => goTo(i + 1));
+}
+document.querySelectorAll('[data-done]').forEach(cb => {
+  const n = parseInt(cb.dataset.done);
+  cb.checked = !!state.done[n];
+  cb.addEventListener("change", () => {
+    state.done[n] = cb.checked;
+    saveState();
+    renderToc();
+    renderProgress();
+    if (n === TOTAL) goTo(n);
+  });
+});
+
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT") return;
+  if (e.key === "ArrowRight") goTo(currentChapter + 1);
+  else if (e.key === "ArrowLeft") goTo(currentChapter - 1);
+});
+
+document.getElementById("menuToggle").addEventListener("click", () => {
+  document.getElementById("sidebar").classList.toggle("open");
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  if (confirm("Reset di tutto il progresso?")) {
+    state = { current: 1, done: {} };
+    saveState();
+    currentChapter = 1;
+    document.querySelectorAll('[data-done]').forEach(cb => cb.checked = false);
+    document.getElementById("finalRecap").classList.add("hidden");
+    renderToc();
+    renderProgress();
+    goTo(1);
+  }
+});
+
+// === INTERACTIVE WIDGETS ===
+// Complexity calculator (ch 1)
+const cmpM = document.getElementById("cmpM");
+const N_FIXED = 512;
+const M_MAX = 50176;
+function updateComplexity() {
+  const m = parseInt(cmpM.value);
+  document.getElementById("cmpMVal").textContent = m.toLocaleString("it-IT");
+  const quad = m * m;
+  const lin = m * N_FIXED;
+  const maxQuad = M_MAX * M_MAX;
+  document.getElementById("cmpQuadBar").style.width = (100 * quad / maxQuad) + "%";
+  document.getElementById("cmpLinBar").style.width = Math.max(0.5, 100 * lin / maxQuad) + "%";
+  document.getElementById("cmpQuad").innerHTML = `<strong>${(quad/1e6).toFixed(1)}M</strong> entry`;
+  document.getElementById("cmpLin").innerHTML = `<strong>${(lin/1e6).toFixed(2)}M</strong> entry`;
+}
+cmpM.addEventListener("input", updateComplexity);
+updateComplexity();
+
+// Fourier C_tot calculator (ch 5)
+const fK = document.getElementById("fK");
+const fD = document.getElementById("fD");
+const fC = document.getElementById("fC");
+function updateFourier() {
+  const K = +fK.value, d = +fD.value, C = +fC.value;
+  document.getElementById("fKVal").textContent = K;
+  document.getElementById("fDVal").textContent = d;
+  document.getElementById("fCVal").textContent = C;
+  const fourier = d * (2*K + 1);
+  const total = C + fourier;
+  document.getElementById("fResult").innerHTML = `C_tot = ${C} + ${d}·(2·${K} + 1) = ${C} + ${fourier} = <strong>${total}</strong>`;
+}
+[fK, fD, fC].forEach(el => el.addEventListener("input", updateFourier));
+updateFourier();
+
+// === INIT ===
+renderToc();
+renderProgress();
+goTo(currentChapter);
+</script>
+</body>
+</html>

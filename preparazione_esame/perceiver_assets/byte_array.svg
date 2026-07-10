@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+  <title id="title">From image pixels to byte array</title>
+  <desc id="desc">A 2D RGB image is reshaped into an M by C byte array.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#1a237e"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-20%" width="120%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#1a237e" flood-opacity=".12"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="520" rx="22" fill="#fbfbfd"/>
+  <text x="60" y="64" fill="#1a237e" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="700">Byte array: la forma comune per ogni input</text>
+  <text x="60" y="98" fill="#5f6472" font-family="Segoe UI, Arial, sans-serif" font-size="18">Per un'immagine: la griglia 224 x 224 viene solo riordinata in M righe, una per pixel.</text>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="145" width="280" height="280" rx="16" fill="#fff" stroke="#dfe3ef"/>
+    <text x="100" y="182" fill="#1a237e" font-family="Segoe UI, Arial, sans-serif" font-size="19" font-weight="700">Immagine RGB</text>
+    <text x="100" y="209" fill="#6e6e76" font-family="Segoe UI, Arial, sans-serif" font-size="15">224 x 224 pixel</text>
+    <g transform="translate(100 240)">
+      <rect width="34" height="34" fill="#bbd7a8"/><rect x="40" width="34" height="34" fill="#93c47d"/><rect x="80" width="34" height="34" fill="#76a5af"/><rect x="120" width="34" height="34" fill="#6fa8dc"/><rect x="160" width="34" height="34" fill="#8e7cc3"/>
+      <rect y="40" width="34" height="34" fill="#f6b26b"/><rect x="40" y="40" width="34" height="34" fill="#ffd966"/><rect x="80" y="40" width="34" height="34" fill="#bbd7a8"/><rect x="120" y="40" width="34" height="34" fill="#6fa8dc"/><rect x="160" y="40" width="34" height="34" fill="#c27ba0"/>
+      <rect y="80" width="34" height="34" fill="#93c47d"/><rect x="40" y="80" width="34" height="34" fill="#76a5af"/><rect x="80" y="80" width="34" height="34" fill="#8e7cc3"/><rect x="120" y="80" width="34" height="34" fill="#f6b26b"/><rect x="160" y="80" width="34" height="34" fill="#ffd966"/>
+      <rect y="120" width="34" height="34" fill="#6fa8dc"/><rect x="40" y="120" width="34" height="34" fill="#c27ba0"/><rect x="80" y="120" width="34" height="34" fill="#93c47d"/><rect x="120" y="120" width="34" height="34" fill="#bbd7a8"/><rect x="160" y="120" width="34" height="34" fill="#76a5af"/>
+    </g>
+  </g>
+
+  <line x1="375" y1="285" x2="510" y2="285" stroke="#1a237e" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="395" y="255" fill="#1a237e" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700">reshape</text>
+  <text x="392" y="312" fill="#6e6e76" font-family="Consolas, monospace" font-size="15">nessuna conv 2D</text>
+
+  <g filter="url(#shadow)">
+    <rect x="535" y="135" width="595" height="300" rx="16" fill="#fff" stroke="#dfe3ef"/>
+    <text x="570" y="174" fill="#1a237e" font-family="Segoe UI, Arial, sans-serif" font-size="19" font-weight="700">Byte array X: M x C</text>
+    <text x="570" y="201" fill="#6e6e76" font-family="Segoe UI, Arial, sans-serif" font-size="15">M = 50.176 righe, C = 3 canali grezzi</text>
+    <g transform="translate(570 235)" font-family="Consolas, monospace" font-size="17">
+      <text x="0" y="23" fill="#6e6e76">pixel 1</text>
+      <rect x="95" width="78" height="32" rx="7" fill="#ffebee" stroke="#ef9a9a"/><text x="134" y="22" text-anchor="middle" fill="#c62828">R1</text>
+      <rect x="182" width="78" height="32" rx="7" fill="#e8f5e9" stroke="#a5d6a7"/><text x="221" y="22" text-anchor="middle" fill="#2e7d32">G1</text>
+      <rect x="269" width="78" height="32" rx="7" fill="#e3f2fd" stroke="#90caf9"/><text x="308" y="22" text-anchor="middle" fill="#1565c0">B1</text>
+      <text x="0" y="70" fill="#6e6e76">pixel 2</text>
+      <rect x="95" y="47" width="78" height="32" rx="7" fill="#ffebee" stroke="#ef9a9a"/><text x="134" y="69" text-anchor="middle" fill="#c62828">R2</text>
+      <rect x="182" y="47" width="78" height="32" rx="7" fill="#e8f5e9" stroke="#a5d6a7"/><text x="221" y="69" text-anchor="middle" fill="#2e7d32">G2</text>
+      <rect x="269" y="47" width="78" height="32" rx="7" fill="#e3f2fd" stroke="#90caf9"/><text x="308" y="69" text-anchor="middle" fill="#1565c0">B2</text>
+      <text x="142" y="116" fill="#9aa0ad" font-size="22">...</text>
+      <text x="0" y="164" fill="#6e6e76">pixel M</text>
+      <rect x="95" y="141" width="78" height="32" rx="7" fill="#ffebee" stroke="#ef9a9a"/><text x="134" y="163" text-anchor="middle" fill="#c62828">RM</text>
+      <rect x="182" y="141" width="78" height="32" rx="7" fill="#e8f5e9" stroke="#a5d6a7"/><text x="221" y="163" text-anchor="middle" fill="#2e7d32">GM</text>
+      <rect x="269" y="141" width="78" height="32" rx="7" fill="#e3f2fd" stroke="#90caf9"/><text x="308" y="163" text-anchor="middle" fill="#1565c0">BM</text>
+    </g>
+    <text x="962" y="292" text-anchor="middle" fill="#1a237e" font-family="Consolas, monospace" font-size="23" font-weight="700">X in R^(M x C)</text>
+  </g>
+</svg>

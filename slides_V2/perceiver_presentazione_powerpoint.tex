@@ -1,0 +1,1079 @@
+% =====================================================================
+% Perceiver & Perceiver IO -- Presentazione Beamer
+% Obiettivo: PDF a slide "tipo PowerPoint" generato da LaTeX
+% Ordine: Note presentazione.pptx
+% Fonti: presentation_v2_eng.pdf/tex, presentation_v2_ita.tex, paper Perceiver
+% =====================================================================
+\documentclass[aspectratio=169,10pt]{beamer}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,booktabs,array}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric}
+
+\usetheme{Madrid}
+\usecolortheme{default}
+
+\definecolor{DeepBlue}{HTML}{123C69}
+\definecolor{Ink}{HTML}{1D2630}
+\definecolor{SoftBlue}{HTML}{E8F1FA}
+\definecolor{SoftGreen}{HTML}{E9F7EF}
+\definecolor{SoftAmber}{HTML}{FFF4D8}
+\definecolor{AccentOrange}{HTML}{D97706}
+\definecolor{AccentGreen}{HTML}{168056}
+\definecolor{AccentRed}{HTML}{B42318}
+
+\setbeamercolor{structure}{fg=DeepBlue}
+\setbeamercolor{title}{fg=white,bg=DeepBlue}
+\setbeamercolor{frametitle}{fg=white,bg=DeepBlue}
+\setbeamercolor{normal text}{fg=Ink,bg=white}
+\setbeamercolor{block title}{bg=DeepBlue,fg=white}
+\setbeamercolor{block body}{bg=SoftBlue,fg=Ink}
+\setbeamercolor{block title example}{bg=AccentGreen,fg=white}
+\setbeamercolor{block body example}{bg=SoftGreen,fg=Ink}
+\setbeamercolor{block title alerted}{bg=AccentRed,fg=white}
+\setbeamercolor{block body alerted}{bg=AccentRed!8,fg=Ink}
+\setbeamercolor{alerted text}{fg=AccentOrange}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{itemize item}{\color{DeepBlue}$\blacktriangleright$}
+\setbeamertemplate{itemize subitem}{\color{AccentOrange}$\bullet$}
+\setbeamertemplate{footline}{
+  \leavevmode%
+  \hbox{%
+    \begin{beamercolorbox}[wd=.42\paperwidth,ht=2.4ex,dp=1ex,center]{author in head/foot}%
+      \usebeamerfont{author in head/foot}\scriptsize F.Gigli C.Vignoli
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.40\paperwidth,ht=2.4ex,dp=1ex,center]{title in head/foot}%
+      \usebeamerfont{title in head/foot}\scriptsize Perceiver \& Perceiver IO
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.18\paperwidth,ht=2.4ex,dp=1ex,right]{date in head/foot}%
+      \usebeamerfont{date in head/foot}\scriptsize\insertframenumber{}/\inserttotalframenumber\hspace*{1.5ex}
+    \end{beamercolorbox}%
+  }%
+}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\bigO}{\mathcal{O}}
+\newcommand{\softmax}{\operatorname{softmax}}
+\newcommand{\good}[1]{\textcolor{AccentGreen}{\textbf{#1}}}
+\newcommand{\warn}[1]{\textcolor{AccentOrange}{\textbf{#1}}}
+\newcommand{\bad}[1]{\textcolor{AccentRed}{\textbf{#1}}}
+
+\title[Perceiver \& Perceiver IO]{Perceiver \& Perceiver IO}
+\subtitle{Implementazione e analisi sperimentale}
+\author[F.Gigli C.Vignoli]{Francesco Gigli e Corso Vignoli}
+\institute[UNIFI]{Università degli Studi di Firenze\\Corso B031278 -- Deep Learning}
+\date{}
+
+\begin{document}
+
+% ---------------------------------------------------------------------
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Agenda}
+  \begin{enumerate}
+    \item Introduzione e motivazione
+    \item Architettura
+    \item Esperimenti e risultati
+    \item Criticità e discussione
+  \end{enumerate}
+\end{frame}
+
+\section{Introduzione e motivazione}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Il problema: architetture specifiche per modalità}
+\small
+\begin{columns}[T]
+\begin{column}{0.52\textwidth}
+\textbf{Approccio tradizionale}
+\begin{itemize}
+  \item Immagini $\rightarrow$ CNN: ResNet, EfficientNet
+  \item Testo $\rightarrow$ Transformer: BERT, GPT
+  \item Audio $\rightarrow$ CNN 1D / RNN
+  \item Point cloud $\rightarrow$ PointNet, DGCNN
+\end{itemize}
+
+\begin{alertblock}{Problema}
+Ogni modalità richiede assunzioni e architetture diverse: località, griglia, ordine, geometria.
+\end{alertblock}
+\end{column}
+\begin{column}{0.45\textwidth}
+\centering
+\begin{tikzpicture}[node distance=0.45cm,
+  box/.style={draw,rounded corners=2pt,minimum width=2.05cm,minimum height=0.48cm,font=\scriptsize\bfseries},
+  arr/.style={-Stealth,thick,AccentRed}]
+\node[box,fill=SoftBlue] (img) {Immagini};
+\node[box,fill=SoftBlue,below=of img] (txt) {Testo};
+\node[box,fill=SoftBlue,below=of txt] (aud) {Audio};
+\node[box,fill=SoftBlue,below=of aud] (pc) {Point cloud};
+\node[box,fill=AccentRed!13,right=1.6cm of img] (cnn) {CNN};
+\node[box,fill=AccentRed!13,right=1.6cm of txt] (tra) {Transformer};
+\node[box,fill=AccentRed!13,right=1.6cm of aud] (rnn) {CNN/RNN};
+\node[box,fill=AccentRed!13,right=1.6cm of pc] (pnt) {PointNet};
+\draw[arr] (img) -- (cnn);
+\draw[arr] (txt) -- (tra);
+\draw[arr] (aud) -- (rnn);
+\draw[arr] (pc) -- (pnt);
+\end{tikzpicture}
+
+\vspace{0.4em}
+\textbf{Domanda:}\\
+si può usare una sola architettura per dati molto diversi?
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{La soluzione Perceiver}
+\small
+\begin{columns}[T]
+\begin{column}{0.55\textwidth}
+\textbf{Idea chiave} (Jaegle et al., ICML 2021):
+\begin{enumerate}
+  \item introdurre un \alert{latent array} compatto $M \ll N$;
+  \item usare cross-attention: latenti = query, input = key/value;
+  \item raffinare i latenti con self-attention;
+  \item ripetere il blocco con weight sharing.
+\end{enumerate}
+\end{column}
+\begin{column}{0.42\textwidth}
+\begin{block}{Complessità}
+\[
+\text{Transformer: } \bigO(N^2 d)
+\]
+\[
+\text{Perceiver: } \bigO(NMd + M^2Ld)
+\]
+\textbf{Lineare in $N$} se $M$ è fissato e $M \ll N$.
+\end{block}
+
+\begin{exampleblock}{Contributo del progetto}
+Implementazione PyTorch from-scratch su immagini, point cloud e testo.
+\end{exampleblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Perceiver IO: output strutturati}
+\small
+\begin{center}
+\begin{tikzpicture}[
+  block/.style={draw,thick,rounded corners=2pt,minimum width=2.4cm,minimum height=0.8cm,align=center,font=\small\bfseries},
+  arr/.style={-Stealth,very thick}]
+\node[block,fill=SoftBlue] (read) {Read\\cross-attn};
+\node[block,fill=SoftAmber,right=1.2cm of read] (process) {Process\\latent self-attn};
+\node[block,fill=SoftGreen,right=1.2cm of process] (write) {Write\\output queries};
+\draw[arr,DeepBlue] (read) -- (process);
+\draw[arr,AccentGreen] (process) -- (write);
+\node[below=0.5cm of read,font=\scriptsize] {input $\rightarrow$ latenti};
+\node[below=0.5cm of process,font=\scriptsize] {raffinamento};
+\node[below=0.5cm of write,font=\scriptsize] {latenti $\rightarrow$ output};
+\end{tikzpicture}
+\end{center}
+
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\textbf{Perceiver base}
+\begin{itemize}
+  \item encoder general-purpose;
+  \item output semplice, adatto a classificazione;
+  \item readout tramite pooling/head.
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\textbf{Perceiver IO}
+\begin{itemize}
+  \item output queries task-specific;
+  \item output di dimensione arbitraria;
+  \item classificazione, MLM, optical flow, multimodale.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\section{Architettura}
+
+% ---------------------------------------------------------------------
+\begin{frame}[plain]
+\centering
+\vfill
+{\Huge\color{DeepBlue}\textbf{Architettura}}
+\vspace{1em}
+
+{\large Dal dato grezzo allo spazio latente}
+\vfill
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Panoramica architetturale}
+\small
+\begin{center}
+\begin{tikzpicture}[
+  node distance=0.75cm,
+  block/.style={draw,rounded corners=2pt,thick,align=center,minimum width=2.05cm,minimum height=0.75cm,font=\scriptsize\bfseries},
+  arr/.style={-Stealth,thick}]
+\node[block,fill=SoftBlue] (input) {Input array\\$N \times C$};
+\node[block,fill=SoftAmber,right=of input] (pe) {Fourier PE\\$N \times C_{\text{tot}}$};
+\node[block,fill=SoftGreen,right=of pe] (cross) {Cross-attn\\$M \times N$};
+\node[block,fill=SoftBlue,right=of cross] (latent) {Latent\\Transformer};
+\node[block,fill=SoftGreen,right=of latent] (out) {Output};
+\draw[arr] (input) -- (pe);
+\draw[arr] (pe) -- (cross);
+\draw[arr] (cross) -- (latent);
+\draw[arr] (latent) -- (out);
+\end{tikzpicture}
+\end{center}
+
+\begin{itemize}
+  \item \textbf{Input array}: sequenza generica di pixel, punti 3D o byte.
+  \item \textbf{Latent array}: bottleneck appreso $M \times D$, con $M \ll N$.
+  \item \textbf{Weight sharing}: stesso blocco riapplicato in più iterazioni.
+  \item \textbf{Output}: pooling per Perceiver, queries per Perceiver IO.
+\end{itemize}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Cross-attention: il meccanismo chiave}
+\small
+\begin{block}{Formulazione}
+\[
+Q = X_{\text{latent}} W_Q \in \R^{M \times d_k}
+\]
+\[
+K = X_{\text{input}} W_K \in \R^{N \times d_k}, \qquad
+V = X_{\text{input}} W_V \in \R^{N \times d_v}
+\]
+\[
+\operatorname{CrossAttn}(Q,K,V)=
+\softmax\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V
+\]
+\end{block}
+
+\begin{itemize}
+  \item I latenti fanno le \textbf{query}: decidono cosa leggere.
+  \item L'input fornisce \textbf{key/value}: descrizione e contenuto.
+  \item La matrice di attenzione è $M \times N$, non $N \times N$.
+\end{itemize}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Latent Transformer e weight sharing}
+\small
+\begin{columns}[T]
+\begin{column}{0.52\textwidth}
+\textbf{Self-attention tra latenti}
+\begin{itemize}
+  \item $Q=K=V=X_{\text{latent}}$
+  \item costo $\bigO(M^2)$
+  \item pre-norm LayerNorm + residual
+  \item feed-forward con espansione $4\times$
+  \item GELU/GEGLU come non linearità
+\end{itemize}
+\end{column}
+\begin{column}{0.45\textwidth}
+\begin{block}{Weight sharing}
+Un singolo blocco viene applicato più volte:
+\[
+Z^{t+1}=F_\theta(Z^t, X)
+\]
+È simile a un RNN nello spazio latente.
+\end{block}
+\begin{exampleblock}{Nel progetto}
+Shared: $\sim3.35$M parametri\\
+Unshared: $\sim11.0$M parametri\\
+Riduzione: circa $3\times$
+\end{exampleblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Fourier Positional Encoding}
+\small
+\begin{columns}[T]
+\begin{column}{0.50\textwidth}
+\textbf{Perché serve?}
+\begin{itemize}
+  \item L'attention è permutation-equivariant.
+  \item Senza posizione, il modello non sa \emph{dove} sono pixel/punti/token.
+  \item L'immagine diventa quasi un insieme non ordinato di patch.
+\end{itemize}
+\end{column}
+\begin{column}{0.47\textwidth}
+\begin{block}{Fourier features}
+\[
+\gamma(x)=
+\left[
+\sin(2\pi f_k x_i),
+\cos(2\pi f_k x_i)
+\right]_{k,i}
+\]
+Frequenze multi-scala concatenate ai canali originali.
+\end{block}
+\end{column}
+\end{columns}
+
+\begin{alertblock}{Risultato critico su CIFAR-10}
+Con Fourier PE: \textbf{72.23\%}. Senza PE: \textbf{35.41\%}. Drop: \textbf{-36.82 pp}.
+\end{alertblock}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Perceiver IO: decoder con output queries}
+\small
+\begin{block}{Decoder cross-attention}
+\[
+Q_{\text{dec}} = Q_{\text{out}} W_Q,\qquad
+K_{\text{dec}} = Z W_K,\qquad
+V_{\text{dec}} = Z W_V
+\]
+\[
+Y =
+\softmax\!\left(\frac{Q_{\text{dec}}K_{\text{dec}}^\top}{\sqrt{d_k}}\right)V_{\text{dec}}
+\in \R^{O \times E}
+\]
+\end{block}
+
+\begin{itemize}
+  \item $O$ = numero di output queries, dipendente dal task.
+  \item $O$ è indipendente da lunghezza input $N$ e numero latenti $M$.
+  \item Una sola cross-attention di decoder può bastare per leggere i latenti.
+\end{itemize}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Design delle output queries per task}
+\small
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{Task} & \textbf{Query} & \textbf{Output} \\
+\midrule
+Classificazione & $O=1$ & logits di classe \\
+Optical flow & $O=H \times W$ & flow per pixel \\
+Masked LM & posizioni mascherate & logits vocab \\
+Multimodale & query/task embedding & output misti \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.5em}
+\begin{exampleblock}{Nel progetto}
+\begin{itemize}
+  \item CIFAR-10 e ModelNet40: una query / aggregazione per classificazione.
+  \item WikiText-103: una query per posizione mascherata, vocab byte-level $=256$.
+\end{itemize}
+\end{exampleblock}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Analisi della complessità computazionale}
+\small
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{block}{Modelli}
+\[
+\text{Transformer: } \bigO(N^2 d L)
+\]
+\[
+\text{Perceiver: } \bigO((NM + M^2L)d)
+\]
+\[
+\text{Perceiver IO: } \bigO(((N+O)M + M^2L)d)
+\]
+\end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{exampleblock}{Esempio CIFAR-10}
+\[
+N=1024,\quad M=96,\quad L=4
+\]
+\[
+N^2 = 1\,048\,576
+\]
+\[
+NM+M^2L = 135\,168
+\]
+\textbf{$\sim7.8\times$ meno interazioni}
+\end{exampleblock}
+\end{column}
+\end{columns}
+
+\begin{alertblock}{Scaling}
+Su immagini $224 \times 224$, il vantaggio diventa nell'ordine di $\sim100\times$.
+\end{alertblock}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{GELU e ottimizzatore LAMB}
+\small
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{block}{GELU}
+\[
+\operatorname{GELU}(x)=x\Phi(x)\approx x\sigma(1.702x)
+\]
+\begin{itemize}
+  \item liscia;
+  \item standard nei Transformer;
+  \item stabile in MLP profonde.
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{block}{LAMB}
+\[
+r=\frac{\lVert w\rVert}{\lVert w+\eta \hat u\rVert}
+\]
+\begin{itemize}
+  \item trust ratio per layer;
+  \item utile per batch grandi;
+  \item usato con warmup + cosine annealing.
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Implementazione: struttura del codice}
+\small
+\begin{columns}[T]
+\begin{column}{0.52\textwidth}
+\textbf{Componenti principali}
+\begin{itemize}
+  \item \texttt{model.py}, \texttt{perceiver\_io.py}
+  \item \texttt{attention.py}
+  \item \texttt{positional\_encoding.py}
+  \item \texttt{lamb\_optimizer.py}
+\end{itemize}
+\end{column}
+\begin{column}{0.45\textwidth}
+\textbf{Esperimenti}
+\begin{itemize}
+  \item CIFAR-10
+  \item ModelNet40
+  \item WikiText-103
+  \item GLUE
+\end{itemize}
+\end{column}
+\end{columns}
+
+\begin{exampleblock}{Numeri}
+Core model $\sim600$ righe; data modules $\sim500$; esperimenti $\sim800$; totale $\sim2500$ righe.
+\end{exampleblock}
+\end{frame}
+
+\section{Esperimenti e risultati}
+
+% ---------------------------------------------------------------------
+\begin{frame}[plain]
+\centering
+\vfill
+{\Huge\color{DeepBlue}\textbf{Esperimenti e risultati}}
+\vspace{1em}
+
+{\large Immagini, point cloud e testo}
+\vfill
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{CIFAR-10: setup sperimentale}
+\small
+\begin{columns}[T]
+\begin{column}{0.50\textwidth}
+\begin{tabular}{ll}
+\toprule
+\textbf{Parametro} & \textbf{Valore} \\
+\midrule
+Latenti & $96 \times 384$ \\
+Cross-attn stages & $4$ \\
+Transformer blocks & $4$ shared \\
+Heads & $3$ \\
+Patch size & $2 \times 2$ \\
+Dropout & $0.2$ \\
+\bottomrule
+\end{tabular}
+\end{column}
+\begin{column}{0.47\textwidth}
+\begin{tabular}{ll}
+\toprule
+\textbf{Training} & \textbf{Valore} \\
+\midrule
+Optimizer & LAMB \\
+LR & $0.004$ \\
+Batch size & $64$ \\
+Epochs & $120$ \\
+Parametri & $\sim3.35$M \\
+\bottomrule
+\end{tabular}
+\end{column}
+\end{columns}
+
+\begin{block}{Piano ablation}
+Positional encoding, weight sharing, permutazione pixel, Perceiver vs Perceiver IO.
+\end{block}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{CIFAR-10: risultati ablation}
+\small
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+\textbf{Configurazione} & \textbf{Accuracy} \\
+\midrule
+Perceiver IO & \good{78.20\%} \\
+No weight sharing & 73.61\% \\
+Fourier control & 72.23\% \\
+Baseline Fourier & 69.69\% \\
+WS control & 68.70\% \\
+Fourier permuted & 62.31\% \\
+Learned PE permuted & 55.12\% \\
+RGB only, no PE & \bad{35.41\%} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{exampleblock}{Osservazioni}
+PE è essenziale; Perceiver IO migliora il readout; weight sharing resta competitivo con meno parametri.
+\end{exampleblock}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{CIFAR-10: impatto del positional encoding}
+\small
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{block}{Risultato}
+\[
+\text{Fourier PE}=72.23\%
+\]
+\[
+\text{RGB only}=35.41\%
+\]
+\[
+\Delta=-36.82\text{ pp}
+\]
+\end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+\textbf{Perché succede?}
+\begin{itemize}
+  \item senza PE l'attention non vede la posizione;
+  \item l'immagine diventa una bag of patches;
+  \item la struttura 2D viene persa;
+  \item conferma l'ipotesi del paper.
+\end{itemize}
+\end{column}
+\end{columns}
+
+\begin{alertblock}{Takeaway}
+Il positional encoding è il componente più importante della riproduzione.
+\end{alertblock}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{CIFAR-10: weight sharing}
+\small
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Modello} & \textbf{Parametri} & \textbf{Accuracy} \\
+\midrule
+Shared baseline & 3.35M & 69.69\% \\
+WS control & 3.35M & 68.70\% \\
+No sharing & 11.0M & 73.61\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{exampleblock}{Vantaggio}
+Circa $3\times$ meno parametri, memoria minore, regolarizzazione implicita.
+\end{exampleblock}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{alertblock}{Costo}
+No sharing guadagna $+3.92$ pp ma usa molti più parametri.
+\end{alertblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{CIFAR-10: robustezza alla permutazione}
+\small
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Configurazione} & \textbf{Accuracy} & \textbf{Drop} \\
+\midrule
+Fourier PE normale & 72.23\% & -- \\
+Fourier PE permutato & 62.31\% & -9.92 pp \\
+Learned PE permutato & 55.12\% & -17.11 pp \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{block}{Analisi}
+Fourier PE conserva meglio informazione multi-scala; learned PE tende a memorizzare posizioni assolute.
+\end{block}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{CIFAR-10: Perceiver vs Perceiver IO}
+\small
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Modello} & \textbf{Readout} & \textbf{Accuracy} \\
+\midrule
+Perceiver & mean pooling / head & 72.23\% \\
+Perceiver IO & output query decoder & \good{78.20\%} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{exampleblock}{Perché Perceiver IO migliora?}
+\begin{itemize}
+  \item la query di output è un aggregatore appreso;
+  \item il decoder può selezionare latenti rilevanti;
+  \item aggiunge capacità senza cambiare l'encoder.
+\end{itemize}
+\end{exampleblock}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{ModelNet40: setup e risultati}
+\small
+\begin{columns}[T]
+\begin{column}{0.50\textwidth}
+\begin{tabular}{ll}
+\toprule
+\textbf{Parametro} & \textbf{Valore} \\
+\midrule
+Latenti & $128 \times 512$ \\
+Cross-attn stages & $2$ \\
+Transformer blocks & $6$ shared \\
+Punti/oggetto & $2048$ \\
+Optimizer & LAMB \\
+Epochs & $200$ \\
+Batch size & $128$ \\
+\bottomrule
+\end{tabular}
+\end{column}
+\begin{column}{0.47\textwidth}
+\begin{tabular}{lc}
+\toprule
+\textbf{Setup} & \textbf{Accuracy} \\
+\midrule
+Baseline scale & \good{84.16\%} \\
++ rotation & 83.06\% \\
++ translation & 82.90\% \\
+Paper originale & 85.7\% \\
+\bottomrule
+\end{tabular}
+\end{column}
+\end{columns}
+
+\begin{block}{Risultato}
+Gap di soli \textbf{1.54 pp} dal paper originale: riproduzione molto vicina.
+\end{block}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{ModelNet40: effetto della data augmentation}
+\small
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Augmentation} & \textbf{Accuracy} & \textbf{Delta} \\
+\midrule
+Scale only & 84.16\% & -- \\
+Scale + rotation & 83.06\% & -1.10 pp \\
+Scale + translation & 82.90\% & -1.26 pp \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{alertblock}{Perché può peggiorare?}
+\begin{itemize}
+  \item capacità limitata: 128 latenti;
+  \item augmentation aggressiva richiede più training;
+  \item Fourier PE su coordinate assolute è sensibile a rotazioni/traslazioni.
+\end{itemize}
+\end{alertblock}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{WikiText-103: pre-training MLM byte-level}
+\small
+\begin{columns}[T]
+\begin{column}{0.50\textwidth}
+\begin{tabular}{ll}
+\toprule
+\textbf{Parametro} & \textbf{Valore} \\
+\midrule
+Tokenizzazione & byte-level UTF-8 \\
+Vocabolario & 256 \\
+Sequence length & 1024 \\
+Mask probability & 15\% \\
+Modello & Perceiver IO \\
+Parametri & $\sim10$M \\
+Epochs & 50 \\
+\bottomrule
+\end{tabular}
+\end{column}
+\begin{column}{0.47\textwidth}
+\begin{exampleblock}{Perché byte-level?}
+\begin{itemize}
+  \item nessun BPE/WordPiece;
+  \item input davvero language-agnostic;
+  \item vocabolario fisso e piccolo.
+\end{itemize}
+\end{exampleblock}
+\begin{alertblock}{Trade-off}
+Sequenze più lunghe per rappresentare lo stesso testo.
+\end{alertblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{GLUE: fine-tuning su 8 task}
+\small
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\textbf{Pipeline}
+\begin{enumerate}
+  \item Pre-training MLM su WikiText-103
+  \item Trasferimento encoder
+  \item Nuova query di classificazione
+  \item Fine-tuning GLUE
+\end{enumerate}
+\end{column}
+\begin{column}{0.49\textwidth}
+\textbf{Task GLUE}
+\begin{itemize}
+  \item Singola frase: CoLA, SST-2
+  \item Similarità: MRPC, STS-B, QQP
+  \item Inferenza: MNLI, QNLI, RTE
+\end{itemize}
+\end{column}
+\end{columns}
+
+\begin{block}{Setup}
+30 epoche, learning rate $5 \times 10^{-4}$, input byte-level.
+\end{block}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{GLUE: analisi per task}
+\small
+\begin{columns}[T]
+\begin{column}{0.50\textwidth}
+\begin{exampleblock}{Osservazioni}
+\begin{itemize}
+  \item sopra majority baseline su molti task;
+  \item SST-2 relativamente forte;
+  \item transfer MLM $\rightarrow$ GLUE utile.
+\end{itemize}
+\end{exampleblock}
+\end{column}
+\begin{column}{0.47\textwidth}
+\begin{alertblock}{Limitazioni}
+\begin{itemize}
+  \item byte-level = sequenze lunghe;
+  \item modello $\sim10$M vs BERT base 110M;
+  \item niente semantica subword.
+\end{itemize}
+\end{alertblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Convergenza: tutti gli esperimenti}
+\small
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+\textbf{Modalità} & \textbf{Convergenza indicativa} \\
+\midrule
+Point cloud & $\sim50$ epoche \\
+GLUE fine-tuning & 15--30 epoche \\
+CIFAR-10 & $\sim120$ epoche \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{itemize}
+  \item Point cloud: input a bassa dimensione, convergenza più rapida.
+  \item GLUE: il pre-training accelera l'adattamento.
+  \item CIFAR-10: pixel/patch grezzi richiedono più iterazioni.
+\end{itemize}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Attention maps: analisi visiva}
+\small
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{exampleblock}{Con Fourier PE}
+\begin{itemize}
+  \item pattern spazialmente coerenti;
+  \item latenti specializzati;
+  \item attenzione meno entropica.
+\end{itemize}
+\end{exampleblock}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{alertblock}{Senza PE}
+\begin{itemize}
+  \item pattern meno strutturati;
+  \item entropia più alta;
+  \item difficile separare regioni informative.
+\end{itemize}
+\end{alertblock}
+\end{column}
+\end{columns}
+
+\begin{block}{Interpretazione}
+Le attention maps confermano qualitativamente il risultato quantitativo: la posizione guida la lettura dell'input.
+\end{block}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Risultati complessivi}
+\small
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{Modalità} & \textbf{Risultato} & \textbf{Nota} \\
+\midrule
+Immagini & Perceiver IO 78.20\% & migliore CIFAR-10 \\
+Point cloud & ModelNet40 84.16\% & gap 1.54 pp dal paper \\
+Testo & MLM + 8 task GLUE & input byte-level \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{exampleblock}{Sintesi}
+\begin{itemize}
+  \item $\sim2500$ righe PyTorch from-scratch;
+  \item 20+ training run;
+  \item 3 modalità: immagini, point cloud, testo;
+  \item pipeline riproducibile.
+\end{itemize}
+\end{exampleblock}
+\end{frame}
+
+\section{Criticità e discussione}
+
+% ---------------------------------------------------------------------
+\begin{frame}[plain]
+\centering
+\vfill
+{\Huge\color{DeepBlue}\textbf{Criticità e discussione}}
+\vspace{1em}
+
+{\large Dove funziona, dove costa, cosa migliorare}
+\vfill
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Gap rispetto al paper originale}
+\small
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Dataset} & \textbf{Paper} & \textbf{Progetto} & \textbf{Gap} \\
+\midrule
+ModelNet40 & 85.7\% & 84.16\% & \good{1.54 pp} \\
+CIFAR-10 / immagini & $>90\%$ & 78.20\% & \bad{$\sim12$ pp} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{block}{Interpretazione}
+La riproduzione sui point cloud è molto vicina. Il gap sulle immagini dipende soprattutto dal compute disponibile.
+\end{block}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Limitazioni hardware e scelte implementative}
+\small
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{Aspetto} & \textbf{Paper Google} & \textbf{Progetto} \\
+\midrule
+Hardware & 512 TPU v3 cores & 1 GPU consumer \\
+Batch size & fino a 1024 & 64--128 \\
+Latenti & 256--512 & 96--128 \\
+Parametri & 30--100M+ & 3.35--10M \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{alertblock}{Conseguenze}
+LAMB meno efficace con batch piccoli; meno latenti limitano il bottleneck; modello più piccolo = meno capacità.
+\end{alertblock}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Possibili miglioramenti}
+\small
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\textbf{Architettura}
+\begin{itemize}
+  \item aumentare $M$ con gradient checkpointing;
+  \item cross-attention multi-scala;
+  \item positional encoding relativi: RoPE, ALiBi.
+\end{itemize}
+
+\textbf{Training}
+\begin{itemize}
+  \item batch effettivo più grande;
+  \item mixed precision FP16/BF16;
+  \item CutMix e MixUp.
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\textbf{Dati e analisi}
+\begin{itemize}
+  \item tokenizzazione subword per NLP;
+  \item training multimodale congiunto;
+  \item confronto con Linformer, Performer e altri efficient Transformer.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Lezioni apprese}
+\small
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{exampleblock}{Cosa funziona}
+\begin{itemize}
+  \item architettura davvero modality-agnostic;
+  \item weight sharing efficiente;
+  \item Perceiver IO migliora il readout;
+  \item transfer MLM $\rightarrow$ GLUE utile.
+\end{itemize}
+\end{exampleblock}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{alertblock}{Cosa limita}
+\begin{itemize}
+  \item gap immagini con poco compute;
+  \item forte dipendenza dal PE;
+  \item LAMB sensibile al batch size;
+  \item byte-level = sequenze lunghe.
+\end{itemize}
+\end{alertblock}
+\end{column}
+\end{columns}
+
+\begin{block}{Main takeaway}
+Il positional encoding è il componente più critico: senza posizione, CIFAR-10 crolla da 72\% a 35\%.
+\end{block}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Conclusioni}
+\small
+\begin{columns}[T]
+\begin{column}{0.50\textwidth}
+\textbf{Punti di forza}
+\begin{itemize}
+  \item una sola architettura per immagini, point cloud e testo;
+  \item costo lineare nella dimensione input;
+  \item meno memoria con weight sharing;
+  \item nessuna CNN/RNN specifica per dominio.
+\end{itemize}
+\end{column}
+\begin{column}{0.47\textwidth}
+\textbf{Debolezze}
+\begin{itemize}
+  \item richiede molto compute per battere modelli specializzati;
+  \item dipende dal positional encoding;
+  \item bottleneck latente può perdere dettagli fini.
+\end{itemize}
+\end{column}
+\end{columns}
+
+\begin{exampleblock}{Messaggio finale}
+Il Perceiver è un passo convincente verso modelli di percezione general-purpose.
+\end{exampleblock}
+\end{frame}
+
+\section{Chiusura}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Riferimenti}
+\small
+\begin{thebibliography}{9}
+\bibitem{perceiver} Jaegle et al., \emph{Perceiver: General Perception with Iterative Attention}, ICML 2021.
+\bibitem{perceiverio} Jaegle et al., \emph{Perceiver IO: A General Architecture for Structured Inputs \& Outputs}, ICLR 2022.
+\bibitem{attention} Vaswani et al., \emph{Attention Is All You Need}, NeurIPS 2017.
+\bibitem{lamb} You et al., \emph{Large Batch Optimization for Deep Learning: Training BERT in 76 Minutes}, ICLR 2020.
+\bibitem{fourier} Tancik et al., \emph{Fourier Features Let Networks Learn High Frequency Functions}, NeurIPS 2020.
+\bibitem{geglu} Shazeer, \emph{GLU Variants Improve Transformer}, arXiv 2020.
+\end{thebibliography}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{Appendice: domande attese all'esame}
+\small
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{itemize}
+  \item Perché cross-attention invece di self-attention?
+  \item Come cambia la complessità?
+  \item A cosa serve il weight sharing?
+  \item Perché Fourier PE è così importante?
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{itemize}
+  \item Perché il gap su CIFAR-10 è grande?
+  \item Perché byte-level tokenization?
+  \item Come migliora Perceiver IO?
+  \item Può sostituire ViT/BERT?
+\end{itemize}
+\end{column}
+\end{columns}
+
+\begin{block}{Risposta breve da ricordare}
+Perceiver usa latenti per rendere l'attention scalabile; Perceiver IO usa output queries per rendere generale anche il lato output.
+\end{block}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}[plain]
+\centering
+\vfill
+{\Huge\color{DeepBlue}\textbf{Grazie!}}
+
+\vspace{1em}
+{\Large Domande?}
+
+\vspace{2em}
+Francesco Gigli e Corso Vignoli
+\vfill
+\end{frame}
+
+\end{document}

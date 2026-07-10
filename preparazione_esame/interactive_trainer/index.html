@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Perceiver Exam Trainer</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- SIDEBAR                                                            -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="brand" data-nav="home">
+    <div class="brand-logo">P</div>
+    <div>
+      <div class="brand-name">Perceiver Trainer</div>
+      <div class="brand-sub">Deep Learning · UniFi</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav" id="sidebarNav">
+    <button data-nav="home"><span>🏠</span> Home</button>
+    <button data-nav="modules"><span>📚</span> Moduli</button>
+    <button data-nav="lessons"><span>🗂️</span> Lezioni</button>
+    <button data-nav="flashcard"><span>🎴</span> Flashcard</button>
+    <button data-nav="quiz"><span>❓</span> Quiz</button>
+    <button data-nav="stats"><span>📊</span> Statistiche</button>
+    <button data-nav="achievements"><span>🏆</span> Achievements</button>
+    <button data-nav="mindmap"><span>🗺️</span> Mind map</button>
+    <hr>
+    <button data-nav="glossary"><span>📖</span> Glossario</button>
+    <button data-nav="cheatsheet"><span>📄</span> Cheatsheet</button>
+    <button data-nav="search"><span>🔍</span> Cerca <kbd>Ctrl+K</kbd></button>
+    <button data-nav="bookmarks"><span>⭐</span> Preferiti</button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="xp-row">
+      <span class="xp-badge" id="xpBadge">XP 0</span>
+      <span class="streak-badge" id="streakBadge">🔥 0</span>
+    </div>
+    <div class="footer-actions">
+      <button id="themeToggle" title="Tema chiaro/scuro">🌓</button>
+      <button id="focusBtn" title="Focus mode">⛶</button>
+      <button id="exportBtn" title="Esporta progressi">💾</button>
+      <button id="importBtn" title="Importa progressi">📂</button>
+      <button id="resetProgress" title="Reset progressi">↺</button>
+    </div>
+  </div>
+</aside>
+
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="menu">☰</button>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- MAIN                                                               -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<main class="main">
+
+  <!-- HOME ----------------------------------------------------------- -->
+  <section id="homeView">
+    <header class="hero">
+      <h1>Perceiver &amp; Perceiver IO</h1>
+      <p class="lead">
+        Trainer di studio attivo sulla dispensa
+        <code>lezione_perceiver_completo.tex</code>. Card di spiegazione,
+        formule, esempi numerici e quiz tracciati con citazione alla sezione.
+      </p>
+    </header>
+
+    <div id="resumeBanner" hidden></div>
+
+    <div id="goalCard">
+      <h3>🎯 Goal di studio oggi</h3>
+      <div id="goalBar"></div>
+    </div>
+
+    <div class="today-card" id="todayCard">
+      <!-- popolata da app.js -->
+    </div>
+
+    <h2>I tuoi moduli</h2>
+    <div class="module-grid" id="homeModules"><!-- popolata da app.js --></div>
+
+    <h2>Modalità di studio rapide</h2>
+    <div class="quick-grid">
+      <button class="quick-card" data-quick="flashcard">
+        <span class="qc-icon">🎴</span>
+        <div class="qc-title">Flashcard</div>
+        <div class="qc-sub">Ripasso a flip card di tutti i concetti</div>
+      </button>
+      <button class="quick-card" data-quick="drill">
+        <span class="qc-icon">🎯</span>
+        <div class="qc-title">Drill errori</div>
+        <div class="qc-sub">Riprova solo i quiz sbagliati</div>
+      </button>
+      <button class="quick-card" data-quick="quick10">
+        <span class="qc-icon">⚡</span>
+        <div class="qc-title">Quiz lampo (10)</div>
+        <div class="qc-sub">10 domande casuali pesate</div>
+      </button>
+      <button class="quick-card" data-quick="review">
+        <span class="qc-icon">🎯</span>
+        <div class="qc-title">Review oggi</div>
+        <div class="qc-sub" id="reviewCountSub">Card in scadenza (Leitner)</div>
+      </button>
+      <button class="quick-card" data-quick="timed">
+        <span class="qc-icon">⏱</span>
+        <div class="qc-title">Esame stretto</div>
+        <div class="qc-sub">10 domande × 60s ciascuna</div>
+      </button>
+    </div>
+  </section>
+
+  <!-- MODULES -------------------------------------------------------- -->
+  <section id="modulesView" hidden>
+    <h1>Moduli</h1>
+    <div class="module-grid" id="modulesGrid"></div>
+  </section>
+
+  <!-- MODULE DETAIL -------------------------------------------------- -->
+  <section id="moduleView" hidden>
+    <div id="moduleHeader"></div>
+    <div id="moduleCards"></div>
+  </section>
+
+  <!-- CARD ----------------------------------------------------------- -->
+  <section id="cardView" hidden>
+    <div id="cardReturnBanner" hidden></div>
+    <article id="cardBody"></article>
+    <nav class="card-nav">
+      <button id="cardPrev" class="btn-ghost">← Precedente</button>
+      <div class="card-progress" id="cardProgress"></div>
+      <button id="cardNext" class="btn-primary">Avanti →</button>
+    </nav>
+  </section>
+
+  <!-- LESSONS -------------------------------------------------------- -->
+  <section id="lessonsView" hidden>
+    <h1>Lezioni (≈12 card l'una)</h1>
+    <div id="lessonsGrid" class="lesson-grid"></div>
+  </section>
+
+  <section id="lessonView" hidden>
+    <div id="lessonHeader"></div>
+    <div id="lessonCards"></div>
+  </section>
+
+  <!-- FLASHCARD ------------------------------------------------------ -->
+  <section id="flashcardView" hidden>
+    <header class="view-head">
+      <h1>Flashcard</h1>
+      <div class="filter-row" id="flashFilters"></div>
+    </header>
+    <div class="flashcard-area" id="flashArea"></div>
+    <nav class="card-nav">
+      <button id="flashPrev" class="btn-ghost">←</button>
+      <div id="flashProgress"></div>
+      <button id="flashNext" class="btn-primary">→</button>
+    </nav>
+  </section>
+
+  <!-- QUIZ ----------------------------------------------------------- -->
+  <section id="quizView" hidden>
+    <header class="view-head">
+      <h1>Quiz</h1>
+      <p class="muted" id="quizSubtitle"></p>
+    </header>
+    <div id="quizSetup" class="quiz-setup">
+      <h2>Scegli una modalità</h2>
+      <div class="quiz-mode-grid">
+        <button class="quiz-mode" data-mode="topic">
+          <strong>Per topic</strong>
+          <span>Scegli un modulo, 10 domande</span>
+        </button>
+        <button class="quiz-mode" data-mode="drill">
+          <strong>Drill errori</strong>
+          <span>Solo i quiz già sbagliati</span>
+        </button>
+        <button class="quiz-mode" data-mode="quick">
+          <strong>Quick 10</strong>
+          <span>10 domande random pesate</span>
+        </button>
+        <button class="quiz-mode" data-mode="lesson">
+          <strong>Per lezione</strong>
+          <span>Quiz di una lezione specifica</span>
+        </button>
+      </div>
+      <div id="quizSubChoice"></div>
+    </div>
+    <div id="quizRun" hidden></div>
+    <div id="quizResult" hidden></div>
+  </section>
+
+  <!-- STATS ---------------------------------------------------------- -->
+  <section id="statsView" hidden>
+    <h1>Statistiche</h1>
+    <div class="stat-grid" id="statGrid"></div>
+    <h2>Accuracy per topic</h2>
+    <div id="topicBars"></div>
+    <h2>Calendario sessioni</h2>
+    <div id="heatmap"></div>
+    <h2>Ultime sessioni</h2>
+    <div id="sessionList"></div>
+  </section>
+
+  <!-- SEARCH --------------------------------------------------------- -->
+  <section id="searchView" hidden>
+    <h1>Cerca</h1>
+    <input type="search" id="searchInput" placeholder="Cerca termine, concetto, sezione…" autocomplete="off">
+    <div id="searchResults"></div>
+  </section>
+
+  <!-- GLOSSARY ------------------------------------------------------- -->
+  <section id="glossaryView" hidden>
+    <h1>Glossario</h1>
+    <input type="search" id="glossFilter" placeholder="Filtra…">
+    <div id="glossList"></div>
+  </section>
+
+  <!-- CHEATSHEET ----------------------------------------------------- -->
+  <section id="cheatsheetView" hidden>
+    <h1>Cheatsheet</h1>
+    <div id="cheatList"></div>
+  </section>
+
+  <!-- BOOKMARKS ------------------------------------------------------ -->
+  <section id="bookmarksView" hidden>
+    <h1>Preferiti</h1>
+    <div id="bookmarkList"></div>
+  </section>
+
+  <!-- ACHIEVEMENTS --------------------------------------------------- -->
+  <section id="achievementsView" hidden>
+    <h1>🏆 Achievements</h1>
+    <p class="muted">Sblocca medaglie continuando a studiare. Ogni traguardo viene salvato localmente.</p>
+    <div id="achievementsGrid" class="achievements-grid"></div>
+  </section>
+
+  <!-- MIND MAP ------------------------------------------------------- -->
+  <section id="mindmapView" hidden>
+    <h1>🗺️ Mind map dei moduli</h1>
+    <p class="muted">Le frecce indicano un percorso di lettura suggerito (prerequisito → costruito su). Clicca su un nodo per aprire il modulo.</p>
+    <svg id="mindmapSvg" viewBox="0 0 950 620" preserveAspectRatio="xMidYMid meet"></svg>
+  </section>
+
+  <!-- COMPLETION ----------------------------------------------------- -->
+  <section id="completionView" hidden>
+    <div class="completion-card" id="completionCard"></div>
+  </section>
+
+</main>
+
+<canvas id="confettiCanvas"></canvas>
+
+<!-- CONTENT modules (order matters) ----------------------------------- -->
+<script src="content/m0_intro.js"></script>
+<script src="content/m1_prerequisiti.js"></script>
+<script src="content/m2_architettura.js"></script>
+<script src="content/m3_fourier_forward.js"></script>
+<script src="content/m4_training.js"></script>
+<script src="content/m5_esperimenti_pio.js"></script>
+<script src="content/m6_pio_decoder.js"></script>
+<script src="content/m7_pio_esperimenti.js"></script>
+<script src="content/m8_loss_training_pio.js"></script>
+<script src="content/m9_transformer_vit.js"></script>
+<script src="content/m10_rnn_lstm_gru.js"></script>
+<script src="content/m11_cnn_resnet.js"></script>
+<script src="content/m12_perceptron_mlp.js"></script>
+<script src="content/m13_approfondimenti.js"></script>
+<script src="content/modules.js"></script>
+<script src="content/lessons.js"></script>
+<script src="content/glossary.js"></script>
+<script src="content/cheatsheets.js"></script>
+<script src="content/images.js"></script>
+
+<!-- App -------------------------------------------------------------- -->
+<script src="highlighter.js"></script>
+<script src="card_enhancer.js"></script>
+<script src="mathrender.js"></script>
+<script src="confetti.js"></script>
+<script src="app.js"></script>
+<script src="features.js"></script>
+</body>
+</html>

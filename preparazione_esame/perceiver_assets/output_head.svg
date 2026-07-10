@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="480" viewBox="0 0 1200 480" role="img" aria-labelledby="title desc">
+  <title id="title">Output head: pooling and classifier</title>
+  <desc id="desc">Final latents are average-pooled, projected to logits, normalized by softmax, and classified.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#1a237e"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-20%" width="120%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#1a237e" flood-opacity=".12"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="480" rx="22" fill="#fbfbfd"/>
+  <text x="60" y="64" fill="#1a237e" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="700">Output head: da 512 latenti a una classe</text>
+  <text x="60" y="98" fill="#5f6472" font-family="Segoe UI, Arial, sans-serif" font-size="18">Prima si fa pooling, poi una sola proiezione lineare: meno costo, stesso risultato matematico.</text>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="155" width="210" height="210" rx="16" fill="#fff" stroke="#dfe3ef"/>
+    <text x="105" y="192" fill="#1a237e" font-family="Segoe UI, Arial, sans-serif" font-size="19" font-weight="700">Latenti finali</text>
+    <text x="105" y="220" fill="#6e6e76" font-family="Consolas, monospace" font-size="16">512 x 1024</text>
+    <g transform="translate(105 250)">
+      <rect width="18" height="18" rx="3" fill="#1a237e"/><rect x="24" width="18" height="18" rx="3" fill="#3949ab"/><rect x="48" width="18" height="18" rx="3" fill="#5c6bc0"/><rect x="72" width="18" height="18" rx="3" fill="#9fa8da"/>
+      <rect y="24" width="18" height="18" rx="3" fill="#283593"/><rect x="24" y="24" width="18" height="18" rx="3" fill="#5c6bc0"/><rect x="48" y="24" width="18" height="18" rx="3" fill="#7986cb"/><rect x="72" y="24" width="18" height="18" rx="3" fill="#c5cae9"/>
+      <rect y="48" width="18" height="18" rx="3" fill="#1a237e"/><rect x="24" y="48" width="18" height="18" rx="3" fill="#3949ab"/><rect x="48" y="48" width="18" height="18" rx="3" fill="#5c6bc0"/><rect x="72" y="48" width="18" height="18" rx="3" fill="#9fa8da"/>
+    </g>
+  </g>
+
+  <line x1="305" y1="260" x2="405" y2="260" stroke="#1a237e" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="316" y="232" fill="#1a237e" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700">average</text>
+
+  <g filter="url(#shadow)">
+    <rect x="425" y="185" width="155" height="150" rx="16" fill="#fff" stroke="#dfe3ef"/>
+    <text x="502" y="238" text-anchor="middle" fill="#1a237e" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="800">h</text>
+    <text x="502" y="275" text-anchor="middle" fill="#6e6e76" font-family="Consolas, monospace" font-size="16">1 x 1024</text>
+    <text x="502" y="303" text-anchor="middle" fill="#3c3c3c" font-family="Segoe UI, Arial, sans-serif" font-size="14">riassunto globale</text>
+  </g>
+
+  <line x1="600" y1="260" x2="700" y2="260" stroke="#1a237e" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="612" y="232" fill="#1a237e" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700">linear</text>
+
+  <g filter="url(#shadow)">
+    <rect x="720" y="185" width="155" height="150" rx="16" fill="#fff" stroke="#dfe3ef"/>
+    <text x="797" y="238" text-anchor="middle" fill="#e65100" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="800">z</text>
+    <text x="797" y="275" text-anchor="middle" fill="#6e6e76" font-family="Consolas, monospace" font-size="16">1000 logits</text>
+    <text x="797" y="303" text-anchor="middle" fill="#3c3c3c" font-family="Segoe UI, Arial, sans-serif" font-size="14">score classi</text>
+  </g>
+
+  <line x1="895" y1="260" x2="995" y2="260" stroke="#1a237e" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="902" y="232" fill="#1a237e" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700">softmax</text>
+
+  <g filter="url(#shadow)">
+    <rect x="1015" y="185" width="125" height="150" rx="16" fill="#e8f5e9" stroke="#a5d6a7"/>
+    <text x="1078" y="238" text-anchor="middle" fill="#2e7d32" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="800">p</text>
+    <text x="1078" y="275" text-anchor="middle" fill="#2e7d32" font-family="Consolas, monospace" font-size="15">argmax</text>
+    <text x="1078" y="303" text-anchor="middle" fill="#3c3c3c" font-family="Segoe UI, Arial, sans-serif" font-size="14">classe</text>
+  </g>
+</svg>
