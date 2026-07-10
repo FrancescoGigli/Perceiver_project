@@ -1,84 +1,55 @@
 # src/utils/positional_encoding.py
-# Fourier Feature Positional Encoding for Perceiver models.
+# Fourier feature positional encoding, come in Jaegle et al. 2021, Sez. 3.2.
+
+import math
 
 import torch
 import torch.nn as nn
-import math
-import warnings
+
 
 class FourierPositionalEncoding(nn.Module):
+    """Fourier features posizionali, senza parametri addestrabili.
+
+    Produce ``num_pos_feats * (2 * num_bands + 1)`` canali: la coordinata grezza
+    piu' seno e coseno per ciascuna delle ``num_bands`` bande di frequenza,
+    linearmente spaziate in ``[1, max_freq]``.
+
+    ``max_freq`` deve essere la frequenza di Nyquist ``mu / 2`` della griglia di
+    campionamento (per un'immagine 32x32, ``max_freq = 16``). Il paper mostra che
+    oltre Nyquist non si guadagna nulla.
+
+    Le coordinate in ingresso vanno normalizzate in ``[-1, 1]``.
     """
-    Fourier positional encoding for Perceiver models.
-    """
-    def __init__(self, dim, max_spatial_size=None, max_frequencies=10.0, 
-                 num_frequency_bands=6, num_pos_feats=2, circular=False):
+
+    def __init__(self, num_bands: int = 64, max_freq: float = 16.0, num_pos_feats: int = 2):
         super().__init__()
-        self.dim = dim
-        self.max_spatial_size = max_spatial_size
-        self.max_frequencies = max_frequencies
-        self.num_frequency_bands = num_frequency_bands
+        if num_bands < 1:
+            raise ValueError(f"num_bands deve essere >= 1, ricevuto {num_bands}")
+        if num_pos_feats < 1:
+            raise ValueError(f"num_pos_feats deve essere >= 1, ricevuto {num_pos_feats}")
+
+        self.num_bands = num_bands
+        self.max_freq = float(max_freq)
         self.num_pos_feats = num_pos_feats
-        self.circular = circular
-        
-        # Generate frequency bands
-        if self.num_frequency_bands > 1:
-            bands = torch.linspace(1.0, max_frequencies, num_frequency_bands)
-        else:
-            bands = torch.tensor([1.0])
+
+        bands = torch.linspace(1.0, self.max_freq, num_bands)
         self.register_buffer("bands", bands)
-        
-        # Calculate output dimension
-        self.out_dim = ((num_frequency_bands * 2) + 1) * num_pos_feats
-        
-        # Create projection if needed
-        if self.out_dim != dim:
-            self.projection = nn.Linear(self.out_dim, dim)
-        else:
-            self.projection = nn.Identity()
-    
-    def forward(self, coords):
-        """
-        Create positional encodings for coordinates.
-        
-        Args:
-            coords: Tensor of shape (..., num_pos_feats) containing normalized coordinates
-                   For circular encoding, coordinates should be in [0, 1].
-                   For non-circular encoding, coordinates should be in [-1, 1].
-                   
-        Returns:
-            Tensor of shape (..., dim) containing positional encodings.
-        """
-        # Save original shape
+
+    @property
+    def out_dim(self) -> int:
+        return self.num_pos_feats * (2 * self.num_bands + 1)
+
+    def forward(self, coords: torch.Tensor) -> torch.Tensor:
         orig_shape = coords.shape
-        
-        # Reshape to 2D: (batch_size, num_pos_feats)
-        coords_flat = coords.reshape(-1, self.num_pos_feats)
-        
-        # Scale for circular coordinates
-        if self.circular:
-            coords_flat = coords_flat * 2 * math.pi
-        
-        # Calculate encodings
-        pos_encodings = [coords_flat]  # Include original coordinates
-        
-        # Apply frequency bands
-        for freq in self.bands:
-            for i in range(self.num_pos_feats):
-                pos = coords_flat[..., i:i+1]  # Shape: (batch_size, 1)
-                pos_enc = pos * freq  # Scale by frequency
-                
-                # Add sin and cos encodings
-                pos_encodings.append(torch.sin(pos_enc))
-                pos_encodings.append(torch.cos(pos_enc))
-        
-        # Concatenate all encodings
-        encodings = torch.cat(pos_encodings, dim=-1)
-        
-        # Project to target dimension if needed
-        encodings = self.projection(encodings)
-        
-        # Reshape back to original shape with new feature dimension
-        output_shape = orig_shape[:-1] + (self.dim,)
-        encodings = encodings.reshape(output_shape)
-        
-        return encodings
+        x = coords.reshape(-1, self.num_pos_feats)          # (P, d)
+
+        # (P, d, K)
+        scaled = x.unsqueeze(-1) * self.bands * math.pi
+
+        parts = [x]
+        for k in range(self.num_bands):
+            parts.append(torch.sin(scaled[..., k]))
+            parts.append(torch.cos(scaled[..., k]))
+
+        enc = torch.cat(parts, dim=-1)                      # (P, d*(2K+1))
+        return enc.reshape(orig_shape[:-1] + (self.out_dim,))
