@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.amp import autocast, GradScaler
 from tqdm import tqdm
+import json
 import os
 import time
 import numpy as np
@@ -31,6 +32,10 @@ from src.utils.logger import BaseLogger
 import torch_optimizer as custom_optim # For LAMB optimizer
 
 def main(args):
+    from src.utils.seed import set_global_seed
+    set_global_seed(args.seed)
+    print(f"Global seed: {args.seed}")
+
     # Setup device
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -59,12 +64,11 @@ def main(args):
             data_dir=args.data_dir,
             batch_size=args.batch_size_cifar10,
             num_workers=args.num_workers,
-            fourier_dim=args.cifar10_fourier_bands,
-            max_frequencies=args.cifar10_max_freq,
-            circular_pos_encoding=True,
+            patch_size=args.patch_size,
+            val_split=args.val_split,
+            split_seed=args.seed,
             randaugment_num_ops=2,
             randaugment_magnitude=9,
-            use_positional_encoding=not args.no_positional_encoding
         )
         num_classes = 10
         args.batch_size = args.batch_size_cifar10
@@ -145,15 +149,38 @@ def main(args):
     train_loader = data_module.train_dataloader()
     val_loader = data_module.val_dataloader()
     
-    # For CIFAR-10, get input dimension from the datamodule
+    # For CIFAR-10, build the input positional encoding (lives in the model, not the DataModule)
     if args.dataset == 'cifar10':
-        # Calculate patch size and other parameters
-        patch_size = data_module.patch_size
-        patch_dim = patch_size * patch_size * 3  # RGB patch
-        if data_module.use_positional_encoding:
-            input_dim = patch_dim + data_module.fourier_dim  # patch + positional encoding
+        from src.perceiver.input_pe import InputPositionalEncoding, make_token_permutation
+
+        grid_size = data_module.image_size // data_module.patch_size
+        num_positions = grid_size * grid_size
+
+        if args.no_positional_encoding:
+            pe_mode = "none"
+        elif args.use_learned_pe:
+            pe_mode = "learned"
         else:
-            input_dim = patch_dim  # Only RGB patches, no positional encoding
+            pe_mode = "fourier"
+
+        permutation = (
+            make_token_permutation(num_positions, args.permute_pixels_seed)
+            if args.permute_pixels
+            else None
+        )
+
+        input_pe = InputPositionalEncoding(
+            grid_size=grid_size,
+            mode=pe_mode,
+            num_bands=args.fourier_num_bands,
+            max_freq=args.fourier_max_freq,
+            learned_dim=args.learned_pe_dim,
+            init_scale=args.latent_init_scale,
+            permutation=permutation,
+        )
+        token_dim = data_module.token_dim
+        input_dim = token_dim + input_pe.pe_dim
+        print(f"Input: M={num_positions} tokens x C={input_dim} channels (PE mode: {pe_mode})")
     elif args.dataset == 'modelnet40':
         # For ModelNet40, input dimension is 3 (coordinates) + fourier_dim
         input_dim = 3 + data_module.fourier_dim
@@ -172,24 +199,32 @@ def main(args):
     if (args.dataset == 'wikitext2' or args.dataset == 'wikitext103') and args.model_type == 'perceiver_io' and args.model_task == 'mlm':
         num_output_queries = args.text_seq_len
     
-    # Temporary model instantiation just to calculate params (on CPU)
+    # The 'perceiver' model needs input_pe (built above for cifar10), so it is
+    # built once, right here, and reused for the rest of main() -- no more
+    # throwaway temp_model just to count parameters.
     if args.model_type == 'perceiver':
-        temp_model = Perceiver(
-            input_dim=input_dim,
+        model = Perceiver(
+            token_dim=token_dim,
             num_classes=num_classes,
+            input_pe=input_pe,
             num_latents=args.num_latents,
             latent_dim=args.latent_dim,
             num_cross_attend_stages=args.num_cross_attend_stages,
             num_transformer_blocks=args.num_transformer_blocks,
-            num_heads=args.num_heads,
-            head_dim=head_dim,
+            num_heads_cross=args.num_heads_cross,
+            num_heads_self=args.num_heads_self,
             mlp_ratio=4,
             dropout=args.dropout,
-            output_pooling=args.output_pooling,
+            latent_init_scale=args.latent_init_scale,
             save_attention_maps=args.save_attention_maps,
-            weight_sharing=not args.no_weight_sharing
-        )
+            weight_sharing=not args.no_weight_sharing,
+            arrangement=args.cross_attend_arrangement,
+            use_latent_transformer=not args.no_latent_transformer,
+            share_cross_attend=not args.no_share_cross_attend,
+        ).to(device)
+        total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     elif args.model_type == 'perceiver_io':
+        # Temporary model instantiation just to calculate params (on CPU)
         temp_model = PerceiverIO(
             input_dim=input_dim,
             num_classes=num_classes,
@@ -207,10 +242,10 @@ def main(args):
             save_attention_maps=args.save_attention_maps,
             weight_sharing=not args.no_weight_sharing
         )
+        total_params = sum(p.numel() for p in temp_model.parameters() if p.requires_grad)
+        del temp_model  # Free up memory
     else:
         raise ValueError(f"Unsupported model_type: {args.model_type}")
-    total_params = sum(p.numel() for p in temp_model.parameters() if p.requires_grad)
-    del temp_model  # Free up memory
     
     config_file_path = os.path.join(experiment_dir, "config.txt")
     with open(config_file_path, "w") as f:
@@ -265,21 +300,8 @@ def main(args):
     
     # Initialize Model
     if args.model_type == 'perceiver':
-        model = Perceiver(
-            input_dim=input_dim,
-            num_classes=num_classes,
-            num_latents=args.num_latents,
-            latent_dim=args.latent_dim,
-            num_cross_attend_stages=args.num_cross_attend_stages,
-            num_transformer_blocks=args.num_transformer_blocks,
-            num_heads=args.num_heads,
-            head_dim=args.latent_dim // args.num_heads, # Calculate head_dim
-            mlp_ratio=4, # Standard MLP ratio, can be made configurable
-            dropout=args.dropout, # Use dropout from config
-            output_pooling=args.output_pooling, # Use output pooling from config
-            save_attention_maps=args.save_attention_maps, # Pass the flag
-            weight_sharing=weight_sharing # Pass weight sharing flag
-        ).to(device)
+        # Already built above (needed early to build input_pe and count parameters).
+        pass
     elif args.model_type == 'perceiver_io':
         model = PerceiverIO(
             input_dim=input_dim,
@@ -362,13 +384,11 @@ def main(args):
     scaler = GradScaler(enabled=(device.type == 'cuda'))
     print(f"Mixed Precision Training (AMP): {'Enabled' if device.type == 'cuda' else 'Disabled (CPU fallback)'}")
 
-    # Early stopping parameters
+    # Nessun early stopping: 120 epoche piene, cosi' ogni run riceve il decay del LR
+    # ai milestone [84, 102, 114]. Vedi la spec, sezione "La lotteria del decay".
     best_val_accuracy = 0.0
-    if args.dataset == 'glue_stsb':
-        best_val_accuracy = float('-inf')  # For regression, use -loss as metric
-    epochs_no_improve = 0
-    patience = 10  # Stop after 10 epochs without improvement
-    
+    best_epoch = 0
+
     # Tracking previous accuracies to calculate differences
     prev_train_acc = 0.0
     prev_val_acc = 0.0
@@ -429,35 +449,14 @@ def main(args):
             logger.log_scalar("val/epoch_loss", avg_val_loss, epoch + 1)
             logger.log_scalar("val/epoch_accuracy", avg_val_acc, epoch + 1)
 
-            # Check if validation accuracy improved
+            # Check if validation accuracy improved (selection only, no early stopping)
             if avg_val_acc > best_val_accuracy:
                 best_val_accuracy = avg_val_acc
-                epochs_no_improve = 0  # Reset counter
-                
-                # Save the model (just the model's state_dict)
+                best_epoch = epoch + 1
+
                 best_model_path = os.path.join(checkpoints_dir, "best_model.pt")
                 torch.save(model.state_dict(), best_model_path)
-                print(f"Saved new best model to {best_model_path} with Val Acc: {avg_val_acc:.4f}")
-                
-                # Also save a full checkpoint (for resuming training if needed)
-                checkpoint_path = os.path.join(checkpoints_dir, "last_checkpoint.pth")
-                torch.save({
-                    'epoch': epoch + 1,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'val_accuracy': avg_val_acc,
-                    'args': args
-                }, checkpoint_path)
-            else:
-                # Increment epochs with no improvement
-                epochs_no_improve += 1
-                print(f"No improvement for {epochs_no_improve} epochs (best Val Acc: {best_val_accuracy:.4f})")
-                
-                # Check if early stopping criteria is met
-                if epochs_no_improve >= patience:
-                    print(f"\nEarly stopping! No improvement for {patience} consecutive epochs.")
-                    print(f"Best validation accuracy: {best_val_accuracy:.4f}")
-                    break
+                print(f"New best val accuracy {avg_val_acc:.4f} at epoch {best_epoch}")
         
         if scheduler:
             scheduler.step()
@@ -467,21 +466,35 @@ def main(args):
     print("\nTraining complete.")
     print(f"Best Validation Accuracy: {best_val_accuracy:.4f}")
     
-    # Final evaluation with best model (optional)
+    # Il checkpoint e' stato scelto sulla validation split da 5.000 immagini.
+    # Il test set da 10.000 viene toccato UNA VOLTA SOLA, adesso.
+    final_val_acc = avg_val_acc
+    test_accuracy = None
     best_model_path = os.path.join(checkpoints_dir, "best_model.pt")
-    if os.path.exists(best_model_path):
-        print("\nRunning final evaluation with best model...")
-        # Load the best model
+    if os.path.exists(best_model_path) and args.dataset == 'cifar10':
+        print(f"\nEvaluating the checkpoint selected at epoch {best_epoch} on the held-out test set...")
         model = load_best_model(model, device, best_model_path)
-        
-        # Run evaluation with best model
+        test_loader = data_module.test_dataloader()
         with torch.no_grad():
-            final_val_loss, final_val_acc = validate_one_epoch(
-                model, val_loader, criterion, device, args.epochs, logger, args, data_module
+            _, test_accuracy = validate_one_epoch(
+                model, test_loader, criterion, device, args.epochs, logger, args, data_module
             )
-            print(f"Final evaluation - Best model: Loss: {final_val_loss:.4f}, Accuracy: {final_val_acc*100:.2f}%")
-            logger.log_scalar("val/final_best_loss", final_val_loss, args.epochs)
-            logger.log_scalar("val/final_best_accuracy", final_val_acc, args.epochs)
+        print(f"TEST accuracy: {test_accuracy * 100:.2f}%")
+        logger.log_scalar("test/accuracy", test_accuracy, args.epochs)
+
+    results = {
+        "experiment": args.experiment_name,
+        "seed": args.seed,
+        "selected_epoch": best_epoch,
+        "val_accuracy": best_val_accuracy,
+        "final_val_accuracy": final_val_acc,
+        "test_accuracy": test_accuracy,
+        "params": total_params,
+    }
+    results_path = os.path.join(args.log_dir, args.experiment_name, "results.json")
+    with open(results_path, "w", encoding="utf-8") as handle:
+        json.dump(results, handle, indent=2)
+    print(f"Results written to {results_path}")
 
     # Save attention maps from the first validation sample if requested
     if args.save_attention_maps and val_loader and len(val_loader) > 0:

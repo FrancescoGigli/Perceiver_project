@@ -1,5 +1,4 @@
 import os
-from torch.utils.tensorboard import SummaryWriter
 import wandb
 
 class BaseLogger:
@@ -10,6 +9,10 @@ class BaseLogger:
         self.writer = None
 
         if self.use_tensorboard:
+            # Imported lazily: some local environments have a broken
+            # tensorboard/protobuf/numpy combo, and this dependency is only
+            # needed when --use_tensorboard is actually requested.
+            from torch.utils.tensorboard import SummaryWriter
             self.writer = SummaryWriter(self.log_dir)
 
         if self.use_wandb:
