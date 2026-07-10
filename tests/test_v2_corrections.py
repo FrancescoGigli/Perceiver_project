@@ -237,3 +237,38 @@ def test_encoder_forward_shape():
         out, maps = enc(data, latents)
     assert out.shape == (2, 96, 384)
     assert maps is None
+
+
+def test_weight_sharing_reuses_the_same_module_list_object():
+    """Non basta il contatore: la stessa ModuleList deve essere fisicamente
+    riusata in ogni stage con weight_sharing=True, e oggetti distinti senza."""
+    shared = _encoder(weight_sharing=True, num_cross_attend_stages=4)
+    assert shared.latent_stages[0] is shared.latent_stages[3]
+
+    distinct = _encoder(weight_sharing=False, num_cross_attend_stages=4)
+    assert distinct.latent_stages[0] is not distinct.latent_stages[3]
+
+
+def test_no_weight_sharing_has_more_parameters_than_sharing():
+    """La differenza di semantica deve riflettersi nei parametri reali."""
+    shared = _encoder(weight_sharing=True)
+    distinct = _encoder(weight_sharing=False)
+    ps = sum(p.numel() for p in shared.parameters())
+    pd = sum(p.numel() for p in distinct.parameters())
+    assert pd > ps
+
+
+def test_at_start_differs_from_interleaved_when_T_is_greater_than_one():
+    """Con T>1 le due disposizioni NON devono essere equivalenti: at_start
+    applica tutti i cross-attend prima, interleaved li alterna ai blocchi latenti.
+    Stesso seed -> stessi pesi -> output diversi se l'ordine conta davvero."""
+    latents = torch.randn(1, 96, 384)
+    data = torch.randn(1, 32, 261)
+    torch.manual_seed(0)
+    inter = _encoder(num_cross_attend_stages=2, arrangement="interleaved").eval()
+    torch.manual_seed(0)
+    at_start = _encoder(num_cross_attend_stages=2, arrangement="at_start").eval()
+    with torch.no_grad():
+        out_inter, _ = inter(data, latents)
+        out_at_start, _ = at_start(data, latents)
+    assert not torch.allclose(out_inter, out_at_start, atol=1e-5)
