@@ -10,6 +10,7 @@ from src.perceiver.input_pe import (
     pixel_coords,
 )
 from src.data.cifar10 import CIFAR10PerceiverDataModule
+from src.perceiver.attention import CrossAttention, SelfAttention
 
 
 def test_fourier_out_dim_matches_paper_formula():
@@ -147,3 +148,28 @@ def test_val_split_out_of_range_raises():
         CIFAR10PerceiverDataModule(val_split=60000)
     with _pytest.raises(ValueError):
         CIFAR10PerceiverDataModule(val_split=0)
+
+
+def test_cross_attention_projects_qkv_to_min_of_input_and_latent():
+    """Appendice C: Q, K, V hanno min(input_dim, latent_dim) canali."""
+    cross = CrossAttention(latent_dim=384, input_dim=261, num_heads=1)
+    assert cross.inner_dim == 261
+    assert cross.q_proj.out_features == 261
+    assert cross.kv_proj.out_features == 522
+
+
+def test_attention_blocks_use_two_distinct_layernorms():
+    """Il LayerNorm prima dell'MLP non e' lo stesso di quello prima dell'attenzione."""
+    cross = CrossAttention(latent_dim=384, input_dim=261, num_heads=1)
+    assert cross.norm_attn is not cross.norm_ff
+
+    self_attn = SelfAttention(dim=384, num_heads=8)
+    assert self_attn.norm_attn is not self_attn.norm_ff
+
+
+def test_cross_attention_forward_shape():
+    cross = CrossAttention(latent_dim=384, input_dim=261, num_heads=1)
+    latents = torch.randn(2, 96, 384)
+    inputs = torch.randn(2, 1024, 261)
+    out = cross(latents, inputs)
+    assert out.shape == (2, 96, 384)
