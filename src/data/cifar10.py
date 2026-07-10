@@ -33,6 +33,9 @@ class CIFAR10PerceiverDataModule:
         if image_size % patch_size != 0:
             raise ValueError(f"image_size {image_size} non divisibile per patch_size {patch_size}")
 
+        if not 0 < val_split < 50000:
+            raise ValueError(f"val_split deve stare in (0, 50000), ricevuto {val_split}")
+
         self.num_patches = (image_size // patch_size) ** 2
         self.token_dim = patch_size * patch_size * 3
 

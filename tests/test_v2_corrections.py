@@ -117,3 +117,33 @@ def test_split_is_reproducible_from_the_seed():
     a.setup(); b.setup(); c.setup()
     assert a.val_indices == b.val_indices
     assert a.val_indices != c.val_indices
+
+
+def test_to_patches_is_row_major():
+    """Il token j deve venire dal pixel (riga=j//32, col=j%32): l'ordine deve
+    combaciare con pixel_coords(), altrimenti ogni pixel prende la PE di un altro."""
+    dm = CIFAR10PerceiverDataModule(patch_size=1)
+    # Immagine sintetica: il canale 0 codifica l'indice row-major del pixel.
+    img = torch.arange(32 * 32, dtype=torch.float).reshape(1, 1, 32, 32)
+    img = img.expand(1, 3, 32, 32).contiguous()
+    tokens = dm._to_patches(img)
+    assert tokens.shape == (1, 1024, 3)
+    expected = torch.arange(1024, dtype=torch.float)
+    torch.testing.assert_close(tokens[0, :, 0], expected)
+
+
+def test_validation_uses_test_transform_not_randaugment():
+    """La validation split non deve applicare RandAugment: userebbe augmentation
+    su dati di selezione. Deve condividere l'oggetto test_transform."""
+    dm = CIFAR10PerceiverDataModule(val_split=5000, split_seed=42)
+    dm.setup()
+    assert dm.val_dataset.dataset.transform is dm.test_transform
+    assert dm.train_dataset.dataset.transform is dm.train_transform
+
+
+def test_val_split_out_of_range_raises():
+    import pytest as _pytest
+    with _pytest.raises(ValueError):
+        CIFAR10PerceiverDataModule(val_split=60000)
+    with _pytest.raises(ValueError):
+        CIFAR10PerceiverDataModule(val_split=0)
