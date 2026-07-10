@@ -9,6 +9,7 @@ from src.perceiver.input_pe import (
     make_token_permutation,
     pixel_coords,
 )
+from src.data.cifar10 import CIFAR10PerceiverDataModule
 
 
 def test_fourier_out_dim_matches_paper_formula():
@@ -90,3 +91,29 @@ def test_permutation_is_deterministic_given_the_seed():
     c = make_token_permutation(1024, seed=7)
     assert torch.equal(a, b)
     assert not torch.equal(a, c)
+
+
+def test_raw_pixels_give_1024_tokens_of_3_channels():
+    dm = CIFAR10PerceiverDataModule(patch_size=1)
+    assert dm.token_dim == 3
+    images = torch.randn(2, 3, 32, 32)
+    tokens = dm._to_patches(images)
+    assert tokens.shape == (2, 1024, 3)
+
+
+def test_split_is_disjoint_and_correctly_sized():
+    dm = CIFAR10PerceiverDataModule(val_split=5000, split_seed=42)
+    dm.setup()
+    assert len(dm.train_indices) == 45000
+    assert len(dm.val_indices) == 5000
+    assert set(dm.train_indices).isdisjoint(set(dm.val_indices))
+    assert len(dm.test_dataset) == 10000
+
+
+def test_split_is_reproducible_from_the_seed():
+    a = CIFAR10PerceiverDataModule(val_split=5000, split_seed=42)
+    b = CIFAR10PerceiverDataModule(val_split=5000, split_seed=42)
+    c = CIFAR10PerceiverDataModule(val_split=5000, split_seed=7)
+    a.setup(); b.setup(); c.setup()
+    assert a.val_indices == b.val_indices
+    assert a.val_indices != c.val_indices
