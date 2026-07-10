@@ -11,6 +11,7 @@ from src.perceiver.input_pe import (
 )
 from src.data.cifar10 import CIFAR10PerceiverDataModule
 from src.perceiver.attention import CrossAttention, SelfAttention
+from src.perceiver.encoder import PerceiverEncoder
 
 
 def test_fourier_out_dim_matches_paper_formula():
@@ -173,3 +174,66 @@ def test_cross_attention_forward_shape():
     inputs = torch.randn(2, 1024, 261)
     out = cross(latents, inputs)
     assert out.shape == (2, 96, 384)
+
+
+def _encoder(**kwargs):
+    defaults = dict(
+        input_dim=261, latent_dim=384, num_latents=96,
+        num_cross_attend_stages=4, num_transformer_blocks=4,
+        num_heads_cross=1, num_heads_self=8,
+    )
+    defaults.update(kwargs)
+    return PerceiverEncoder(**defaults)
+
+
+def test_weight_sharing_gives_L_distinct_latent_blocks():
+    """Paper: L blocchi distinti dentro il latent transformer, condivisi fra le T iterazioni."""
+    enc = _encoder(weight_sharing=True)
+    assert enc.num_distinct_latent_blocks == 4
+
+
+def test_no_weight_sharing_gives_T_times_L_distinct_latent_blocks():
+    enc = _encoder(weight_sharing=False)
+    assert enc.num_distinct_latent_blocks == 16
+
+
+def test_first_cross_attend_has_its_own_weights():
+    """Il paper tiene il primo cross-attend separato: condividerlo destabilizzava il training."""
+    enc = _encoder(num_cross_attend_stages=4, share_cross_attend=True)
+    assert enc.cross_first is not enc.cross_rest
+    first = enc.cross_first.q_proj.weight
+    rest = enc.cross_rest.q_proj.weight
+    assert first.data_ptr() != rest.data_ptr()
+
+
+def test_single_stage_has_no_shared_cross_attend():
+    enc = _encoder(num_cross_attend_stages=1)
+    assert enc.cross_rest is None
+
+
+def test_no_latent_transformer_removes_all_latent_blocks():
+    enc = _encoder(use_latent_transformer=False, share_cross_attend=False)
+    assert enc.num_distinct_latent_blocks == 0
+
+
+def test_arrangement_changes_nothing_when_T_is_one():
+    latents = torch.randn(1, 96, 384)
+    data = torch.randn(1, 32, 261)
+    torch.manual_seed(0)
+    a = _encoder(num_cross_attend_stages=1, arrangement="interleaved").eval()
+    torch.manual_seed(0)
+    b = _encoder(num_cross_attend_stages=1, arrangement="at_start").eval()
+    with torch.no_grad():
+        out_a, _ = a(data, latents)
+        out_b, _ = b(data, latents)
+    torch.testing.assert_close(out_a, out_b)
+
+
+def test_encoder_forward_shape():
+    enc = _encoder().eval()
+    latents = torch.randn(2, 96, 384)
+    data = torch.randn(2, 32, 261)
+    with torch.no_grad():
+        out, maps = enc(data, latents)
+    assert out.shape == (2, 96, 384)
+    assert maps is None

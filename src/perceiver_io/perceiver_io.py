@@ -51,8 +51,8 @@ class PerceiverIO(nn.Module):
             num_latents=num_latents,
             num_cross_attend_stages=num_cross_attend_stages,
             num_transformer_blocks=num_transformer_blocks,
-            num_heads=num_heads,
-            head_dim=head_dim,
+            num_heads_cross=num_heads,
+            num_heads_self=num_heads,
             mlp_ratio=mlp_ratio,
             dropout=dropout,
             weight_sharing=weight_sharing,
@@ -66,7 +66,6 @@ class PerceiverIO(nn.Module):
             latent_dim=latent_dim,
             input_dim=latent_dim,
             num_heads=num_heads,
-            head_dim=head_dim,
             mlp_ratio=mlp_ratio,
             dropout=dropout,
         )
