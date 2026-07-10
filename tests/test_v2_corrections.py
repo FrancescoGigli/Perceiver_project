@@ -4,6 +4,11 @@ import pytest
 import torch
 
 from src.utils.positional_encoding import FourierPositionalEncoding
+from src.perceiver.input_pe import (
+    InputPositionalEncoding,
+    make_token_permutation,
+    pixel_coords,
+)
 
 
 def test_fourier_out_dim_matches_paper_formula():
@@ -31,3 +36,57 @@ def test_fourier_values_match_sin_f_pi_x():
     ]])
     assert out.shape == (1, 6)
     torch.testing.assert_close(out, expected, atol=1e-6, rtol=0)
+
+
+def test_pixel_coords_span_minus_one_to_one():
+    coords = pixel_coords(32)
+    assert coords.shape == (1024, 2)
+    assert coords.min().item() == pytest.approx(-1.0)
+    assert coords.max().item() == pytest.approx(1.0)
+
+
+def test_fourier_input_pe_concatenates_258_channels():
+    pe = InputPositionalEncoding(grid_size=32, mode="fourier", num_bands=64, max_freq=16.0)
+    assert pe.pe_dim == 258
+    assert list(pe.parameters()) == []          # nessun parametro: e' un buffer
+    x = torch.zeros(2, 1024, 3)
+    assert pe(x).shape == (2, 1024, 261)
+
+
+def test_learned_input_pe_is_a_trainable_parameter():
+    pe = InputPositionalEncoding(grid_size=32, mode="learned", learned_dim=128)
+    assert pe.pe_dim == 128
+    params = list(pe.parameters())
+    assert len(params) == 1
+    assert params[0].shape == (1024, 128)
+    assert params[0].requires_grad
+
+
+def test_none_mode_adds_nothing():
+    pe = InputPositionalEncoding(grid_size=32, mode="none")
+    assert pe.pe_dim == 0
+    x = torch.zeros(2, 1024, 3)
+    assert pe(x).shape == (2, 1024, 3)
+
+
+def test_permutation_reorders_tokens_and_keeps_pairs_intact():
+    """La permutazione agisce dopo la PE: ogni pixel si porta dietro la sua."""
+    perm = make_token_permutation(1024, seed=42)
+    plain = InputPositionalEncoding(grid_size=32, mode="fourier", num_bands=4, max_freq=16.0)
+    shuffled = InputPositionalEncoding(
+        grid_size=32, mode="fourier", num_bands=4, max_freq=16.0, permutation=perm
+    )
+
+    x = torch.randn(1, 1024, 3)
+    out_plain = plain(x)
+    out_shuffled = shuffled(x)
+
+    torch.testing.assert_close(out_shuffled, out_plain.index_select(1, perm))
+
+
+def test_permutation_is_deterministic_given_the_seed():
+    a = make_token_permutation(1024, seed=42)
+    b = make_token_permutation(1024, seed=42)
+    c = make_token_permutation(1024, seed=7)
+    assert torch.equal(a, b)
+    assert not torch.equal(a, c)
