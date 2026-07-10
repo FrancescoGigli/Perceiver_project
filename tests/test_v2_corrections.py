@@ -12,6 +12,7 @@ from src.perceiver.input_pe import (
 from src.data.cifar10 import CIFAR10PerceiverDataModule
 from src.perceiver.attention import CrossAttention, SelfAttention
 from src.perceiver.encoder import PerceiverEncoder
+from src.perceiver.perceiver import Perceiver
 
 
 def test_fourier_out_dim_matches_paper_formula():
@@ -272,3 +273,73 @@ def test_at_start_differs_from_interleaved_when_T_is_greater_than_one():
         out_inter, _ = inter(data, latents)
         out_at_start, _ = at_start(data, latents)
     assert not torch.allclose(out_inter, out_at_start, atol=1e-5)
+
+
+def _model(**kwargs):
+    pe = kwargs.pop("input_pe", None) or InputPositionalEncoding(
+        grid_size=8, mode="fourier", num_bands=4, max_freq=4.0
+    )
+    defaults = dict(
+        token_dim=3, num_classes=10, input_pe=pe,
+        num_latents=16, latent_dim=32, num_cross_attend_stages=2,
+        num_transformer_blocks=2, num_heads_cross=1, num_heads_self=4,
+        dropout=0.0,
+    )
+    defaults.update(kwargs)
+    return Perceiver(**defaults)
+
+
+def test_latents_use_truncated_normal_with_small_scale():
+    model = _model(num_latents=4096, latent_dim=64, latent_init_scale=0.02)
+    std = model.latents.std().item()
+    assert 0.015 < std < 0.025          # ~0.02, non ~1.0 come in v1
+    assert model.latents.abs().max().item() <= 2.0 * 0.02 + 1e-6
+
+
+def test_classifier_is_a_bare_linear_layer():
+    """Il paper: media sui latenti, poi un solo Linear. Nessuna LayerNorm in mezzo."""
+    model = _model()
+    assert isinstance(model.classifier, torch.nn.Linear)
+
+
+def test_attention_is_permutation_invariant_without_pe():
+    """Senza PE l'output non dipende dall'ordine dei token.
+
+    Se questo test fallisce, il modello non e' un Perceiver: il cross-attention
+    e' una somma pesata, e una somma non ha ordine.
+    """
+    model_no_pe = _model(input_pe=InputPositionalEncoding(grid_size=8, mode="none")).eval()
+    x = torch.randn(2, 64, 3)
+    perm = make_token_permutation(64, seed=1)
+
+    with torch.no_grad():
+        plain = model_no_pe(x)
+        shuffled = model_no_pe(x.index_select(1, perm))
+
+    torch.testing.assert_close(plain, shuffled, atol=1e-4, rtol=1e-4)
+
+
+def test_permuted_pe_leaves_the_output_unchanged():
+    """Permutare (pixel, PE) insieme non cambia l'output: e' l'esperimento della Tab. 2."""
+    perm = make_token_permutation(64, seed=1)
+    torch.manual_seed(0)
+    plain = _model(input_pe=InputPositionalEncoding(grid_size=8, mode="fourier", num_bands=4, max_freq=4.0)).eval()
+    torch.manual_seed(0)
+    shuffled = _model(
+        input_pe=InputPositionalEncoding(
+            grid_size=8, mode="fourier", num_bands=4, max_freq=4.0, permutation=perm
+        )
+    ).eval()
+
+    x = torch.randn(2, 64, 3)
+    with torch.no_grad():
+        a = plain(x)
+        # NB: si passa x "grezzo" a entrambi i modelli. E' il modulo PE del
+        # modello "shuffled" (il suo self.perm interno) ad applicare la
+        # permutazione a (pixel, PE) insieme, come gia' validato da
+        # test_permutation_reorders_tokens_and_keeps_pairs_intact in questo
+        # stesso file. Pre-permutare x qui (x.index_select(1, perm)) applica
+        # la permutazione due volte e rompe il test: verificato numericamente
+        # (diff ~0.05 con il doppio, ~1e-7 con x grezzo). Vedi task-6-report.md.
+        b = shuffled(x)
+    torch.testing.assert_close(a, b, atol=1e-4, rtol=1e-4)
