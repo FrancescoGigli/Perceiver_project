@@ -98,7 +98,7 @@ A3 e A4 insieme risolvono la lotteria del decay e il leakage, senza esporre i ri
 | B4 | `weight_sharing=True` → **L blocchi distinti**, condivisi fra le T iterazioni. `False` → `T×L` blocchi distinti | `src/perceiver/encoder.py` |
 | B5 | Il primo cross-attend ha pesi propri; i successivi condividono fra loro | `src/perceiver/encoder.py` |
 | B6 | LayerNorm distinte per attenzione e MLP | `src/perceiver/attention.py` |
-| B7 | Latenti da `trunc_normal_(0, σ)` troncata a [−2,2], con σ esposto come `--latent_init_scale` (default 0.02) | `src/perceiver/perceiver.py` |
+| B7 | Latenti da `trunc_normal_(0, σ)` troncata a **±2σ**, con σ esposto come `--latent_init_scale` (default 0.02) | `src/perceiver/perceiver.py` |
 | B8 | Testa di classificazione: media sui latenti → `Linear` diretto, senza LayerNorm intermedia | `src/perceiver/perceiver.py` |
 | B9 | `--cross_attend_arrangement {interleaved, at_start}` e `--no_latent_transformer` | `src/perceiver/encoder.py` |
 | B10 | Collegare `--permute_pixels` (permutazione fissa dei token **dopo** la PE), `--use_learned_pe` (embedding 128-dim, con un solo cross-attend come il paper), `--use_rotation` / `--use_translation` | `src/data/cifar10.py`, `train.py` |
@@ -124,7 +124,7 @@ Da confermare col micro-benchmark, che misura VRAM di picco e minuti per epoca.
 | Teste self-attn | 8 (head_dim 48) |
 | Weight sharing | attivo |
 | Dropout | 0 |
-| Init latenti | `trunc_normal(0, 0.02)`, [−2,2] |
+| Init latenti | `trunc_normal(0, 0.02)`, troncata a ±2σ |
 | Ottimizzatore | LAMB, lr 0.004 |
 | Scheduler | MultiStepLR, milestones [84, 102, 114], γ = 0.1 |
 | Epoche | 120, piene |

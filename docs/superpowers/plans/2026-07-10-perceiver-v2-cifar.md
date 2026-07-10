@@ -1180,24 +1180,21 @@ def test_classifier_is_a_bare_linear_layer():
     assert isinstance(model.classifier, torch.nn.Linear)
 
 
-def test_model_output_is_invariant_to_token_permutation():
-    """Se questo test fallisce, il modello non e' un Perceiver."""
-    model = _model().eval()
+def test_attention_is_permutation_invariant_without_pe():
+    """Senza PE l'output non dipende dall'ordine dei token.
+
+    Se questo test fallisce, il modello non e' un Perceiver: il cross-attention
+    e' una somma pesata, e una somma non ha ordine.
+    """
+    model_no_pe = _model(input_pe=InputPositionalEncoding(grid_size=8, mode="none")).eval()
     x = torch.randn(2, 64, 3)
     perm = make_token_permutation(64, seed=1)
 
     with torch.no_grad():
-        a = model(x)
-        b = model(x.index_select(1, perm))
+        plain = model_no_pe(x)
+        shuffled = model_no_pe(x.index_select(1, perm))
 
-    # La PE e' concatenata dentro il modello, quindi permutare i token in ingresso
-    # NON permuta la PE: qui si verifica solo l'invarianza dell'attention,
-    # applicandola a un modello senza PE.
-    model_no_pe = _model(input_pe=InputPositionalEncoding(grid_size=8, mode="none")).eval()
-    with torch.no_grad():
-        c = model_no_pe(x)
-        d = model_no_pe(x.index_select(1, perm))
-    torch.testing.assert_close(c, d, atol=1e-4, rtol=1e-4)
+    torch.testing.assert_close(plain, shuffled, atol=1e-4, rtol=1e-4)
 
 
 def test_permuted_pe_leaves_the_output_unchanged():
@@ -1270,7 +1267,10 @@ class Perceiver(nn.Module):
 
         input_dim = token_dim + input_pe.pe_dim
 
-        # App. C: normale troncata, media 0, std 0.02, troncata a [-2, 2] deviazioni.
+        # App. C: normale troncata, media 0, std 0.02, troncata a +/-2 deviazioni.
+        # Il paper scrive "truncation bounds [-2, 2]": bound espressi in unita' di
+        # stddev, come in jax.random.truncated_normal. Con std 0.02 dei bound
+        # assoluti [-2, 2] sarebbero 100 sigma, cioe' inerti.
         latents = torch.empty(num_latents, latent_dim)
         nn.init.trunc_normal_(
             latents,
