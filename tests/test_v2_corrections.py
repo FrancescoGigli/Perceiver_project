@@ -3,6 +3,7 @@ import math
 import pytest
 import torch
 
+from src.config.base_cfg import get_base_config
 from src.utils.seed import set_global_seed
 from src.utils.positional_encoding import FourierPositionalEncoding
 from src.perceiver.input_pe import (
@@ -356,3 +357,18 @@ def test_same_seed_gives_identical_initial_weights():
 
     torch.testing.assert_close(a.latents, b.latents, atol=0, rtol=0)
     assert not torch.allclose(a.latents, c.latents)
+
+
+def test_defaults_match_the_paper_faithful_base_config():
+    args = get_base_config().parse_args([])
+    assert args.seed == 42
+    assert args.patch_size == 1
+    assert args.val_split == 5000
+    assert args.fourier_num_bands == 64
+    assert args.fourier_max_freq == 16.0
+    assert args.latent_init_scale == 0.02
+    assert args.num_heads_cross == 1
+    assert args.num_heads_self == 8
+    assert args.cross_attend_arrangement == "interleaved"
+    assert args.dropout == 0.0
+    assert not hasattr(args, "cifar10_fourier_bands")
