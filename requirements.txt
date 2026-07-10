@@ -17,3 +17,6 @@ tensorboard
 # Utilities
 tqdm
 prettytable
+
+# Testing
+pytest>=8.0
