@@ -134,6 +134,20 @@ Da confermare col micro-benchmark, che misura VRAM di picco e minuti per epoca.
 
 **`T=8, L=6` (l'ottimo del paper) non è nel budget.** Il costo scala come `T × [cross_stage + L × self_app]`: con `T=8, L=6` una run costa ~20.4h, e le 23 run supererebbero le 400 ore. Il micro-benchmark serve a confermare la memoria e a misurare i minuti/epoca reali, non a promuovere `T=8` a base.
 
+### Micro-benchmark (`bench.py`, RTX 3080 10GB, batch 64, AMP)
+
+Misurato con `python bench.py`: 30 batch di forward+backward dopo 3 di warmup, VRAM di picco via `torch.cuda.max_memory_allocated()`.
+
+| Config | Params | VRAM di picco | min/epoca | ore/120ep |
+|---|---|---|---|---|
+| base (N=96, D=384, T=4, L=4) | 10,175,362 | 2.75 GB | 0.98 | 2.0 |
+| T=8 (N=96, D=384, T=8, L=4) | 10,175,362 | 5.24 GB | 1.87 | 3.7 |
+| T=12 (N=96, D=384, T=12, L=4) | 10,175,362 | 7.74 GB | 3.07 | 6.1 |
+| media (N=256, D=512, T=8, L=6) | — | OOM | — | — |
+| fedele (N=512, D=1024, T=8, L=6) | — | OOM | — | — |
+
+La config `base` (N=96, D=384, T=4, L=4) sta ben sotto i 10GB (2.75GB di picco, ~1 min/epoca): è la scelta confermata per le 23 run. `media` e `fedele` vanno entrambe in OOM sulla 3080, confermando la decisione D3 — anche `T=8, L=6` a `N=256, D=512` non è realizzabile su 10GB, figuriamoci la config fedele al paper (`N=512, D=1024`).
+
 ## Gli esperimenti
 
 23 run, ~148 ore. Costo per run derivato dal modello `T × [cross_stage + L × self_app]`, con `T=4` = 7.6h.
