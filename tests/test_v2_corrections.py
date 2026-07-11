@@ -397,3 +397,16 @@ def test_tab5_runs_do_not_share_cross_attends():
     for exp in tab5:
         assert "--no_latent_transformer" in exp["overrides"]
         assert "--no_share_cross_attend" in exp["overrides"]
+
+
+def test_perceiver_io_constructs_with_text_input_dims():
+    """PerceiverIO deve costruirsi per larghezze d'input tipiche del testo,
+    dove input_dim non e' divisibile per num_heads (regressione: il cross-attn
+    a min(C,D) richiedeva divisibilita', num_heads_cross=1 la garantisce)."""
+    from src.perceiver_io.perceiver_io import PerceiverIO
+    for input_dim in (270, 257, 261):
+        model = PerceiverIO(
+            input_dim=input_dim, num_classes=2,
+            num_latents=64, latent_dim=256, num_heads=4,
+        )
+        assert model is not None

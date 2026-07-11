@@ -51,7 +51,7 @@ class PerceiverIO(nn.Module):
             num_latents=num_latents,
             num_cross_attend_stages=num_cross_attend_stages,
             num_transformer_blocks=num_transformer_blocks,
-            num_heads_cross=num_heads,
+            num_heads_cross=1,
             num_heads_self=num_heads,
             mlp_ratio=mlp_ratio,
             dropout=dropout,

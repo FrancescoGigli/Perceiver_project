@@ -46,7 +46,7 @@ def get_base_config():
                         help='Attention heads in the latent self-attention')
     parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate for attention and MLP layers')
     parser.add_argument('--use_learned_pe', action='store_true', help='Use learned positional encoding instead of Fourier')
-    parser.add_argument('--save_attention_maps', '--save_attention_map', action='store_true', default=True, help='Save attention maps for visualization')
+    parser.add_argument('--save_attention_maps', '--save_attention_map', action='store_true', default=False, help='Save attention maps for visualization')
     parser.add_argument('--save_metrics', action='store_true', help='Save advanced metrics and confusion matrix')
     parser.add_argument('--attention_save_interval', type=int, default=10, help='Interval (in epochs) for automatically saving attention maps')
     parser.add_argument('--no_weight_sharing', action='store_true', help='Disable weight sharing in latent transformer blocks')
