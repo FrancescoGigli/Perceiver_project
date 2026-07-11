@@ -15,6 +15,7 @@ from src.data.cifar10 import CIFAR10PerceiverDataModule
 from src.perceiver.attention import CrossAttention, SelfAttention
 from src.perceiver.encoder import PerceiverEncoder
 from src.perceiver.perceiver import Perceiver
+from experiments import EXPERIMENTS
 
 
 def test_fourier_out_dim_matches_paper_formula():
@@ -372,3 +373,27 @@ def test_defaults_match_the_paper_faithful_base_config():
     assert args.cross_attend_arrangement == "interleaved"
     assert args.dropout == 0.0
     assert not hasattr(args, "cifar10_fourier_bands")
+
+
+def test_registry_has_23_runs_with_unique_ids():
+    ids = [e["id"] for e in EXPERIMENTS]
+    assert len(ids) == 23
+    assert len(set(ids)) == 23
+
+
+def test_every_override_is_a_known_flag():
+    parser = get_base_config()
+    known = {action.option_strings[0] for action in parser._actions if action.option_strings}
+    for exp in EXPERIMENTS:
+        for token in exp["overrides"]:
+            if token.startswith("--"):
+                assert token in known, f"{exp['id']}: flag sconosciuto {token}"
+
+
+def test_tab5_runs_do_not_share_cross_attends():
+    """Il paper: 'we do not share weights between cross-attention modules' (Tab. 5)."""
+    tab5 = [e for e in EXPERIMENTS if e["group"] == "tab5"]
+    assert len(tab5) == 3
+    for exp in tab5:
+        assert "--no_latent_transformer" in exp["overrides"]
+        assert "--no_share_cross_attend" in exp["overrides"]
