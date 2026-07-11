@@ -81,12 +81,11 @@ class WikiText103PerceiverDataModule:
 
     def _setup_pos_encoding(self):
         self.pos_encoding = FourierPositionalEncoding(
-            dim=self.fourier_dim,
-            max_frequencies=self.max_frequencies,
-            num_frequency_bands=self.num_frequency_bands,
+            num_bands=self.num_frequency_bands,
+            max_freq=self.max_frequencies,
             num_pos_feats=1,
-            circular=True,
         )
+        self.fourier_dim = self.pos_encoding.out_dim
 
         positions = torch.arange(self.seq_len).float() / max(1, (self.seq_len - 1))
         coords = positions.unsqueeze(-1)

@@ -81,7 +81,9 @@ def main(args):
             fourier_dim=args.modelnet40_fourier_bands,
             max_frequencies=args.modelnet40_max_freq,
             num_frequency_bands=6,
-            augment_train=True
+            augment_train=True,
+            use_translation=args.use_translation,
+            use_rotation=args.use_rotation,
         )
         num_classes = 40
         args.batch_size = args.batch_size_modelnet40

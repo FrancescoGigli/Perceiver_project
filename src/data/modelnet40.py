@@ -88,12 +88,11 @@ class ModelNet40PerceiverDataModule:
         # For point clouds, we use 3D coordinates
         # Create positional encoding
         self.pos_encoding = FourierPositionalEncoding(
-            dim=self.fourier_dim,
-            max_spatial_size=1.0,  # Point clouds are normalized to unit cube
-            max_frequencies=self.max_frequencies,
-            num_frequency_bands=self.num_frequency_bands,
-            num_pos_feats=3  # 3D coordinates (x,y,z)
+            num_bands=self.num_frequency_bands,
+            max_freq=self.max_frequencies,
+            num_pos_feats=3,
         )
+        self.fourier_dim = self.pos_encoding.out_dim
     
     def _process_point_cloud(self, points, augmentation):
         """
