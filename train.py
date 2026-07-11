@@ -386,7 +386,7 @@ def main(args):
 
     # Nessun early stopping: 120 epoche piene, cosi' ogni run riceve il decay del LR
     # ai milestone [84, 102, 114]. Vedi la spec, sezione "La lotteria del decay".
-    best_val_accuracy = 0.0
+    best_val_accuracy = float('-inf') if args.dataset == 'glue_stsb' else 0.0
     best_epoch = 0
 
     # Tracking previous accuracies to calculate differences
@@ -462,7 +462,6 @@ def main(args):
             scheduler.step()
             logger.log_scalar("train/learning_rate", scheduler.get_last_lr()[0], epoch + 1)
 
-    logger.close()
     print("\nTraining complete.")
     print(f"Best Validation Accuracy: {best_val_accuracy:.4f}")
     
@@ -495,6 +494,8 @@ def main(args):
     with open(results_path, "w", encoding="utf-8") as handle:
         json.dump(results, handle, indent=2)
     print(f"Results written to {results_path}")
+
+    logger.close()
 
     # Save attention maps from the first validation sample if requested
     if args.save_attention_maps and val_loader and len(val_loader) > 0:
