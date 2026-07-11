@@ -100,7 +100,7 @@ def get_base_config():
 
     # System configurations
     parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu', help='Device to use (cuda or cpu)')
-    parser.add_argument('--num_workers', type=int, default=4, help='Number of dataloader workers')
+    parser.add_argument('--num_workers', type=int, default=8, help='Number of dataloader workers')
 
     return parser
 

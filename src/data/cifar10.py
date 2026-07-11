@@ -84,6 +84,9 @@ class CIFAR10PerceiverDataModule:
             shuffle=shuffle,
             num_workers=self.num_workers,
             pin_memory=True,
+            # Keep workers alive across epochs: on Windows respawning them every
+            # epoch re-imports torch + the whole codebase and starves the GPU.
+            persistent_workers=(self.num_workers > 0),
         )
 
     def train_dataloader(self):

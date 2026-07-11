@@ -561,11 +561,6 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device, epoch_num
     
     progress_bar = tqdm(train_loader, desc=f"Epoch {epoch_num+1}/{args.epochs} [Train]")
     for batch_idx, batch in enumerate(progress_bar):
-        if batch_idx == 0:
-            print(f"DEBUG: args.dataset={args.dataset}, batch type={type(batch)}")
-            if isinstance(batch, list) or isinstance(batch, tuple):
-                 print(f"DEBUG: batch len={len(batch)}, item 0 shape={batch[0].shape if hasattr(batch[0], 'shape') else 'no_shape'}")
-
         # Process batch through data module
         if args.dataset == 'cifar10' or args.dataset == 'modelnet40':
             batch_dict = data_module.preprocess_batch(batch)
