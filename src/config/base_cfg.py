@@ -60,6 +60,8 @@ def get_base_config():
     parser.add_argument('--latent_init_scale', type=float, default=0.02,
                         help='Std of the truncated normal used for the latent array (Fig. 6)')
     parser.add_argument('--seed', type=int, default=42, help='Global random seed')
+    parser.add_argument('--grad_clip', type=float, default=1.0,
+                        help='Max gradient norm; 0 disables. Prevents LAMB nan divergence at dropout 0')
     parser.add_argument('--use_rotation', action='store_true',
                         help='ModelNet40: random point-cloud rotation')
     parser.add_argument('--use_translation', action='store_true',

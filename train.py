@@ -619,6 +619,11 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device, epoch_num
         
         # Use scaler for backwards pass and optimization
         scaler.scale(loss).backward()
+        if args.grad_clip > 0:
+            # Unscale first so the clip threshold is in real gradient units.
+            # Without this, LAMB at lr 4e-3 with dropout 0 diverges to nan (~epoch 43).
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
         scaler.step(optimizer)
         scaler.update()
 
