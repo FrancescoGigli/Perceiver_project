@@ -383,7 +383,7 @@ def main(args):
         criterion = nn.CrossEntropyLoss()
     
     # Initialize GradScaler for AMP
-    scaler = GradScaler(enabled=(device.type == 'cuda'))
+    scaler = GradScaler(enabled=(device.type == 'cuda' and not args.no_amp))
     print(f"Mixed Precision Training (AMP): {'Enabled' if device.type == 'cuda' else 'Disabled (CPU fallback)'}")
 
     # Nessun early stopping: 120 epoche piene, cosi' ogni run riceve il decay del LR
@@ -529,7 +529,7 @@ def main(args):
 
         with torch.no_grad():
             # Use autocast for consistency
-            with autocast(device_type=device.type, enabled=(device.type == 'cuda')):
+            with autocast(device_type=device.type, enabled=(device.type == 'cuda' and not args.no_amp)):
                 _ = model(single_data_item) # Run forward pass to populate model.attn_maps
 
         if hasattr(model, 'attn_maps') and model.attn_maps and len(model.attn_maps) > 0:
@@ -596,7 +596,7 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device, epoch_num
         optimizer.zero_grad()
         
         # Use autocast for mixed precision training
-        with autocast(device_type=device.type, enabled=(device.type == 'cuda')):
+        with autocast(device_type=device.type, enabled=(device.type == 'cuda' and not args.no_amp)):
             output = model(data)
             if (args.dataset == 'wikitext2' or args.dataset == 'wikitext103') and args.model_task == 'mlm':
                 mask_flat = mask.view(-1)
@@ -694,7 +694,7 @@ def validate_one_epoch(model, val_loader, criterion, device, epoch_num, logger, 
                 mask = mask.to(device)
             
             # Use autocast for mixed precision in validation too
-            with autocast(device_type=device.type, enabled=(device.type == 'cuda')):
+            with autocast(device_type=device.type, enabled=(device.type == 'cuda' and not args.no_amp)):
                 output = model(data)
                 if (args.dataset == 'wikitext2' or args.dataset == 'wikitext103') and args.model_task == 'mlm':
                     mask_flat = mask.view(-1)
@@ -816,7 +816,7 @@ def save_attention_maps(model, val_loader, device, epoch_num, args, data_module)
         
         with torch.no_grad():
             # Run forward pass with attention map saving enabled
-            with autocast(device_type=device.type, enabled=(device.type == 'cuda')):
+            with autocast(device_type=device.type, enabled=(device.type == 'cuda' and not args.no_amp)):
                 _ = model(single_data_item)  # Forward pass to populate model.attn_maps
         
         # Save cross-attention maps
