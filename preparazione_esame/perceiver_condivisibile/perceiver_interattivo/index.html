@@ -1019,7 +1019,7 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
         <thead><tr><th>Modello</th><th>ImageNet <em>raw</em></th><th>ImageNet <em>permuted</em></th><th>Δ</th></tr></thead>
         <tbody>
           <tr><td><strong>Perceiver (Fourier features)</strong></td><td><strong>78.0</strong></td><td><strong>78.0</strong></td><td>0.0</td></tr>
-          <tr><td>Perceiver (learned position encoding)</td><td>78.0</td><td>70.9</td><td>−7.1</td></tr>
+          <tr><td>Perceiver (learned position encoding)</td><td>70.9</td><td>70.9</td><td>0.0</td></tr>
           <tr><td>ViT-B/16 (FF)</td><td>76.7</td><td>61.7</td><td>−15.0</td></tr>
           <tr><td>ResNet-50 (FF)</td><td>73.5</td><td><strong>39.4</strong></td><td>−34.1</td></tr>
         </tbody>
@@ -1048,7 +1048,7 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
 
       <div class="idea">
         <div class="idea-label">Idea chiave — il risultato che vende il Perceiver</div>
-        <p>Il Perceiver con Fourier features è <strong>invariante alla permutazione</strong>: 78.0 → 78.0, zero calo. La ResNet crolla (73.5 → 39.4) perché la conv 2D <em>assume</em> che i vicini nella griglia siano correlati. La versione con learned position encoding scende a 70.9 ⇒ è la scelta delle <strong>Fourier features</strong>, non l'architettura in sé, a dare l'invarianza. Il paper usa questo per dimostrare che il Perceiver <em>non</em> sfrutta alcun bias 2D nascosto: è davvero general-purpose.</p>
+        <p>Il Perceiver è <strong>invariante alla permutazione</strong> con <em>entrambe</em> le positional encoding: Fourier 78.0 → 78.0 e learned 70.9 → 70.9, zero calo in tutti e due i casi. L'invarianza viene dall'<strong>attention</strong> (una somma pesata non ha ordine), non dalle Fourier features. La ResNet invece crolla (73.5 → 39.4) perché la conv 2D <em>assume</em> che i vicini nella griglia siano correlati, e la permutazione distrugge quella struttura. Le Fourier features non servono a resistere alla permutazione — servono a essere <strong>migliori in assoluto</strong> (78.0 contro 70.9): imparare 50.176 embedding posizionali distinti è difficile. Il paper usa questo per dimostrare che il Perceiver <em>non</em> sfrutta alcun bias 2D nascosto: è davvero general-purpose.</p>
       </div>
 
       <h2>Altri domini, stesso modello</h2>
@@ -4311,7 +4311,7 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
 
       <div class="nota">
         <span class="nota-label">Setup sperimentale</span>
-        Framework <strong>PyTorch</strong> + mixed-precision (AMP) + TensorBoard. Ottimizzatore <strong>LAMB</strong>, early stopping (patience 10), checkpoint best/last. CIFAR-10: 120 epoche, batch 64, 50k train / 10k val, permutation seed=42. Sette run CIFAR-10 con Perceiver + una con Perceiver IO (durate 2.93h–7.52h ciascuna), tre run ModelNet40, una di pre-training MLM, otto di fine-tuning GLUE. Tutte su <strong>una sola RTX 3060 12GB</strong>.
+        Framework <strong>PyTorch</strong> + mixed-precision (AMP) + TensorBoard. Ottimizzatore <strong>LAMB</strong>, early stopping (patience 10), checkpoint best/last. CIFAR-10: 120 epoche, batch 64, 50k train / 10k val, permutation seed=42. Sette run CIFAR-10 con Perceiver + una con Perceiver IO (durate 2.93h–7.52h ciascuna), tre run ModelNet40, una di pre-training MLM, otto di fine-tuning GLUE. Tutte su <strong>una sola RTX 3080 10GB</strong>.
       </div>
 
       <h2>Su quali modalità si lavora</h2>
@@ -4526,7 +4526,7 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
           <p class="dataset-use">Input: 50.176 pixel grezzi (224×224), ciascuno da 261 dim.</p>
         </div>
         <div class="dataset-card">
-          <div class="dataset-name">Nostro (CIFAR-10) <span class="dataset-tag">RTX 3060</span></div>
+          <div class="dataset-name">Nostro (CIFAR-10) <span class="dataset-tag">RTX 3080</span></div>
           <p><code>N=96</code> latenti · <code>D=384</code> · <strong>4</strong> cross-attend stages + 4 transformer blocks · <strong>3 teste</strong> · LAMB lr 4e-3, MultiStep · 120 epoche · batch <strong>64</strong> su 1 GPU · <strong>3.350.178</strong> parametri · dropout 0.2.</p>
           <p class="dataset-use">Input: 1.024 pixel (32×32), ciascuno da 76 dim. Stesso schema, capacità ~13× più piccola.</p>
         </div>
@@ -4572,7 +4572,7 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
         <div class="dataset-card dataset-card--wide">
           <div class="dataset-name">exp2_learned_pe_permuted <span class="dataset-tag">immagini · Fourier vs learned</span></div>
           <p><strong>Config:</strong> <code>permute_pixels: True</code> (stesso seed 42), <code>use_learned_pe: True</code>, e — <strong>qui sta il problema</strong> — <code>num_cross_attend_stages: 1</code> invece di 4. I parametri restano 3.350.178 perché col weight sharing gli stage condividono i pesi: cambia il numero di <em>iterazioni</em>, non la capacità.</p>
-          <p><strong>Cos'è:</strong> sostituire le Fourier features con un embedding posizionale <em>imparato</em>, cioè una tabella di 1.024 vettori addestrati col resto. Nel paper è l'esperimento che rivela la vera fonte dell'invarianza: il Perceiver con learned PE scende da 78.0 a <strong>70.9</strong> sotto permutazione, mentre con Fourier resta a 78.0. L'invarianza non viene gratis dall'attention, viene dal fatto che le Fourier features codificano la posizione <em>nel valore</em> del vettore, non nell'indice della sequenza.</p>
+          <p><strong>Cos'è:</strong> sostituire le Fourier features con un embedding posizionale <em>imparato</em>, cioè una tabella di 1.024 vettori addestrati col resto. Nel paper il learned PE fa <strong>70.9 → 70.9</strong>: anche lui è invariante alla permutazione (l'invarianza viene dall'attention, vera per entrambe le PE). La differenza è nell'accuratezza <em>assoluta</em>: Fourier 78.0 contro learned 70.9, perché imparare 50.176 embedding posizionali distinti è difficile mentre le Fourier features codificano la posizione nel valore del vettore. Quindi il learned PE non "crolla sotto permutazione" — è solo peggiore in partenza.</p>
           <p><strong>Risultato:</strong> <strong>77.60%</strong>, epoca 89, val loss 0.765, 4.45h. Contro exp6: <strong>+0.52 punti</strong> a favore di Fourier, cioè niente.</p>
           <p class="dataset-use"><strong>Non concludente, e va detto.</strong> Due ragioni. Primo, la scala: su 1.024 pixel una learned PE ha abbastanza parametri per memorizzare una permutazione fissa; su 50.176 pixel non ce la fa. Secondo, il confound: exp2 usa un solo stage di cross-attention invece di quattro, quindi non isola la sola variabile PE. Con 0.52 punti dentro una banda di rumore di 3.5, <strong>da questo esperimento non si conclude nulla in nessuna direzione</strong>. Meglio dirlo che difenderlo.</p>
         </div>
@@ -4665,7 +4665,7 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
 
           <tr><td rowspan="3"><strong>Immagini permutate</strong> — Tab. 2</td><td>ViT-B/16 (FF)</td><td>76.7 → <strong>61.7</strong></td></tr>
           <tr><td>Perceiver (Fourier)</td><td>78.0 → <strong>78.0</strong></td></tr>
-          <tr><td>Perceiver (learned pos.)</td><td>78.0 → <strong>70.9</strong></td></tr>
+          <tr><td>Perceiver (learned pos.)</td><td>70.9 → <strong>70.9</strong></td></tr>
 
           <tr><td rowspan="3"><strong>Audio + video</strong> — AudioSet (mAP)</td><td>CNN-14 (baseline)</td><td>43.1</td></tr>
           <tr><td>Perceiver, audio grezzo</td><td>audio 38.3 · video 25.8 · <strong>A+V 43.5</strong></td></tr>
@@ -4740,7 +4740,7 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
           <p class="dataset-use">Obiettivo: output strutturati e GLUE byte-level competitivo con BERT a parità di FLOPs.</p>
         </div>
         <div class="dataset-card">
-          <div class="dataset-name">Nostro Perceiver IO <span class="dataset-tag">RTX 3060</span></div>
+          <div class="dataset-name">Nostro Perceiver IO <span class="dataset-tag">RTX 3080</span></div>
           <p><strong>CIFAR-10:</strong> <code>N=96</code> · <code>D=384</code> · 3 teste · 4 cross-attend stages + 4 transformer blocks · weight sharing · <strong>1 output query</strong> · <strong>5.223.202</strong> parametri.<br>
           <strong>Testo (MLM/GLUE):</strong> <code>N=128</code> · <code>D=512</code> · 8 teste · 4 transformer blocks · <strong>10.110.082</strong> parametri (MLM, 1.024 query) → <strong>~9.52M</strong> (GLUE, 2 query).</p>
           <p class="dataset-use">Stessa idea encode-process-decode, ma ~20× più piccolo e pre-training solo su WikiText-103.</p>
@@ -5039,7 +5039,7 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
         <li><strong>Paper assegnato → letto e implementato:</strong> Perceiver e Perceiver IO (Jaegle et al. 2021) <strong>from-scratch in PyTorch</strong>.</li>
         <li><strong>Riprodurre risultati in forma semplificata → fatto:</strong> stessa architettura su tre modalità — CIFAR-10 (immagini), ModelNet40 (point cloud 3D), testo (MLM su WikiText-103 → fine-tuning GLUE).</li>
         <li><strong>Applicare il metodo a dati/setting diversi → fatto:</strong> tre modalità con un'unica rete sono esattamente il "setting diverso", coerente con l'idea generale del Perceiver.</li>
-        <li><strong>Versione coerente con risorse limitate → fatto:</strong> tutto su <strong>1 sola GPU RTX 3060</strong> (il paper usa 64 TPU); numeri assoluti più bassi ma proprietà architetturali confermate.</li>
+        <li><strong>Versione coerente con risorse limitate → fatto:</strong> tutto su <strong>1 sola GPU RTX 3080</strong> (il paper usa 64 TPU); numeri assoluti più bassi ma proprietà architetturali confermate.</li>
         <li><strong>Risultati concreti da mostrare → pronti:</strong> CIFAR-10 best <strong>78.12%</strong> (exp6, Fourier PE permutato), learned PE permutato 77.60%, peggiore solo-RGB senza PE 61.34%; permutation invariance <strong>78.12% permutato vs 69.69% non-permutato</strong>; ModelNet40 ≈ <strong>83.14%</strong> (scale+rotation).</li>
         <li><strong>Lavoro sperimentale serio:</strong> 7 esperimenti CIFAR-10 (120 epoche, batch 64), optimizer <strong>LAMB</strong>, mixed-precision AMP, TensorBoard, early stopping (patience 10), confusion matrix per epoca.</li>
         <li><strong>Derivazione tecnica → padroneggiata:</strong> latent bottleneck (costo lineare), cross-attention O(M·N), self-attention sui latenti O(N²), Fourier PE → permutation invariance, weight sharing (Perceiver come RNN), Perceiver IO con decoder e output queries.</li>
@@ -5259,7 +5259,7 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       <div class="study-plan">
         <div class="study-day"><span class="study-day-n">1</span><div><strong>Cuore del progetto: Perceiver e attention</strong><p>Cross-attention (Q latenti, K/V input, O(M·N)) e self-attention sui latenti (O(N²)); il latent bottleneck e il costo lineare. Collega ogni concetto alla tua implementazione. Presentazione: prima bozza di scaletta a 30'.</p></div></div>
         <div class="study-day"><span class="study-day-n">2</span><div><strong>Perceiver IO + proprietà dimostrate</strong><p>Decoder + output queries; dal Perceiver al Perceiver IO. Ripassa permutation invariance (78.12% vs 69.69%) e weight sharing. Presentazione: assegna i minutaggi e prepara figure chiave (mappa forward, schema attention).</p></div></div>
-        <div class="study-day"><span class="study-day-n">3</span><div><strong>Esperimenti e risultati (il tuo valore aggiunto)</strong><p>Numeri a memoria: CIFAR-10 (exp6 78.12%, learned PE 77.60%, solo-RGB 61.34%), permutazione 78.12% vs 69.69%, ModelNet40 ~83.14%. Contesto hardware (1 RTX 3060 vs 64 TPU) e strumenti (LAMB, AMP, TensorBoard, early stopping). Prima prova a voce cronometrata.</p></div></div>
+        <div class="study-day"><span class="study-day-n">3</span><div><strong>Esperimenti e risultati (il tuo valore aggiunto)</strong><p>Numeri a memoria: CIFAR-10 (exp6 78.12%, learned PE 77.60%, solo-RGB 61.34%), permutazione 78.12% vs 69.69%, ModelNet40 ~83.14%. Contesto hardware (1 RTX 3080 vs 64 TPU) e strumenti (LAMB, AMP, TensorBoard, early stopping). Prima prova a voce cronometrata.</p></div></div>
         <div class="study-day"><span class="study-day-n">4</span><div><strong>Riferimenti teorici di contorno</strong><p>Softmax, attivazioni, ottimizzatori, CNN/RNN/LSTM/GRU, Transformer/ViT, dropout, init pesi, regolarizzazione, data augmentation. Modalità testo: MLM su WikiText-103 → GLUE. Seconda prova a voce, rifinendo i punti deboli.</p></div></div>
         <div class="study-day"><span class="study-day-n">5</span><div><strong>Anticipare le domande + prove rifinite</strong><p>Prepara le risposte alle domande probabili (vedi sotto). Prova a voce completa e cronometrata (target 30'), idealmente davanti a qualcuno o registrandoti.</p></div></div>
         <div class="study-day"><span class="study-day-n">6</span><div><strong>Cuscinetto — chiudi i buchi</strong><p>Riprendi [GBC16]/[P24]/[BB24] sui punti ancora incerti; ultima prova integrale della presentazione coi tempi giusti.</p></div></div>
@@ -5319,7 +5319,7 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
         <details class="qa-item"><summary>Perché il weight sharing si comporta come una RNN e regolarizza?</summary><p class="qa-a">Riusando gli stessi pesi nei blocchi ripetuti, ogni iterazione è come uno step ricorrente che raffina lo stesso stato latente (come una RNN srotolata nel tempo). Condividere i pesi riduce drasticamente i parametri, agendo da regolarizzatore e prevenendo overfitting.</p></details>
         <details class="qa-item"><summary>Differenza tra Perceiver e Perceiver IO?</summary><p class="qa-a">Il Perceiver produce un singolo output (es. classificazione) con pooling dei latenti. Il Perceiver IO aggiunge un decoder a cross-attention: le output queries definiscono la struttura dell'output, permettendo output arbitrari (per-pixel, per-token, multi-task) di dimensione disaccoppiata dai latenti.</p></details>
         <details class="qa-item"><summary>Come hai gestito 3 modalità con la stessa rete?</summary><p class="qa-a">La struttura interna (cross-attention → latenti → self-attention) è identica per tutte; cambiano solo la tokenizzazione dell'input e l'encoding posizionale (coord 2D pixel, coord 3D punti, posizione token). Il bottleneck rende la rete agnostica alla modalità.</p></details>
-        <details class="qa-item"><summary>Perché i tuoi numeri sono sotto il paper?</summary><p class="qa-a">Il paper usa 64 TPU, io una sola RTX 3060: batch, durata del training e dimensione del modello sono molto più piccoli, quindi i numeri assoluti sono più bassi. Ma le proprietà architetturali (permutation invariance, costo lineare, multimodalità) restano confermate.</p></details>
+        <details class="qa-item"><summary>Perché i tuoi numeri sono sotto il paper?</summary><p class="qa-a">Il paper usa 64 TPU, io una sola RTX 3080: batch, durata del training e dimensione del modello sono molto più piccoli, quindi i numeri assoluti sono più bassi. Ma le proprietà architetturali (permutation invariance, costo lineare, multimodalità) restano confermate.</p></details>
       </div>
       <h3>Teoria generale</h3>
       <div class="qa-group">
@@ -5603,7 +5603,7 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
       </div>
       <p>Il <strong>meta-learning</strong> ("imparare a imparare") impara <em>come</em> adattarsi in fretta a nuovi task da una distribuzione di task affini; per l'HPO serve a fare <em>warm-start</em> con storici di esperimenti. <strong>MAML</strong> cerca un'<em>inizializzazione</em> dei pesi da cui <strong>pochi passi di gradiente</strong> bastano su un nuovo task (few-shot): inner loop (adatta al task) + outer loop (ottimizza l'init).</p>
       <p>Il <strong>mixup</strong> è una regolarizzazione sui <em>dati</em>: crea esempi virtuali come combinazioni convesse <code>x̃ = λ·x_i + (1−λ)·x_j</code>, <code>ỹ = λ·y_i + (1−λ)·y_j</code>, con <code>λ ~ Beta(α,α)</code>. Forza il modello a comportarsi <strong>linearmente tra gli esempi</strong>: predizioni più lisce, meno overfitting e meno overconfidence (etichette soft).</p>
-      <div class="comparison-note"><strong>Legame col progetto:</strong> la tua ricerca di iperparametri è stata <strong>manuale</strong> (7 esperimenti CIFAR-10 scelti a ragionamento): un grid/random artigianale a budget minimo, obbligato da 1 sola RTX 3060 — proprio lo scenario "valutazioni costose" che motiva i metodi automatici. La BO avrebbe scelto la prossima configurazione in modo informato (learning rate di LAMB, weight decay, dropout, n. di latent). Soprattutto, il tuo <strong>early stopping</strong> è il parente del <strong>successive halving</strong>: entrambi tagliano presto i run poco promettenti (l'early stopping ferma <em>un</em> training, SHA confronta e scarta <em>tra più</em> configurazioni). Il <strong>mixup</strong> era applicabile direttamente a CIFAR-10.</div>
+      <div class="comparison-note"><strong>Legame col progetto:</strong> la tua ricerca di iperparametri è stata <strong>manuale</strong> (7 esperimenti CIFAR-10 scelti a ragionamento): un grid/random artigianale a budget minimo, obbligato da 1 sola RTX 3080 — proprio lo scenario "valutazioni costose" che motiva i metodi automatici. La BO avrebbe scelto la prossima configurazione in modo informato (learning rate di LAMB, weight decay, dropout, n. di latent). Soprattutto, il tuo <strong>early stopping</strong> è il parente del <strong>successive halving</strong>: entrambi tagliano presto i run poco promettenti (l'early stopping ferma <em>un</em> training, SHA confronta e scarta <em>tra più</em> configurazioni). Il <strong>mixup</strong> era applicabile direttamente a CIFAR-10.</div>
 
       <h2>Domande d'orale</h2>
       <div class="qa-group">

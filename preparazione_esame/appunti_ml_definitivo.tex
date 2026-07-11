@@ -4121,7 +4121,7 @@ ResNet-50 (FF) & 73.5 & \textbf{39.4} & 49 \\[2pt]
 ViT-B/16 (FF) & 76.7 & 61.7 & 256 \\[2pt]
 Transformer (64$\times$64, FF) & 57.0 & 57.0 & 4\,096 \\[2pt]
 \textbf{Perceiver (FF)} & \textbf{78.0} & \textbf{78.0} & 50\,176 \\[2pt]
-Perceiver (Learned pos.) & 78.0 & 70.9 & 50\,176 \\
+Perceiver (Learned pos.) & 70.9 & 70.9 & 50\,176 \\
 \bottomrule
 \end{longtable}
 }
@@ -4129,7 +4129,7 @@ Perceiver (Learned pos.) & 78.0 & 70.9 & 50\,176 \\
 \begin{notabox}[title={\textbf{Argomento chiave del paper: permutation invariance}}]
 Il Perceiver (FF) è \textbf{invariante alla permutazione}: $78.0 \to 78.0$, zero calo. ResNet-50 (FF) crolla da $73.5$ a $39.4$: la conv 2D assume che i vicini nella griglia siano correlati, e la permutazione distrugge questa ipotesi. ViT regge meglio ($76.7 \to 61.7$) perché lavora su patch: meno vincolato alla locale 2D di una conv, ma non del tutto libero. Il Perceiver invece \emph{non ha} alcun prior 2D: la posizione vive nelle Fourier features concatenate ai pixel, e la permutazione dei pixel permuta anche le FF in modo coerente.
 
-Confronto importante: il Perceiver con \emph{learned position encoding} passa da $78.0$ a $70.9$ sotto permutazione. Le posizioni apprese sono ``etichette'' legate alle posizioni del training set, e la permutazione le scombina. Questo dimostra che è proprio la scelta delle \textbf{Fourier features} a dare la permutation invariance, non l'architettura del Perceiver in sé.
+Confronto importante: il Perceiver con \emph{learned position encoding} fa $70.9$ sia sul dato standard sia su quello permutato (\textbf{$70.9 \to 70.9$}, invariato) --- non degrada sotto permutazione. È l'\textbf{attention} a dare l'invarianza alla permutazione, ed è vera per \emph{entrambe} le varianti di PE: sia Fourier ($78.0 \to 78.0$) sia learned ($70.9 \to 70.9$) restano stabili. Le Fourier features non servono a resistere alla permutazione, ma a essere \emph{migliori in assoluto} ($78.0$ contro $70.9$): imparare $50\,176$ embedding posizionali distinti è difficile, mentre le Fourier features codificano la posizione nel valore del vettore. A crollare sotto permutazione sono i modelli con bias convoluzionale (ResNet $73.5 \to 39.4$, ViT $76.7 \to 61.7$), che perdono la struttura di griglia locale su cui contano.
 
 In sede d'esame: questo è \emph{il} risultato che il paper usa per argomentare la generalità del Perceiver --- ``non stiamo imbrogliando sfruttando un bias 2D nascosto''.
 \end{notabox}
@@ -6558,7 +6558,7 @@ Il progetto riproduce \textbf{from-scratch in PyTorch} le architetture Perceiver
 \item \textbf{GLUE} (8 task NLU): CoLA (accettabilità grammaticale), SST-2 (sentiment), MRPC e QQP (paraphrase), STS-B (similarità semantica, regressione), MNLI/QNLI/RTE (entailment). Usato per il fine-tuning del checkpoint MLM.
 \end{itemize}
 
-\paragraph{Setup hardware.} Gli esperimenti sono stati condotti su una \textbf{GPU NVIDIA RTX 3060 (12\,GB VRAM)}. Questo limita la dimensione dei batch e costringe a usare configurazioni di modello più piccole rispetto al paper originale (che impiega 64 TPU con batch $\geq 512$). Quando pertinente, i gap di accuracy rispetto ai risultati del paper sono giustificati dal budget computazionale ridotto.
+\paragraph{Setup hardware.} Gli esperimenti sono stati condotti su una \textbf{GPU NVIDIA RTX 3080 (10\,GB VRAM)}. Questo limita la dimensione dei batch e costringe a usare configurazioni di modello più piccole rispetto al paper originale (che impiega 64 TPU con batch $\geq 512$). Quando pertinente, i gap di accuracy rispetto ai risultati del paper sono giustificati dal budget computazionale ridotto.
 
 \paragraph{Struttura del codice.}
 
@@ -6616,7 +6616,7 @@ Dropout & Nessuno (App.\ C) & Dropout $0.1$--$0.2$ (leggero, per compensare over
 \end{center}
 
 \begin{notabox}[title={\textbf{Implicazioni delle divergenze}}]
-Le divergenze principali riguardano il \emph{multi-head} nella cross-attention e la \emph{riduzione di capacità} dei latenti (N, D, T più piccoli). Queste scelte sono motivate dall'hardware (RTX 3060 vs 64 TPU): una configurazione ridotta è l'unico modo per far convergere il training in tempi ragionevoli sulla nostra macchina. Di conseguenza, i valori di accuracy osservati sono \emph{sistematicamente inferiori} a quelli riportati nel paper --- ma le \emph{relazioni ablative} tra le condizioni (importanza PE, weight sharing, robustezza a permutazione) restano sperimentalmente valide e riproducibili.
+Le divergenze principali riguardano il \emph{multi-head} nella cross-attention e la \emph{riduzione di capacità} dei latenti (N, D, T più piccoli). Queste scelte sono motivate dall'hardware (RTX 3080 vs 64 TPU): una configurazione ridotta è l'unico modo per far convergere il training in tempi ragionevoli sulla nostra macchina. Di conseguenza, i valori di accuracy osservati sono \emph{sistematicamente inferiori} a quelli riportati nel paper --- ma le \emph{relazioni ablative} tra le condizioni (importanza PE, weight sharing, robustezza a permutazione) restano sperimentalmente valide e riproducibili.
 \end{notabox}
 
 % -----------------------------------------------------------------------------
