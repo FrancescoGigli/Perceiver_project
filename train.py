@@ -184,8 +184,13 @@ def main(args):
         input_dim = token_dim + input_pe.pe_dim
         print(f"Input: M={num_positions} tokens x C={input_dim} channels (PE mode: {pe_mode})")
     elif args.dataset == 'modelnet40':
-        # For ModelNet40, input dimension is 3 (coordinates) + fourier_dim
+        # ModelNet40 concatenates the Fourier PE inside the DataModule, so the
+        # model receives already-encoded tokens [N, 3 + fourier_dim] and must NOT
+        # re-apply a PE. token_dim carries the full width; input_pe is a no-op.
+        from src.perceiver.input_pe import InputPositionalEncoding
         input_dim = 3 + data_module.fourier_dim
+        token_dim = input_dim
+        input_pe = InputPositionalEncoding(grid_size=1, mode="none")
     elif args.dataset == 'wikitext2':
         input_dim = data_module.input_dim
     elif args.dataset == 'glue_sst2':
