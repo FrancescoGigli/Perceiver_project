@@ -27,7 +27,6 @@ BASE = [
     "--batch_size_cifar10", "64",
     "--patch_size", "1",
     "--val_split", "5000",
-    "--no_amp",
 ]
 
 
