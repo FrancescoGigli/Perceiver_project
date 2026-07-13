@@ -3,6 +3,8 @@
 # Config base: M=1024, C=261, N=96, D=384, T=4, L=4, K=64, f_max=16, dropout 0, seed 42.
 
 import argparse
+import json
+import os
 import subprocess
 import sys
 
@@ -95,18 +97,70 @@ def run(experiment_id):
     return subprocess.call(cmd)
 
 
+def _run_status(experiment):
+    """Ritorna (stato, test_acc, pulito) leggendo logs/<id>/results.json.
+    'pulito' = risultato valido e non divergente (final_val > 0.5)."""
+    path = os.path.join("logs", experiment["id"], "results.json")
+    if not os.path.exists(path):
+        return ("mancante", None, False)
+    try:
+        with open(path, encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (ValueError, OSError):
+        return ("illeggibile", None, False)
+    acc = data.get("test_accuracy")
+    final_val = data.get("final_val_accuracy")
+    if acc is None or acc != acc:  # None o nan
+        return ("DIVERGITO (rifare)", acc, False)
+    if final_val is not None and final_val <= 0.5:  # crollato al chance level
+        return ("DIVERGITO (rifare)", acc, False)
+    return ("OK", acc, True)
+
+
+def next_experiment():
+    """Stampa il riassunto di tutte le run e lancia la prima mancante/divergente."""
+    print(f"{'#':<4}{'esperimento':<26}{'config':<42}{'stato':<20}{'test'}")
+    print("-" * 100)
+    first_todo = None
+    n_ok = 0
+    for i, exp in enumerate(EXPERIMENTS, 1):
+        stato, acc, pulito = _run_status(exp)
+        cfg = " ".join(exp["overrides"]) or "baseline (riferimento)"
+        if len(cfg) > 40:
+            cfg = cfg[:37] + "..."
+        accs = f"{acc * 100:.2f}%" if isinstance(acc, (int, float)) and acc == acc else "-"
+        print(f"{i:<4}{exp['id']:<26}{cfg:<42}{stato:<20}{accs:>7}")
+        if pulito:
+            n_ok += 1
+        elif first_todo is None:
+            first_todo = exp
+    print("-" * 100)
+    print(f"completi: {n_ok}/{len(EXPERIMENTS)}")
+    if first_todo is None:
+        print("Tutti gli esperimenti sono completi e puliti. Niente da lanciare.")
+        return 0
+    print(f"\n=> lancio il prossimo mancante: {first_todo['id']} "
+          f"({' '.join(first_todo['overrides']) or 'baseline'})\n")
+    return run(first_todo["id"])
+
+
 def main():
     parser = argparse.ArgumentParser(description="Runner degli esperimenti Perceiver v2")
     parser.add_argument("--list", action="store_true", help="elenca gli esperimenti")
     parser.add_argument("--group", type=str, help="esegue tutti gli esperimenti di un gruppo")
     parser.add_argument("--run", type=str, help="esegue un singolo esperimento")
     parser.add_argument("--all", action="store_true", help="esegue tutte le 23 run in sequenza")
+    parser.add_argument("--next", action="store_true",
+                        help="mostra il riassunto e lancia il primo esperimento mancante/divergente")
     args = parser.parse_args()
 
     if args.list:
         for exp in EXPERIMENTS:
             print(f"{exp['id']:28s} {exp['group']:6s} {' '.join(exp['overrides'])}")
         return
+
+    if args.next:
+        raise SystemExit(next_experiment())
 
     if args.run:
         raise SystemExit(run(args.run))
