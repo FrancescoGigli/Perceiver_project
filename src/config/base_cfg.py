@@ -100,7 +100,7 @@ def get_base_config():
 
     # System configurations
     parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu', help='Device to use (cuda or cpu)')
-    parser.add_argument('--num_workers', type=int, default=8, help='Number of dataloader workers')
+    parser.add_argument('--num_workers', type=int, default=2, help='Number of dataloader workers')
     parser.add_argument('--no_amp', action='store_true',
                         help='Disable fp16 mixed precision. Full fp32 avoids the LAMB overflow-to-nan divergence')
 
