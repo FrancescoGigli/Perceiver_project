@@ -375,10 +375,14 @@ def test_defaults_match_the_paper_faithful_base_config():
     assert not hasattr(args, "cifar10_fourier_bands")
 
 
-def test_registry_has_23_runs_with_unique_ids():
+def test_registry_has_26_runs_with_unique_ids():
     ids = [e["id"] for e in EXPERIMENTS]
-    assert len(ids) == 23
-    assert len(set(ids)) == 23
+    assert len(ids) == 26  # 23 immagini (CIFAR-10) + 3 point cloud (ModelNet40)
+    assert len(set(ids)) == 26
+    image = [e for e in EXPERIMENTS if e.get("modality", "image") == "image"]
+    modelnet = [e for e in EXPERIMENTS if e.get("modality") == "modelnet"]
+    assert len(image) == 23
+    assert len(modelnet) == 3
 
 
 def test_every_override_is_a_known_flag():
