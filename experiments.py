@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 
+# Config base per gli esperimenti su IMMAGINI (CIFAR-10).
 BASE = [
     "--dataset", "cifar10",
     "--num_latents", "96",
@@ -29,9 +30,28 @@ BASE = [
     "--val_split", "5000",
 ]
 
+# Config base per gli esperimenti su POINT CLOUD (ModelNet40, paper Tab. 4):
+# 2 cross-attend, 6 self-attn per blocco, 2048 punti, LAMB lr 1e-3.
+BASE_MODELNET = [
+    "--dataset", "modelnet40",
+    "--num_latents", "128",
+    "--latent_dim", "512",
+    "--num_cross_attend_stages", "2",
+    "--num_transformer_blocks", "6",
+    "--num_heads_cross", "1",
+    "--num_heads_self", "8",
+    "--dropout", "0.0",
+    "--optimizer", "lamb",
+    "--lr", "0.001",
+    "--scheduler", "multistep",
+    "--epochs", "120",
+    "--batch_size_modelnet40", "32",
+    "--modelnet40_num_points", "2048",
+]
 
-def _exp(exp_id, group, overrides):
-    return {"id": exp_id, "group": group, "overrides": overrides}
+
+def _exp(exp_id, group, overrides, modality="image"):
+    return {"id": exp_id, "group": group, "overrides": overrides, "modality": modality}
 
 
 EXPERIMENTS = [
@@ -80,11 +100,17 @@ EXPERIMENTS = [
     # --- Fuori dal paper: la banda di rumore ---
     _exp("e31_baseline_seed1", "noise", ["--seed", "1"]),
     _exp("e32_baseline_seed2", "noise", ["--seed", "2"]),
+
+    # --- ModelNet40 (point cloud, paper Tab. 4): augmentation ---
+    _exp("mn01_baseline", "modelnet", [], modality="modelnet"),
+    _exp("mn02_rotation", "modelnet", ["--use_rotation"], modality="modelnet"),
+    _exp("mn03_translation", "modelnet", ["--use_translation"], modality="modelnet"),
 ]
 
 
 def command_for(experiment):
-    return [sys.executable, "train.py", *BASE, "--experiment_name", experiment["id"], *experiment["overrides"]]
+    base = BASE_MODELNET if experiment.get("modality") == "modelnet" else BASE
+    return [sys.executable, "train.py", *base, "--experiment_name", experiment["id"], *experiment["overrides"]]
 
 
 def run(experiment_id):
@@ -109,6 +135,10 @@ def _run_status(experiment):
         return ("illeggibile", None, False)
     acc = data.get("test_accuracy")
     final_val = data.get("final_val_accuracy")
+    # ModelNet40 non ha una split di test separata: la val E' l'insieme di test,
+    # quindi test_accuracy resta null e il numero da riportare e' val_accuracy.
+    if acc is None:
+        acc = data.get("val_accuracy")
     if acc is None or acc != acc:  # None o nan
         return ("DIVERGITO (rifare)", acc, False)
     if final_val is not None and final_val <= 0.5:  # crollato al chance level
@@ -116,29 +146,44 @@ def _run_status(experiment):
     return ("OK", acc, True)
 
 
+_MODALITY_TITLE = {
+    "image": "=== IMMAGINI (CIFAR-10) ===",
+    "modelnet": "=== POINT CLOUD (ModelNet40) ===",
+}
+
+
 def next_experiment():
-    """Stampa il riassunto di tutte le run e lancia la prima mancante/divergente."""
-    print(f"{'#':<4}{'esperimento':<26}{'config':<42}{'stato':<20}{'test'}")
-    print("-" * 100)
+    """Stampa il riassunto (diviso per modalita') e lancia la prima mancante/divergente."""
     first_todo = None
     n_ok = 0
+    last_modality = None
     for i, exp in enumerate(EXPERIMENTS, 1):
+        modality = exp.get("modality", "image")
+        if modality != last_modality:
+            print(f"\n{_MODALITY_TITLE.get(modality, modality)}")
+            print(f"{'#':<4}{'esperimento':<26}{'config':<42}{'stato':<20}{'risultato'}")
+            print("-" * 100)
+            last_modality = modality
         stato, acc, pulito = _run_status(exp)
         cfg = " ".join(exp["overrides"]) or "baseline (riferimento)"
         if len(cfg) > 40:
             cfg = cfg[:37] + "..."
         accs = f"{acc * 100:.2f}%" if isinstance(acc, (int, float)) and acc == acc else "-"
-        print(f"{i:<4}{exp['id']:<26}{cfg:<42}{stato:<20}{accs:>7}")
+        print(f"{i:<4}{exp['id']:<26}{cfg:<42}{stato:<20}{accs:>9}")
         if pulito:
             n_ok += 1
         elif first_todo is None:
             first_todo = exp
+    total = len(EXPERIMENTS)
+    n_img = sum(1 for e in EXPERIMENTS if e.get("modality", "image") == "image")
+    n_mn = total - n_img
     print("-" * 100)
-    print(f"completi: {n_ok}/{len(EXPERIMENTS)}")
+    print(f"completi: {n_ok}/{total}   (immagini: {n_img} run, modelnet: {n_mn} run)")
     if first_todo is None:
         print("Tutti gli esperimenti sono completi e puliti. Niente da lanciare.")
         return 0
     print(f"\n=> lancio il prossimo mancante: {first_todo['id']} "
+          f"[{first_todo.get('modality', 'image')}] "
           f"({' '.join(first_todo['overrides']) or 'baseline'})\n")
     return run(first_todo["id"])
 
