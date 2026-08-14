@@ -2257,57 +2257,22 @@ const LAB_SOURCE_REFS = {
     var IMG = "../experiment_assets/";
 
     var DATA = {
-      cifar: "<div class='exp-caption'>CIFAR-10 — Ablation study (Perceiver, 120 epoche, batch 64)</div>"
+      io: "<div class='exp-caption'>Perceiver IO su CIFAR-10 — decoder a query contro mean-pooling</div>"
+        + "<div class='exp-pending'>"
+        + "<p><strong>Questo confronto non è ancora disponibile.</strong> Le due run che lo producono &mdash; <code>io01_cifar</code> e la sua replica <code>io02_cifar_seed1</code> &mdash; sono nel registro ma non sono state eseguite.</p>"
+        + "<p>La domanda a cui risponderanno: <em>sostituire il mean-pooling dei latenti con un decoder a una sola output query cambia l'accuratezza, a parità di encoder?</em> Il Perceiver IO su immagini non dovrebbe guadagnare granché &mdash; il decoder serve quando l'output è <strong>strutturato</strong>, non quando è una singola classe. Il valore dell'esperimento è proprio verificare che il decoder <em>non costi</em> nulla quando non serve.</p>"
+        + "<p class='exp-warn'>Una versione precedente di questa pagina riportava qui &laquo;+8,51 punti a favore del decoder&raquo;. Quel numero veniva da una run della prima generazione, in cui il test set era usato anche come validation: <strong>è stato rimosso</strong>, non aggiornato.</p>"
+        + "</div>",
+      text: "<div class='exp-caption'>Perceiver IO sul testo — MLM byte-level su WikiText-103</div>"
         + "<div class='exp-table-wrap'><table class='exp-table'>"
-        + "<thead><tr><th>Esperimento</th><th>PE</th><th>Permut.</th><th>W-share</th><th>Params</th><th>Accuracy</th><th>Loss</th><th>Best ep.</th><th>Tempo</th></tr></thead><tbody>"
-        + "<tr class='exp-best'><td>fourier_permuted</td><td>Fourier</td><td>Sì</td><td>Sì</td><td>3.35M</td><td>78.12%</td><td>0.750</td><td>108</td><td>7.35h</td></tr>"
-        + "<tr><td>learned_pe_permuted</td><td>Learned</td><td>Sì</td><td>Sì</td><td>3.35M</td><td>77.60%</td><td>0.765</td><td>89</td><td>4.45h</td></tr>"
-        + "<tr><td>no_weight_sharing</td><td>Fourier</td><td>No</td><td><strong>No</strong></td><td><strong>8.67M</strong></td><td>73.85%</td><td>0.761</td><td>63</td><td>4.91h</td></tr>"
-        + "<tr><td>fourier_control</td><td>Fourier</td><td>No</td><td>Sì</td><td>3.35M</td><td>72.02%</td><td>0.804</td><td>44</td><td>3.53h</td></tr>"
-        + "<tr><td>baseline_fourier</td><td>Fourier</td><td>No</td><td>Sì</td><td>3.35M</td><td>69.69%</td><td>0.879</td><td>44</td><td>2.93h</td></tr>"
-        + "<tr><td>weight_sharing_control</td><td>Fourier</td><td>No</td><td>Sì</td><td>3.35M</td><td>68.49%</td><td>0.899</td><td>36</td><td>2.98h</td></tr>"
-        + "<tr><td>rgb_only</td><td>None</td><td>No</td><td>Sì</td><td>3.30M</td><td>61.34%</td><td>1.152</td><td>106</td><td>7.52h</td></tr>"
+        + "<thead><tr><th>Fase</th><th>Cosa misura</th><th>Risultato</th><th>Epoca</th><th>Parametri</th></tr></thead><tbody>"
+        + "<tr class='exp-best'><td>Pre-training MLM</td><td>accuratezza sui byte mascherati</td><td><strong>86.68%</strong></td><td>10</td><td>18.872.740</td></tr>"
+        + "<tr class='exp-pending-row'><td>Fine-tuning GLUE (8 task)</td><td>media confrontabile con la Tab. 1 del paper IO</td><td colspan='3'>&#9203; 0 task su 8 eseguiti</td></tr>"
+        + "<tr class='exp-pending-row'><td>Controlli senza pre-training</td><td>quanto vale davvero il transfer</td><td colspan='3'>&#9203; da eseguire (SST-2 e RTE)</td></tr>"
+        + "<tr class='exp-pending-row'><td>Multitask (Tab. 2 del paper IO)</td><td>una query per task, un solo modello</td><td colspan='3'>&#9203; da eseguire</td></tr>"
         + "</tbody></table></div>"
-        + "<figure><img src='" + IMG + "cifar10_chart.png' alt='Grafico accuracy CIFAR-10'></figure>"
-        + "<div class='exp-takeaway'><strong>Cosa conferma la teoria:</strong><ul>"
-        + "<li><strong>PE essenziale</strong>: Fourier 72.02% vs RGB-only 61.34% → −10.68% senza positional encoding.</li>"
-        + "<li><strong>Permutation invariance</strong>: permutando i pixel l'accuracy non degrada (78.12% vs 69.69%) → robustezza spaziale confermata (Cap. 5/12).</li>"
-        + "<li><strong>Fourier vs Learned</strong> (su dati permutati): 78.12% vs 77.60% → +0.52% per Fourier.</li>"
-        + "<li><strong>Weight sharing = trade-off</strong>: senza sharing +5.36% accuracy ma +158.7% parametri (8.67M vs 3.35M). Nel mio setup è una scelta di efficienza, non un guadagno di accuracy.</li>"
-        + "</ul></div>",
-      io: "<div class='exp-caption'>Perceiver IO — CIFAR-10 (96 latenti, 384 dim, 120 epoche)</div>"
-        + "<div class='exp-table-wrap'><table class='exp-table'>"
-        + "<thead><tr><th>Modello</th><th>Dataset</th><th>Output</th><th>Params</th><th>Accuracy</th><th>Epoch</th></tr></thead><tbody>"
-        + "<tr class='exp-best'><td>Perceiver IO</td><td>standard</td><td>1 query</td><td>5.22M</td><td>78.20%</td><td>120</td></tr>"
-        + "<tr><td>Perceiver (exp1, stessa config)</td><td>standard</td><td>mean-pool</td><td>3.35M</td><td>69.69%</td><td>44</td></tr>"
-        + "<tr><td>Perceiver (exp6, run migliore)</td><td>permutato</td><td>mean-pool</td><td>3.35M</td><td>78.12%</td><td>108</td></tr>"
-        + "</tbody></table></div>"
-        + "<figure><img src='" + IMG + "convergence_chart.png' alt='Efficienza di convergenza'></figure>"
-        + "<div class='exp-takeaway'><strong>Cosa conferma la teoria:</strong> il confronto onesto è con <strong>exp1</strong> (stessa config, stesso dataset non permutato): il decoder a output query vale <strong>+8.51 punti</strong> (78.20% vs 69.69%) a costo di 1.6× i parametri — ben oltre la banda di rumore di ±3.5. La riga di exp6 gira su pixel permutati: task diverso, non confrontabile. Nota che il best dell'IO cade all'epoca 120, l'ultima: non aveva finito di imparare (Cap. 15).</div>",
-      modelnet: "<div class='exp-caption'>ModelNet40 — Point cloud 3D (Perceiver, 2048 punti, 200 epoche)</div>"
-        + "<div class='exp-table-wrap'><table class='exp-table'>"
-        + "<thead><tr><th>Augmentation</th><th>Accuracy</th><th>Best epoch</th></tr></thead><tbody>"
-        + "<tr class='exp-best'><td>Scale only (baseline)</td><td>84.24%</td><td>74</td></tr>"
-        + "<tr><td>Scale + translation</td><td>83.67%</td><td>62</td></tr>"
-        + "<tr><td>Scale + rotation</td><td>83.14%</td><td>45</td></tr>"
-        + "</tbody></table></div>"
-        + "<figure><img src='" + IMG + "modelnet40_chart.png' alt='Grafico accuracy ModelNet40'></figure>"
-        + "<div class='exp-takeaway'><strong>Cosa conferma la teoria:</strong> la <strong>stessa architettura</strong> (input xyz + Fourier, 128 latenti, 5.93M params) applicata a una modalità 3D totalmente diversa, senza componenti domain-specific, raggiunge 84.24% — a ~1.5 punti dal paper (85.7%). È la generalità del Perceiver.</div>",
-      text: "<div class='exp-caption'>Testo — MLM byte-level WikiText-103 → fine-tuning GLUE (Perceiver IO)</div>"
-        + "<div class='exp-table-wrap'><table class='exp-table'>"
-        + "<thead><tr><th>Task</th><th>Tipo</th><th>Metrica</th><th>Best ep.</th></tr></thead><tbody>"
-        + "<tr class='exp-best'><td>MLM WikiText-103</td><td>pre-training</td><td>82.20% acc</td><td>49</td></tr>"
-        + "<tr><td>QQP</td><td>paraphrase</td><td>75.65%</td><td>24</td></tr>"
-        + "<tr><td>CoLA</td><td>acceptability</td><td>69.13%</td><td>1</td></tr>"
-        + "<tr><td>MRPC</td><td>paraphrase</td><td>68.38%</td><td>1</td></tr>"
-        + "<tr><td>SST-2</td><td>sentiment</td><td>61.24%</td><td>13</td></tr>"
-        + "<tr><td>QNLI</td><td>NLI</td><td>59.93%</td><td>17</td></tr>"
-        + "<tr><td>RTE</td><td>NLI</td><td>52.71%</td><td>4</td></tr>"
-        + "<tr><td>MNLI</td><td>NLI (3 classi)</td><td>46.47%</td><td>22</td></tr>"
-        + "<tr><td>STS-B</td><td>regressione</td><td>MSE 2.28</td><td>4</td></tr>"
-        + "</tbody></table></div>"
-        + "<figure><img src='" + IMG + "glue_chart.png' alt='Grafico risultati GLUE'></figure>"
-        + "<div class='exp-takeaway'><strong>Cosa conferma la teoria:</strong> pre-training MLM (vocab byte 256, seq 1024, 10.11M params) → fine-tuning sugli 8 task GLUE. La stessa pipeline encode-process-decode passa da immagini e 3D al <strong>testo</strong> cambiando solo input/output e le query: generalità multimodale (Cap. 15)."
+        + "<div class='exp-takeaway'><strong>Cosa dice il numero che abbiamo:</strong> 86.68% di accuratezza nel ricostruire byte mascherati. Il riferimento non è 100%, è il <strong>caso</strong>: con un vocabolario di 256 byte, indovinare a caso dà <strong>0,39%</strong>. Il modello fa circa <strong>222 volte</strong> meglio del caso, senza alcun tokenizer, leggendo UTF-8 grezzo. È la prova che l'encode-process-decode regge anche sul testo &mdash; il che rende la pipeline davvero multimodale, non solo dichiaratamente."
+        + "<p class='exp-warn'>Le otto righe GLUE che comparivano qui (QQP 75,65%, CoLA 69,13%, &hellip;, MNLI 46,47%) erano della prima generazione e <strong>sono state rimosse</strong>. Finché le run non girano, la media GLUE del progetto non esiste: scriverne una stimata sarebbe inventarla.</p>"
         + "</div>"
     };
 
@@ -2354,7 +2319,7 @@ const LAB_SOURCE_REFS = {
       exp2_learned_pe_permuted_evolution: "Learned PE + permutazione: le posizioni apprese si scombinano, attenzione meno coerente.",
       exp4A_weight_sharing_control_evolution: "Weight sharing control: attenzione con pesi condivisi (config base).",
       exp4B_no_weight_sharing_evolution: "Senza weight sharing (8.67M par): blocchi indipendenti, piu' parametri.",
-      exp3B_rgb_only_evolution: "RGB-only (senza positional encoding): l'attenzione fatica a localizzare, accuracy piu' bassa (61.34%).",
+      exp3B_rgb_only_evolution: "RGB-only (senza positional encoding): l'attenzione non si localizza, resta quasi uniforme per tutto il training. Lettura qualitativa: la run equivalente in v2 (e29_no_pe) non e' ancora stata eseguita.",
       ps_exp1: "Stile-Perceiver — baseline Fourier (epoca 41).",
       ps_exp6: "Stile-Perceiver — Fourier permutato (epoca 101): attenzione strutturata nonostante la permutazione dei pixel.",
       ps_exp2: "Stile-Perceiver — learned PE permutato (epoca 81).",
@@ -2362,14 +2327,14 @@ const LAB_SOURCE_REFS = {
       ps_exp3B: "Stile-Perceiver — RGB-only (epoca 101): senza PE l'attenzione e' meno localizzata.",
       ps_exp4A: "Stile-Perceiver — weight sharing control (epoca 41).",
       ps_exp4B: "Stile-Perceiver — senza weight sharing (epoca 61).",
-      modelnet_attn_baseline: "ModelNet40 — point cloud 3D colorato per attenzione ricevuta (baseline, 84.24%): i latenti si concentrano su spigoli ed estremità dell'oggetto.",
-      modelnet_attn_with_translation: "ModelNet40 — scale + translation (83.67%): stessa lettura 3D dell'oggetto.",
-      modelnet_attn_with_rotation: "ModelNet40 — scale + rotation (83.14%): l'attenzione resta sui punti salienti anche con rotazioni.",
+      modelnet_attn_baseline: "ModelNet40 — point cloud 3D colorato per attenzione ricevuta (mn01_baseline, 87,36%): i latenti si concentrano su spigoli ed estremità dell'oggetto.",
+      modelnet_attn_with_translation: "ModelNet40 — scala + traslazione (mn03, 87,20%): stessa lettura 3D dell'oggetto, solo 0,16 punti sotto il riferimento.",
+      modelnet_attn_with_rotation: "ModelNet40 — scala + rotazione (mn02, 74,07%): l'attenzione resta sui punti salienti, ma l'accuratezza crolla di 13,29 punti — il Perceiver non ha bias induttivo rotazionale.",
       cm_exp6_ep1: "exp6 (Fourier permutato) — epoca 1: matrice quasi diffusa, il modello non distingue ancora le classi.",
       cm_exp6_ep20: "exp6 — epoca 20: la diagonale inizia a emergere, l'accuracy cresce.",
       cm_exp6_ep60: "exp6 — epoca 60: diagonale netta, restano poche confusioni.",
-      cm_exp6_ep108: "exp6 — epoca 108 (best, 78.12%): diagonale dominante; le confusioni residue sono tra animali simili (gatto/cane, cervo/cavallo).",
-      cm_exp2_ep89: "exp2 (learned PE) — epoca 89 (best, 77.60%): risultato molto simile a Fourier sotto permutazione."
+      cm_exp6_ep108: "Matrice di confusione della prima generazione: diagonale dominante, le confusioni residue sono tra animali simili (gatto/cane, cervo/cavallo). Figura qualitativa — l'accuratezza di quella run non e' utilizzabile.",
+      cm_exp2_ep89: "Matrice di confusione con learned PE, prima generazione. Il confronto quantitativo Fourier contro learned e' quello di e08 vs e03 (−1,84 punti, dentro la banda)."
     };
     var labs = document.querySelectorAll(".attn-evo-lab");
     labs.forEach(function(container) {
