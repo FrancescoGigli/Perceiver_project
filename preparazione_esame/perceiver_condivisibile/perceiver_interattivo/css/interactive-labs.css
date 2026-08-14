@@ -3051,3 +3051,149 @@ tr.rq-todo td {
 @media (prefers-reduced-motion: reduce) {
     .cv-seg-b { transition: none; }
 }
+
+/* ============================================================
+   Multi-head: tagliare, non aggiungere (cap. 8)
+   Esempio con d=8 per poterlo contare a occhio.
+   ============================================================ */
+.mh-pick {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin: 4px 0 14px;
+}
+
+.mh-pick-lab { font-size: .88rem; font-weight: 600; color: var(--text-soft); }
+
+.mh-seg {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.mh-seg-b {
+    border: 0;
+    min-width: 44px;
+    padding: 7px 0;
+    background: var(--card);
+    color: var(--muted);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out);
+}
+
+.mh-seg-b + .mh-seg-b { border-left: 1px solid var(--border); }
+.mh-seg-b.active { background: var(--primary); color: #fff; }
+.mh-seg-b:active { transform: scale(.97); }
+
+.mh-formula {
+    font-size: .88rem;
+    color: var(--text-soft);
+    font-variant-numeric: tabular-nums;
+}
+
+.mh-formula strong { color: var(--primary); }
+
+.mh-stage {
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+}
+
+.mh-row-lab {
+    font-size: .78rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+
+.mh-vector { display: flex; gap: 4px; flex-wrap: wrap; }
+
+.mh-cell {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 6px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    transition: background-color 220ms var(--ease-out), border-color 220ms var(--ease-out);
+}
+
+.mh-vector--out .mh-cell { background: var(--primary-softer); border-color: var(--primary); }
+
+.mh-arrow {
+    margin: 12px 0 10px;
+    font-size: .82rem;
+    color: var(--muted);
+    text-align: center;
+}
+
+.mh-arrow code { font-size: .8rem; }
+
+.mh-heads { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.mh-head {
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--h-col, var(--primary));
+}
+
+.mh-head-t {
+    font-size: .72rem;
+    color: var(--muted);
+    margin-bottom: 5px;
+    white-space: nowrap;
+}
+
+.mh-head .mh-cell { width: 34px; height: 34px; font-size: .88rem; }
+
+/* Il punto dell'intero lab: questa barra non cambia mai larghezza. */
+.mh-cost { margin: 16px 0 4px; }
+.mh-cost-lab { font-size: .8rem; color: var(--muted); margin-bottom: 5px; }
+
+.mh-cost-bar {
+    height: 22px;
+    border-radius: 6px;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.mh-cost-bar span {
+    display: block;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--primary-soft));
+}
+
+.mh-cost-note {
+    margin-top: 6px;
+    font-size: .84rem;
+    color: var(--text-soft);
+    font-variant-numeric: tabular-nums;
+}
+
+.mh-cost-note strong { color: var(--success); }
+
+.mh-real { margin-top: 16px; }
+.mh-real-t { font-size: .84rem; font-weight: 600; color: var(--text-soft); margin-bottom: 6px; }
+
+.mh-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.mh-table th, .mh-table td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); }
+.mh-table th { font-size: .74rem; text-transform: uppercase; color: var(--muted); letter-spacing: .04em; }
+.mh-table .mh-ours td { background: var(--primary-softer); }
+.mh-real-n { margin-top: 8px; font-size: .84rem; color: var(--muted); }
+
+.mh-caption { margin-top: 14px; font-size: .9rem; color: var(--text-soft); }
+
+@media (prefers-reduced-motion: reduce) {
+    .mh-cell, .mh-seg-b { transition: none; }
+}

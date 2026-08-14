@@ -2701,7 +2701,87 @@ const LAB_SOURCE_REFS = {
     disegna();
   }
 
+
+  // ---------------------------------------------------------------------------
+  // Multi-head con d=8 (cap. 8): le teste tagliano il vettore, non lo moltiplicano.
+  // Numeri piccoli apposta: con d=384 non si conta niente a occhio.
+  // ---------------------------------------------------------------------------
+  function initMultiHeadSplitLab() {
+    var box = document.querySelector('[data-lab="multi-head-split"]');
+    if (!box) return;
+    var D = 8;
+    var VETT = [3, 1, 4, 1, 5, 9, 2, 6];
+    var COL = ["#1a237e", "#e65100", "#2e7d32", "#ad1457", "#00838f", "#6a1b9a", "#c62828", "#4527a0"];
+    var COMPITI = ["i vicini", "un elemento lontano", "il colore", "i bordi",
+                   "la scala", "la posizione", "la classe", "il contrasto"];
+
+    var vect = box.querySelector("#mh-vector");
+    var heads = box.querySelector("#mh-heads");
+    var out = box.querySelector("#mh-out");
+    var nH = box.querySelector("#mh-h");
+    var nDh = box.querySelector("#mh-dh");
+    var nArrow = box.querySelector("#mh-narrow");
+    var nota = box.querySelector("#mh-cost-note");
+    if (!vect) return;
+
+    function celle(cont, valori, colore) {
+      cont.textContent = "";
+      valori.forEach(function (v) {
+        var d = document.createElement("div");
+        d.className = "mh-cell";
+        d.textContent = v;
+        if (colore) { d.style.borderColor = colore; d.style.color = colore; }
+        cont.appendChild(d);
+      });
+    }
+
+    function disegna(h) {
+      var dh = D / h;
+      nH.textContent = h;
+      nDh.textContent = dh;
+      nArrow.textContent = h;
+
+      celle(vect, VETT);
+
+      heads.textContent = "";
+      for (var i = 0; i < h; i++) {
+        var fetta = VETT.slice(i * dh, (i + 1) * dh);
+        var w = document.createElement("div");
+        w.className = "mh-head";
+        w.style.setProperty("--h-col", COL[i % COL.length]);
+        var t = document.createElement("div");
+        t.className = "mh-head-t";
+        t.textContent = "testa " + (i + 1) + " · guarda " + COMPITI[i % COMPITI.length];
+        w.appendChild(t);
+        var riga = document.createElement("div");
+        riga.className = "mh-vector";
+        w.appendChild(riga);
+        celle(riga, fetta, COL[i % COL.length]);
+        heads.appendChild(w);
+      }
+
+      celle(out, VETT.map(function () { return "·"; }));
+
+      nota.innerHTML = (h === 1 ? "1 testa da " : h + " teste da ") + dh +
+        (dh === 1 ? " numero" : " numeri") + " = <strong>" +
+        (h * dh) + " numeri in totale</strong>, sempre gli stessi 8. " +
+        "Il costo dell'attention \u00e8 N\u00B2\u00D7d_head per testa, quindi " +
+        h + "\u00D7N\u00B2\u00D7" + dh + " = N\u00B2\u00D78: <strong>non cambia</strong>.";
+    }
+
+    box.querySelectorAll(".mh-seg-b").forEach(function (b) {
+      b.addEventListener("click", function () {
+        box.querySelectorAll(".mh-seg-b").forEach(function (o) { o.classList.remove("active"); });
+        b.classList.add("active");
+        disegna(parseInt(b.dataset.h, 10));
+      });
+    });
+
+    disegna(2);
+  }
+
   function initInteractiveLabs() {
+    initMultiHeadSplitLab();
     initCurveEpocaLab();
     initGradAccumuloLab();
     initPrenormLab();

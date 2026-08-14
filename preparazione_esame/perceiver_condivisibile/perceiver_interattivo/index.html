@@ -729,6 +729,64 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
         Invece di una sola attention in dimensione D=1024, se ne calcolano 8 in parallelo, ciascuna in dimensione 128. Ogni testa può specializzarsi su un tipo di relazione diverso (es. una guarda pattern locali, un'altra globali). I risultati si concatenano: il costo totale resta lo stesso di una singola attention in dimensione D.
       </div>
 
+      <div class="concept-lab" data-lab="multi-head-split">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">multi-head attention · con otto numeri invece di 384</span>
+            <h3>Le teste non aggiungono niente: tagliano</h3>
+            <p>L'errore comune è pensare che 8 teste costino 8 volte tanto. Guarda cosa succede davvero a un vettore da <strong>8 numeri</strong>.</p>
+          </div>
+        </div>
+
+        <div class="mh-pick">
+          <span class="mh-pick-lab">Quante teste?</span>
+          <div class="mh-seg" role="radiogroup">
+            <button type="button" class="mh-seg-b" data-h="1">1</button>
+            <button type="button" class="mh-seg-b active" data-h="2">2</button>
+            <button type="button" class="mh-seg-b" data-h="4">4</button>
+            <button type="button" class="mh-seg-b" data-h="8">8</button>
+          </div>
+          <span class="mh-formula">d_head = <strong>8</strong> ÷ <strong id="mh-h">2</strong> = <strong id="mh-dh">4</strong></span>
+        </div>
+
+        <div class="mh-stage">
+          <div class="mh-row-lab">il vettore di partenza — <code>d = 8</code></div>
+          <div class="mh-vector" id="mh-vector"></div>
+
+          <div class="mh-arrow">↓ &nbsp;si taglia in <span id="mh-narrow">2</span> pezzi &nbsp;↓</div>
+
+          <div class="mh-row-lab">una testa per pezzo, calcolate <em>in parallelo</em></div>
+          <div class="mh-heads" id="mh-heads"></div>
+
+          <div class="mh-arrow">↓ &nbsp;si rimettono in fila e si mescolano con <code>W&#7484;</code> &nbsp;↓</div>
+
+          <div class="mh-row-lab">l'uscita — <code>d = 8</code>, la stessa di prima</div>
+          <div class="mh-vector mh-vector--out" id="mh-out"></div>
+        </div>
+
+        <div class="mh-cost">
+          <div class="mh-cost-lab">costo totale dell'attention</div>
+          <div class="mh-cost-bar"><span></span></div>
+          <div class="mh-cost-note" id="mh-cost-note"></div>
+        </div>
+
+        <div class="mh-real">
+          <div class="mh-real-t">Gli stessi conti, con i numeri veri</div>
+          <table class="mh-table">
+            <thead><tr><th>Dove</th><th><code>d</code></th><th>teste</th><th><code>d_head</code></th></tr></thead>
+            <tbody>
+              <tr><td>Paper, latent transformer (ImageNet)</td><td>1024</td><td>8</td><td>128</td></tr>
+              <tr class="mh-ours"><td><strong>Nostro</strong>, latent transformer (CIFAR-10)</td><td>384</td><td>8</td><td><strong>48</strong></td></tr>
+              <tr class="mh-ours"><td><strong>Nostro</strong>, cross-attention</td><td>384</td><td>1</td><td>384</td></tr>
+            </tbody>
+          </table>
+          <p class="mh-real-n">Nel nostro cross-attention la testa è <strong>una sola</strong>: è la scelta del paper originale, che lì usa single-head per non frammentare il canale che legge l'input. Le 8 teste stanno nel latent transformer, dove i latenti si parlano fra loro.</p>
+        </div>
+
+        <p class="mh-caption"><strong>La cosa da portarsi via.</strong> Passare da 1 a 8 teste non aggiunge parametri e non aggiunge calcolo: prende lo stesso vettore e lo taglia in fette più sottili, ognuna libera di guardare una relazione diversa. Una testa può seguire i vicini, un'altra un elemento lontano, un'altra ancora il colore. Con una testa sola tutte queste relazioni devono convivere nello stesso spazio, e si disturbano a vicenda.</p>
+      </div>
+
+
       <h2>Architettura GPT-2</h2>
       <p>La struttura di ogni blocco del latent transformer è quella standard del decoder GPT-2 (Radford et al. 2019):</p>
       <ol>
