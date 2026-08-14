@@ -1246,6 +1246,97 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
         <p><strong>Attenzione</strong>: fare l'aggiornamento <em>due volte</em> (una con −0.3 e una con +0.1) darebbe un risultato diverso e sbagliato. L'accumulazione deve avvenire <em>prima</em> del passo dell'ottimizzatore, non dopo.</p>
       </div>
 
+      <div class="concept-lab" data-lab="grad-accumulo">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">weight sharing · BPTT · l'errore classico all'orale</span>
+            <h3>Un solo peso, T−1 frecce che arrivano</h3>
+            <p>Premi «Passo backward» e guarda dove finiscono i contributi. Il punto non è la formula: è che convergono tutti nello <em>stesso</em> accumulatore, e che il primo blocco ha il suo.</p>
+          </div>
+          <div class="lab-toggle">
+            <button type="button" class="ga-step">Passo backward ↩</button>
+            <button type="button" class="ga-reset">Ricomincia</button>
+          </div>
+        </div>
+
+        <svg class="ga-diagram" viewBox="0 0 720 290" role="img"
+             aria-label="Il forward srotolato a sinistra, i due accumulatori di gradiente a destra: il primo blocco ha il suo, i blocchi condivisi convergono in uno solo">
+          <title>Accumulo del gradiente sui pesi condivisi</title>
+
+          <text class="ga-head" x="150" y="20">forward srotolato (T = 3)</text>
+          <text class="ga-head" x="560" y="20">accumulatori dei gradienti</text>
+
+          <!-- blocco 1: pesi propri -->
+          <g data-blk="1">
+            <rect class="ga-blk ga-blk--own" x="40" y="38" width="200" height="42" rx="6"/>
+            <text class="ga-blkt" x="140" y="58">CA₁ · LT₁</text>
+            <text class="ga-blks" x="140" y="72">pesi propri, t = 1</text>
+          </g>
+
+          <!-- blocchi 2 e 3: pesi condivisi -->
+          <g data-blk="2">
+            <rect class="ga-blk ga-blk--sh" x="40" y="98" width="200" height="42" rx="6"/>
+            <text class="ga-blkt" x="140" y="118">CA₂ · LT₂</text>
+            <text class="ga-blks" x="140" y="132">stesso W, t = 2</text>
+          </g>
+          <g data-blk="3">
+            <rect class="ga-blk ga-blk--sh" x="40" y="158" width="200" height="42" rx="6"/>
+            <text class="ga-blkt" x="140" y="178">CA₃ · LT₃</text>
+            <text class="ga-blks" x="140" y="192">stesso W, t = 3</text>
+          </g>
+
+          <line class="ga-flow" x1="140" y1="80" x2="140" y2="98"/>
+          <line class="ga-flow" x1="140" y1="140" x2="140" y2="158"/>
+          <text class="ga-loss" x="140" y="228">ℒ</text>
+          <line class="ga-flow" x1="140" y1="200" x2="140" y2="214"/>
+
+          <!-- accumulatore del primo blocco: riceve una sola freccia -->
+          <rect class="ga-acc ga-acc--own" x="440" y="38" width="240" height="52" rx="7"/>
+          <text class="ga-acct" x="460" y="58">grad_own &nbsp;<tspan class="ga-dim">(CA₁·LT₁)</tspan></text>
+          <text class="ga-accv" id="ga-own" x="660" y="76">0.0</text>
+          <text class="ga-accn" x="460" y="78">1 contributo, non si somma con gli altri</text>
+
+          <!-- accumulatore condiviso: riceve T-1 frecce -->
+          <rect class="ga-acc ga-acc--sh" x="440" y="118" width="240" height="70" rx="7"/>
+          <text class="ga-acct" x="460" y="140">grad_shared &nbsp;<tspan class="ga-dim">(W)</tspan></text>
+          <text class="ga-accv" id="ga-sh" x="660" y="168">0.0</text>
+          <text class="ga-accn" x="460" y="160">T−1 = 2 contributi, <tspan class="ga-em">stesso accumulatore</tspan></text>
+          <text class="ga-accn ga-accn--calc" id="ga-calc" x="460" y="180"></text>
+
+          <!-- frecce -->
+          <path class="ga-arrow" id="ga-arr-1" d="M240 59 H440" marker-end="url(#ga-tip-own)"/>
+          <path class="ga-arrow" id="ga-arr-3" d="M240 179 C340 179 340 160 440 160" marker-end="url(#ga-tip-sh)"/>
+          <path class="ga-arrow" id="ga-arr-2" d="M240 119 C340 119 340 152 440 152" marker-end="url(#ga-tip-sh)"/>
+          <text class="ga-val" id="ga-val-3" x="340" y="185">−0.3</text>
+          <text class="ga-val" id="ga-val-2" x="340" y="118">+0.1</text>
+          <text class="ga-val" id="ga-val-1" x="340" y="52">−0.05</text>
+
+          <defs>
+            <marker id="ga-tip-sh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" class="ga-tip-sh"/>
+            </marker>
+            <marker id="ga-tip-own" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" class="ga-tip-own"/>
+            </marker>
+          </defs>
+
+          <text class="ga-phase" id="ga-phase" x="360" y="270">premi «Passo backward»: il gradiente risale da ℒ verso t = 1</text>
+        </svg>
+
+        <div class="ga-update">
+          <div class="ga-row ga-row--ok">
+            <span class="ga-row-lab">✓ Corretto — accumula, poi aggiorna una volta sola</span>
+            <code id="ga-ok">w ← 2.0 − 0.01 · (−0.2) = <strong>2.002</strong></code>
+          </div>
+          <div class="ga-row ga-row--ko">
+            <span class="ga-row-lab">✗ Sbagliato — un aggiornamento per ogni contributo</span>
+            <code>w ← 2.0 − 0.01·(−0.3) = 2.003 &nbsp;→&nbsp; poi − 0.01·(+0.1) = <strong>2.002</strong></code>
+          </div>
+        </div>
+
+        <p class="ga-caption"><strong>Perché qui il risultato coincide, e perché in generale no.</strong> Con lo SGD puro i due percorsi danno lo stesso numero, perché sommare i gradienti e sommare gli aggiornamenti sono la stessa operazione. Smettono di coincidere appena l'ottimizzatore ha uno <em>stato</em>: Adam e LAMB normalizzano per la magnitudine del gradiente, quindi due passi da <code>−0.3</code> e <code>+0.1</code> non equivalgono a un passo da <code>−0.2</code>. Il Perceiver usa LAMB — l'accumulazione prima dell'aggiornamento non è un dettaglio di stile.</p>
+      </div>
+
       <h3>Pesi del primo blocco: non partecipano alla somma</h3>
       <p>I pesi di <code>CA₁</code> e <code>LT₁</code> sono parametri separati (cap. 9): i loro gradienti stanno in un accumulatore diverso, non si sommano con quelli dei blocchi shared, e vengono aggiornati in modo indipendente.</p>
 
@@ -1876,6 +1967,104 @@ LN(x) ≈ [-1.342, -0.447, 0.447, 1.342]</div>
       <div class="display-eq">Post-norm: y = LN(x + f(x))
 Pre-norm:  y = x + f(LN(x))</div>
       <p>Il Perceiver usa il pattern pre-norm: il sottoblocco riceve input normalizzato, ma la residual connection resta un percorso pulito per il gradiente.</p>
+
+      <div class="concept-lab" data-lab="prenorm-residual">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">He 2016 · Xiong 2020 · il motivo per cui i Transformer profondi si addestrano</span>
+            <h3>Dove passa la strada del residuo</h3>
+            <p>Stessi identici blocchi, cablati in ordine diverso. Segui la linea verde: è il percorso che il gradiente fa all'indietro.</p>
+          </div>
+        </div>
+
+        <svg class="pn-diagram" viewBox="0 0 720 300" role="img"
+             aria-label="Confronto fra pre-norm e post-norm: nel pre-norm la connessione residua va dall'ingresso all'uscita senza attraversare la LayerNorm, nel post-norm la attraversa">
+          <title>Pre-norm contro post-norm: il percorso della connessione residua</title>
+
+          <!-- ============ PRE-NORM ============ -->
+          <text class="pn-title pn-good" x="150" y="22">PRE-NORM &nbsp;·&nbsp; y = x + f(LN(x))</text>
+
+          <text class="pn-io" x="100" y="52">x</text>
+          <line class="pn-wire" x1="100" y1="58" x2="100" y2="80"/>
+          <circle class="pn-split" cx="100" cy="80" r="4"/>
+
+          <!-- residuo: dalla diramazione fino alla somma, senza toccare nulla -->
+          <path class="pn-res pn-res--alive" d="M100 80 H210 V205 H118"/>
+          <text class="pn-restag pn-good" x="216" y="145">identità</text>
+
+          <line class="pn-wire" x1="100" y1="80" x2="100" y2="96"/>
+          <rect class="pn-box pn-box--ln" x="50" y="96" width="100" height="32" rx="5"/>
+          <text class="pn-boxt" x="100" y="117">LayerNorm</text>
+
+          <line class="pn-wire" x1="100" y1="128" x2="100" y2="150"/>
+          <rect class="pn-box" x="50" y="150" width="100" height="32" rx="5"/>
+          <text class="pn-boxt" x="100" y="171">Attention</text>
+
+          <line class="pn-wire" x1="100" y1="182" x2="100" y2="192"/>
+          <circle class="pn-sum" cx="100" cy="205" r="13"/>
+          <text class="pn-sumt" x="100" y="211">+</text>
+
+          <line class="pn-res pn-res--alive" x1="100" y1="218" x2="100" y2="243" stroke-linecap="round"/>
+          <text class="pn-io" x="100" y="258">y</text>
+
+          <text class="pn-note pn-good" x="100" y="284">dall'ingresso all'uscita il residuo</text>
+          <text class="pn-note pn-good" x="100" y="296">non attraversa nessuna LayerNorm</text>
+
+          <!-- ============ divisore ============ -->
+          <line class="pn-div" x1="360" y1="34" x2="360" y2="290"/>
+
+          <!-- ============ POST-NORM ============ -->
+          <text class="pn-title pn-bad" x="530" y="22">POST-NORM &nbsp;·&nbsp; y = LN(x + f(x))</text>
+
+          <text class="pn-io" x="480" y="52">x</text>
+          <line class="pn-wire" x1="480" y1="58" x2="480" y2="80"/>
+          <circle class="pn-split" cx="480" cy="80" r="4"/>
+
+          <path class="pn-res pn-res--alive" d="M480 80 H590 V155 H498"/>
+
+          <line class="pn-wire" x1="480" y1="80" x2="480" y2="96"/>
+          <rect class="pn-box" x="430" y="96" width="100" height="32" rx="5"/>
+          <text class="pn-boxt" x="480" y="117">Attention</text>
+
+          <line class="pn-wire" x1="480" y1="128" x2="480" y2="142"/>
+          <circle class="pn-sum" cx="480" cy="155" r="13"/>
+          <text class="pn-sumt" x="480" y="161">+</text>
+
+          <!-- da qui in poi il residuo e' dentro la normalizzazione -->
+          <line class="pn-res pn-res--damped" x1="480" y1="168" x2="480" y2="190"/>
+          <rect class="pn-box pn-box--ln pn-box--blocking" x="430" y="190" width="100" height="32" rx="5"/>
+          <text class="pn-boxt" x="480" y="211">LayerNorm</text>
+          <text class="pn-restag pn-bad" x="596" y="207">×J ad ogni</text>
+          <text class="pn-restag pn-bad" x="596" y="219">blocco</text>
+
+          <line class="pn-res pn-res--damped" x1="480" y1="222" x2="480" y2="243"/>
+          <text class="pn-io" x="480" y="258">y</text>
+
+          <text class="pn-note pn-bad" x="480" y="284">il residuo entra nella LayerNorm:</text>
+          <text class="pn-note pn-bad" x="480" y="296">ogni blocco moltiplica il gradiente</text>
+        </svg>
+
+        <div class="pn-controls">
+          <label for="pn-depth">Profondità della rete: <output id="pn-depth-out">56</output> blocchi</label>
+          <input type="range" id="pn-depth" min="1" max="112" value="56" step="1">
+        </div>
+
+        <div class="pn-readout">
+          <div class="pn-card pn-card--good">
+            <span class="pn-card-lab">Pre-norm</span>
+            <strong id="pn-pre">1.00</strong>
+            <span class="pn-card-sub">frazione di gradiente che arriva al primo blocco</span>
+          </div>
+          <div class="pn-card pn-card--bad">
+            <span class="pn-card-lab">Post-norm <em>(fattore 0,5 per blocco)</em></span>
+            <strong id="pn-post">1.4 × 10⁻¹⁷</strong>
+            <span class="pn-card-sub">stesso conto, strada diversa</span>
+          </div>
+        </div>
+
+        <p class="pn-caption">Il Perceiver ripete questo motivo circa <strong>112 volte</strong> fra cross-attention e latent transformer. Con il post-norm, a quella profondità il gradiente che torna ai primi strati è indistinguibile da zero e la rete smette di imparare dove conta di più: nel modo in cui legge l'input.</p>
+      </div>
+
 
       <div class="idea">
         <div class="idea-label">Collegamento al Perceiver</div>

@@ -2712,3 +2712,222 @@ tr.rq-todo td {
     font-size: .88rem;
     color: var(--text-soft);
 }
+
+/* ============================================================
+   Pre-norm vs post-norm: dove passa la strada del residuo (cap. 22)
+   ============================================================ */
+.pn-diagram {
+    width: 100%;
+    height: auto;
+    display: block;
+    margin: 6px 0 2px;
+    overflow: visible;
+}
+
+.pn-diagram text { font-family: inherit; }
+
+.pn-title { font-size: 12.5px; font-weight: 700; text-anchor: middle; letter-spacing: .01em; }
+.pn-good { fill: var(--success); }
+.pn-bad  { fill: var(--accent); }
+
+.pn-io   { font-size: 15px; font-weight: 700; text-anchor: middle; fill: var(--text); }
+.pn-boxt { font-size: 12px; text-anchor: middle; fill: var(--text); }
+.pn-sumt { font-size: 15px; font-weight: 700; text-anchor: middle; fill: var(--text); }
+.pn-note { font-size: 10.5px; text-anchor: middle; }
+.pn-restag { font-size: 10px; font-weight: 600; text-anchor: middle; }
+
+.pn-box {
+    fill: var(--card);
+    stroke: var(--border);
+    stroke-width: 1.4;
+}
+
+.pn-box--ln { fill: var(--primary-softer); stroke: var(--primary); }
+.pn-box--blocking { stroke: var(--accent); stroke-width: 2; }
+
+.pn-wire  { stroke: var(--muted); stroke-width: 1.4; }
+.pn-split { fill: var(--muted); }
+
+.pn-sum {
+    fill: var(--card);
+    stroke: var(--muted);
+    stroke-width: 1.4;
+}
+
+/* La strada del residuo: verde finche' e' un'identita', arancione appena
+   attraversa una normalizzazione. E' l'unico dettaglio che conta. */
+.pn-res {
+    fill: none;
+    stroke-width: 3;
+    stroke-linejoin: round;
+}
+
+.pn-res--alive  { stroke: var(--success); }
+.pn-res--damped { stroke: var(--accent); stroke-dasharray: 5 4; }
+
+.pn-div { stroke: var(--border); stroke-width: 1; stroke-dasharray: 4 4; }
+
+.pn-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 14px 0 10px;
+    font-size: .9rem;
+    color: var(--text-soft);
+}
+
+.pn-controls output { font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums; }
+.pn-controls input[type="range"] { width: 100%; accent-color: var(--primary); }
+
+.pn-readout {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px;
+}
+
+.pn-card {
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--card);
+}
+
+.pn-card--good { border-left: 3px solid var(--success); }
+.pn-card--bad  { border-left: 3px solid var(--accent); }
+
+.pn-card-lab { display: block; font-size: .78rem; color: var(--muted); }
+.pn-card-lab em { font-style: normal; opacity: .8; }
+
+.pn-card strong {
+    display: block;
+    margin: 3px 0 2px;
+    font-size: 1.45rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.pn-card--good strong { color: var(--success); }
+.pn-card--bad  strong { color: var(--accent); }
+.pn-card-sub { font-size: .76rem; color: var(--muted); line-height: 1.35; }
+
+.pn-caption { margin-top: 12px; font-size: .9rem; color: var(--text-soft); }
+
+@media (max-width: 640px) {
+    .pn-diagram { min-width: 560px; }
+    .pn-diagram-wrap { overflow-x: auto; }
+}
+
+/* ============================================================
+   Accumulo del gradiente sui pesi condivisi (cap. 14)
+   ============================================================ */
+.ga-diagram {
+    width: 100%;
+    height: auto;
+    display: block;
+    margin: 8px 0 4px;
+    overflow: visible;
+}
+
+.ga-diagram text { font-family: inherit; }
+
+.ga-head  { font-size: 11px; font-weight: 700; text-anchor: middle; fill: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.ga-blkt  { font-size: 13px; font-weight: 600; text-anchor: middle; fill: var(--text); }
+.ga-blks  { font-size: 10px; text-anchor: middle; fill: var(--muted); }
+.ga-loss  { font-size: 17px; font-weight: 700; text-anchor: middle; fill: var(--text); }
+.ga-acct  { font-size: 12px; font-weight: 600; fill: var(--text); }
+.ga-accn  { font-size: 10px; fill: var(--muted); }
+.ga-accv  { font-size: 19px; font-weight: 700; text-anchor: end; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.ga-dim   { fill: var(--muted); font-weight: 400; }
+.ga-em    { fill: var(--accent); font-weight: 600; }
+.ga-phase { font-size: 11.5px; text-anchor: middle; fill: var(--muted); }
+.ga-accn--calc { fill: var(--accent); font-variant-numeric: tabular-nums; }
+
+.ga-blk { fill: var(--card); stroke-width: 1.6; }
+.ga-blk--own { stroke: var(--primary); }
+.ga-blk--sh  { stroke: var(--accent); stroke-dasharray: 5 3; }
+
+.ga-acc { fill: var(--bg-soft); stroke-width: 1.6; }
+.ga-acc--own { stroke: var(--primary); }
+.ga-acc--sh  { stroke: var(--accent); }
+
+.ga-flow { stroke: var(--border); stroke-width: 1.4; }
+
+/* Le frecce partono spente e si accendono una per volta, a click. */
+.ga-arrow {
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 2;
+    opacity: .35;
+    transition: opacity 200ms var(--ease-out), stroke 200ms var(--ease-out);
+}
+
+.ga-arrow.on { opacity: 1; stroke: var(--accent); stroke-width: 2.6; }
+.ga-arrow.on-own { opacity: 1; stroke: var(--primary); stroke-width: 2.6; }
+
+.ga-tip-sh  { fill: var(--accent); }
+.ga-tip-own { fill: var(--primary); }
+
+.ga-val {
+    font-size: 12px;
+    font-weight: 700;
+    text-anchor: middle;
+    fill: var(--muted);
+    opacity: .3;
+    font-variant-numeric: tabular-nums;
+    transition: opacity 200ms var(--ease-out), fill 200ms var(--ease-out);
+}
+
+.ga-val.on { opacity: 1; fill: var(--accent); }
+.ga-val.on-own { opacity: 1; fill: var(--primary); }
+
+.ga-blk.attiva { filter: drop-shadow(0 0 5px rgba(230, 81, 0, .35)); }
+.ga-accv.viva  { fill: var(--accent); }
+.ga-accv.viva-own { fill: var(--primary); }
+
+.ga-update {
+    display: grid;
+    gap: 8px;
+    margin: 12px 0 0;
+}
+
+.ga-row {
+    padding: 10px 13px;
+    border-radius: var(--radius);
+    background: var(--card);
+    border: 1px solid var(--border);
+}
+
+.ga-row--ok { border-left: 3px solid var(--success); }
+.ga-row--ko { border-left: 3px solid var(--accent); }
+
+.ga-row-lab { display: block; font-size: .78rem; margin-bottom: 4px; }
+.ga-row--ok .ga-row-lab { color: var(--success); }
+.ga-row--ko .ga-row-lab { color: var(--accent); }
+.ga-row code { font-size: .88rem; color: var(--text); }
+
+.ga-caption { margin-top: 12px; font-size: .9rem; color: var(--text-soft); }
+
+.ga-step, .ga-reset {
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 7px 12px;
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 150ms var(--ease-out), border-color 150ms ease;
+}
+
+.ga-step { border-color: var(--accent); color: var(--accent); }
+.ga-step:active, .ga-reset:active { transform: scale(.97); }
+.ga-step[disabled] { opacity: .45; cursor: default; }
+
+@media (hover: hover) and (pointer: fine) {
+    .ga-step:hover:not([disabled]) { background: #fff5ef; }
+    .ga-reset:hover { border-color: var(--primary); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ga-arrow, .ga-val, .ga-step, .ga-reset { transition: none; }
+}

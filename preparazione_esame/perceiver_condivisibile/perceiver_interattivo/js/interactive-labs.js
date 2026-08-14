@@ -2467,7 +2467,125 @@ const LAB_SOURCE_REFS = {
     });
   }
 
+
+  // ---------------------------------------------------------------------------
+  // Pre-norm vs post-norm (cap. 22): quanto gradiente sopravvive alla profondita'.
+  // Pre-norm: la connessione residua e' un'identita', il fattore resta 1.
+  // Post-norm: ogni blocco moltiplica per il jacobiano della LN (~0.5 di stima).
+  // ---------------------------------------------------------------------------
+  function initPrenormLab() {
+    var box = document.querySelector('[data-lab="prenorm-residual"]');
+    if (!box) return;
+    var slider = box.querySelector("#pn-depth");
+    var out = box.querySelector("#pn-depth-out");
+    var pre = box.querySelector("#pn-pre");
+    var post = box.querySelector("#pn-post");
+    if (!slider || !out || !pre || !post) return;
+
+    function fmt(x) {
+      if (x >= 0.001) return x.toFixed(3);
+      var e = x.toExponential(1).split("e");
+      var mant = e[0];
+      var esp = String(e[1]).replace("+", "");
+      var su = { "-": "\u207B", 0: "\u2070", 1: "\u00B9", 2: "\u00B2", 3: "\u00B3",
+                 4: "\u2074", 5: "\u2075", 6: "\u2076", 7: "\u2077", 8: "\u2078", 9: "\u2079" };
+      var sup = esp.split("").map(function (c) { return su[c] || c; }).join("");
+      return mant + " \u00D7 10" + sup;
+    }
+
+    function aggiorna() {
+      var L = parseInt(slider.value, 10);
+      out.textContent = L;
+      pre.textContent = "1.00";
+      post.textContent = fmt(Math.pow(0.5, L));
+    }
+
+    slider.addEventListener("input", aggiorna);
+    aggiorna();
+  }
+
+
+  // ---------------------------------------------------------------------------
+  // Accumulo del gradiente sui pesi condivisi (cap. 14).
+  // Il backward risale t = T ... 1. I blocchi 2..T scrivono nello STESSO
+  // accumulatore; il blocco 1 ha il suo. Avanzamento a click, niente timer.
+  // ---------------------------------------------------------------------------
+  function initGradAccumuloLab() {
+    var box = document.querySelector('[data-lab="grad-accumulo"]');
+    if (!box) return;
+    var btn = box.querySelector(".ga-step");
+    var reset = box.querySelector(".ga-reset");
+    var own = box.querySelector("#ga-own");
+    var sh = box.querySelector("#ga-sh");
+    var calc = box.querySelector("#ga-calc");
+    var fase = box.querySelector("#ga-phase");
+    if (!btn || !own || !sh) return;
+
+    // ordine del backward: dall'ultimo blocco al primo
+    var PASSI = [
+      { blk: 3, val: -0.3, acc: "sh", testo: "t = 3: il contributo entra in grad_shared" },
+      { blk: 2, val: 0.1, acc: "sh", testo: "t = 2: stesso peso W \u2192 si somma nello stesso accumulatore" },
+      { blk: 1, val: -0.05, acc: "own", testo: "t = 1: pesi propri \u2192 accumulatore separato, non si mescola" }
+    ];
+
+    var i = 0, totSh = 0, totOwn = 0, termini = [];
+
+    function pulisci() {
+      i = 0; totSh = 0; totOwn = 0; termini = [];
+      box.querySelectorAll(".ga-arrow").forEach(function (a) { a.classList.remove("on", "on-own"); });
+      box.querySelectorAll(".ga-val").forEach(function (v) { v.classList.remove("on", "on-own"); });
+      box.querySelectorAll(".ga-blk").forEach(function (b) { b.classList.remove("attiva"); });
+      own.textContent = "0.0"; sh.textContent = "0.0";
+      own.classList.remove("viva-own"); sh.classList.remove("viva");
+      calc.textContent = "";
+      fase.textContent = "premi \u00ABPasso backward\u00BB: il gradiente risale da \u2112 verso t = 1";
+      btn.disabled = false;
+    }
+
+    function passo() {
+      if (i >= PASSI.length) return;
+      var p = PASSI[i];
+      var proprio = p.acc === "own";
+      var cls = proprio ? "on-own" : "on";
+
+      var arr = box.querySelector("#ga-arr-" + p.blk);
+      var val = box.querySelector("#ga-val-" + p.blk);
+      if (arr) arr.classList.add(cls);
+      if (val) val.classList.add(cls);
+
+      box.querySelectorAll(".ga-blk").forEach(function (b) { b.classList.remove("attiva"); });
+      var g = box.querySelector('[data-blk="' + p.blk + '"] .ga-blk');
+      if (g) g.classList.add("attiva");
+
+      if (proprio) {
+        totOwn += p.val;
+        own.textContent = (totOwn > 0 ? "+" : "−") + Math.abs(totOwn).toFixed(2);
+        own.classList.add("viva-own");
+      } else {
+        totSh += p.val;
+        termini.push((p.val > 0 ? "+" : "\u2212") + Math.abs(p.val));
+        sh.textContent = (totSh > 0 ? "+" : "\u2212") + Math.abs(totSh).toFixed(2);
+        sh.classList.add("viva");
+        calc.textContent = termini.join(" ") + " = " +
+          (totSh > 0 ? "+" : "\u2212") + Math.abs(totSh).toFixed(2);
+      }
+
+      fase.textContent = p.testo;
+      i++;
+      if (i >= PASSI.length) {
+        btn.disabled = true;
+        fase.textContent = "backward completo: un solo aggiornamento per accumulatore, non uno per freccia";
+      }
+    }
+
+    btn.addEventListener("click", passo);
+    if (reset) reset.addEventListener("click", pulisci);
+    pulisci();
+  }
+
   function initInteractiveLabs() {
+    initGradAccumuloLab();
+    initPrenormLab();
     initStepAnimLab();
     initArchitectureFlowLab();
     initByteUnrollLab();
