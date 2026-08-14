@@ -2573,3 +2573,142 @@
 .paper-fig { margin: 6px auto 18px; max-width: 580px; }
 .paper-fig img { width: 100%; display: block; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
 .paper-fig figcaption { font-size: 12.5px; color: var(--text-soft); text-align: center; margin-top: 8px; line-height: 1.5; }
+
+/* ============================================================
+   Dot-plot della banda di rumore (cap. 44)
+   Grafico statico: i dati vengono dai 23 results.json v2.
+   ============================================================ */
+.noise-plot {
+    width: 100%;
+    height: auto;
+    display: block;
+    margin: 4px 0 2px;
+    font-family: inherit;
+    overflow: visible;
+}
+
+.noise-plot .np-band {
+    fill: var(--primary-soft);
+    stroke: var(--primary);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+    opacity: .55;
+}
+
+.noise-plot .np-base {
+    stroke: var(--primary);
+    stroke-width: 1.5;
+}
+
+.noise-plot .np-grid {
+    stroke: var(--border);
+    stroke-width: 1;
+}
+
+.noise-plot .np-stem {
+    stroke: var(--border);
+    stroke-width: 1;
+}
+
+.noise-plot .np-tick,
+.noise-plot .np-axis,
+.noise-plot .np-val,
+.noise-plot .np-label {
+    fill: var(--muted);
+    font-size: 11px;
+}
+
+.noise-plot .np-tick { text-anchor: middle; }
+.noise-plot .np-axis { text-anchor: middle; font-size: 12px; }
+.noise-plot .np-label { text-anchor: end; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.noise-plot .np-label--rep { fill: var(--primary); font-weight: 600; }
+.noise-plot .np-val { fill: var(--text-soft); font-variant-numeric: tabular-nums; }
+
+/* Chi definisce la banda, chi ne esce, chi ci resta dentro. */
+.noise-plot .np-rep { fill: var(--primary); stroke: var(--card); stroke-width: 1.5; }
+.noise-plot .np-out { fill: var(--accent); stroke: var(--card); stroke-width: 1.5; }
+.noise-plot .np-in  { fill: var(--muted); opacity: .5; }
+
+.noise-plot g:hover .np-dot { r: 7; }
+.noise-plot g:hover .np-val { fill: var(--text); font-weight: 600; }
+.noise-plot .np-dot { transition: r 120ms var(--ease-out); }
+
+.noise-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: .82rem;
+    color: var(--muted);
+}
+
+.noise-legend li { display: flex; align-items: center; gap: 7px; }
+
+.noise-legend i {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    flex: none;
+}
+
+.noise-legend .lg-rep { background: var(--primary); }
+.noise-legend .lg-out { background: var(--accent); }
+.noise-legend .lg-in  { background: var(--muted); opacity: .5; }
+
+.noise-legend .lg-band {
+    border-radius: 2px;
+    background: var(--primary-soft);
+    border: 1px dashed var(--primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .noise-plot .np-dot { transition: none; }
+}
+
+/* ============================================================
+   Verdetti rispetto alla banda di rumore, e run non ancora fatte
+   ============================================================ */
+.v-out { color: var(--accent); }
+.v-in  { color: var(--muted); }
+
+/* Una run che sta nel registro ma non e' stata eseguita: si dichiara,
+   non si stima. Aspetto volutamente "vuoto" per distinguerla a colpo d'occhio. */
+.dataset-card--todo,
+.exp-pending {
+    background: repeating-linear-gradient(
+        -45deg,
+        var(--bg-soft) 0 10px,
+        transparent 10px 20px
+    );
+    border: 1px dashed var(--border);
+}
+
+.dataset-card--todo .dataset-name { color: var(--muted); }
+
+.exp-pending {
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-top: 10px;
+}
+
+.exp-pending p { margin: 0 0 10px; }
+.exp-pending p:last-child { margin-bottom: 0; }
+
+tr.exp-pending-row td,
+tr.rq-todo td {
+    color: var(--muted);
+    background: var(--bg-soft);
+}
+
+/* Avviso su un numero rimosso perche' non piu' sostenibile. */
+.exp-warn {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-left: 3px solid var(--accent);
+    background: var(--card);
+    border-radius: 0 6px 6px 0;
+    font-size: .88rem;
+    color: var(--text-soft);
+}

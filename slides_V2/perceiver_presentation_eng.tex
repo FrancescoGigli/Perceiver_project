@@ -87,12 +87,13 @@
 }
 
 % â”€â”€ Figure Paths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+% Solo cartelle tracciate da git: Perceiver_Paper/ e' gitignorata, quindi
+% puntarci dentro rendeva il deck non compilabile da un clone pulito.
 \graphicspath{
   {charts/}
-  {../Perceiver_Paper/figures/}
-  {../Perceiver_Paper/analysis_results/}
-  {../Perceiver_Paper/attention_analysis/}
-  {../Perceiver_Paper/perceiver_visualizations/}
+  {../attention_analysis/}
+  {../analysis_results/}
+  {../perceiver_visualizations/}
 }
 
 % â”€â”€ Metadata â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -635,7 +636,7 @@
       \midrule
       Input tokenization &
       Raw pixels, no patching ($M=50{,}176$) &
-      $2{\times}2$ patch embedding (CIFAR-10 $M=256$) \\
+      \textbf{Raw pixels, no patching} ($M=1{,}024$ on $32{\times}32$) \\
       \addlinespace[2pt]
       Latent array $N\times D$ &
       $512\times1024$ &
@@ -643,19 +644,23 @@
       \addlinespace[2pt]
       Cross-attend iterations $T$ &
       $8$ &
-      $4$ (CIFAR-10), $2$ (ModelNet40) \\
+      $4$ (CIFAR-10), $2$ (ModelNet40) --- and $T$ is itself an ablation axis \\
       \addlinespace[2pt]
       Positional encoding &
       2D Fourier, $K=64$ bands/axis ($258$ dims) &
-      2D Fourier, $64$ dims \\
+      \textbf{Identical}: 2D Fourier, $K=64$ bands/axis, $258$ dims $+$ 3 RGB $=261$ \\
       \addlinespace[2pt]
       Weight sharing &
       On by default (shared across $T$) &
       Exposed as an ablation switch (on/off) \\
       \addlinespace[2pt]
+      Model selection &
+      --- &
+      \textbf{Validation carved from train} (45k/5k/10k); test touched once \\
+      \addlinespace[2pt]
       Parameters &
       $30$--$200\text{M}+$ &
-      $3.35$M (CIFAR-10) -- $10$M (IO) \\
+      $10.18$M (CIFAR-10), $23.29$M (ModelNet40), $18.87$M (IO text) \\
       \bottomrule
     \end{tabular}
   \end{table}
@@ -673,345 +678,334 @@
 
 % â”€â”€ Slide 15: CIFAR-10 Setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 \begin{frame}[shrink=5]{CIFAR-10: Experimental Setup}
-  \textbf{Goal:} validate the Perceiver on flattened pixel patches without any convolutional assumptions.
+  \textbf{Goal:} validate the Perceiver on raw pixels, with no convolutional assumption anywhere.
 
   \vspace{0.3em}
   \begin{columns}[T]
-    \begin{column}{0.48\textwidth}
+    \begin{column}{0.46\textwidth}
       \begin{table}
         \centering\small
         \begin{tabular}{ll}
           \toprule
           \textbf{Hyperparameter} & \textbf{Value} \\
           \midrule
-          Latent dim ($N \times D$) & $96 \times 384$ \\
-          Cross-attn stages & 4 \\
-          Transformer blocks & 4 (shared) \\
-          Attention heads & 3 \\
-          Patch size & $2 \times 2$ \\
-          Dropout & 0.2 \\
+          Latent array ($N \times D$) & $96 \times 384$ \\
+          Cross-attn stages ($T$) & 4, interleaved \\
+          Transformer blocks ($L$) & 4 (shared) \\
+          Heads (cross / self) & 1 / 8 \\
+          Fourier bands / max freq & 64 / 16 \\
+          Dropout & 0 \\
           \midrule
           Optimizer & LAMB \\
           Learning rate & 0.004 \\
+          Scheduler & MultiStep 84/102/114 \\
           Batch size & 64 \\
-          Epochs & 120 \\
+          Epochs & 120, \emph{no early stop} \\
+          Precision & bfloat16 \\
           \midrule
-          \textbf{Total parameters} & \textbf{$\sim$3.35M} \\
+          \textbf{Total parameters} & \textbf{10\,175\,362} \\
           \bottomrule
         \end{tabular}
       \end{table}
     \end{column}
-    \begin{column}{0.48\textwidth}
-      \textbf{Ablation study plan:}
-      \begin{enumerate}
-        \item Impact of positional encoding
-        \item Weight sharing vs no sharing
-        \item Robustness to pixel permutation
-        \item Best classifier-head configuration
-      \end{enumerate}
+    \begin{column}{0.50\textwidth}
+      \begin{block}{Protocol --- the part that makes the numbers usable}
+        \small
+        Train split: \textbf{45\,000} images. Validation: \textbf{5\,000}, carved out of the training set. Test: the official \textbf{10\,000}, touched \emph{once}, at the very end.
 
-      \vspace{0.5em}
-      \textbf{Data pipeline:}
-      \begin{itemize}
-        \item $32\!\times\!32$ RGB images split into $2\!\times\!2$ patches ($M\!=\!256$ tokens, 12 raw channels each)
-        \item 2D Fourier positional encoding (64 features $\to$ input dim 76)
-        \item Augmentation: RandAugment (2 ops, magnitude 9)
-      \end{itemize}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-% â”€â”€ Slide 16: CIFAR-10 Ablation Results â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-\begin{frame}[shrink=4]{CIFAR-10: Ablation Accuracy}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.61\textwidth}
-      \includegraphics[width=\textwidth,height=0.68\textheight,keepaspectratio]{cifar10_ablation_correct.png}
-    \end{column}
-    \begin{column}{0.35\textwidth}
-      \textbf{Measured comparisons}
-      \begin{itemize}
-        \item Best Perceiver run: \textbf{78.12\%}
-        \item No PE vs Fourier control: \textcolor{AccentRed}{\textbf{$-$10.68pp}}
-        \item No sharing vs WS control: \textcolor{AccentGreen}{\textbf{$+$5.36pp}}
-        \item Fourier vs learned PE under fixed permutation: \textbf{$+$0.52pp}
-      \end{itemize}
-
-      \vspace{0.25em}
-      \begin{block}{Source}
-        \scriptsize
-        Values from the local experiment report:
-        \texttt{experiment\_summary.csv}.
+        \vspace{0.4em}
+        The reported checkpoint is the one with the best \emph{validation} accuracy. Selecting the epoch on the same set you report on is \textbf{selection leakage} and inflates every number.
       \end{block}
+
+      \vspace{0.4em}
+      \textbf{Data pipeline}
+      \begin{itemize}
+        \item $32\!\times\!32$ RGB image $\to$ \textbf{1\,024 pixels} as an unordered set
+        \item Each pixel: 3 RGB $+$ 2D Fourier PE $= $ \textbf{261 dims} --- the same per-pixel width as the paper
+        \item No patching, no convolution, no learned tokenizer
+      \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}
 
-% â”€â”€ Slide 17: PE Impact â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-\begin{frame}[shrink=5]{CIFAR-10: Ablation Matrix}
+% ── The noise band ───────────────────────────────────────────────────────────
+\begin{frame}[shrink=5]{The Noise Band: How Much Does a Number Move on Its Own?}
+  \begin{columns}[T]
+    \begin{column}{0.52\textwidth}
+      \textbf{Three runs, identical in everything but the seed:}
+      \begin{table}
+        \centering\small
+        \begin{tabular}{llc}
+          \toprule
+          \textbf{Run} & \textbf{Seed} & \textbf{Test acc.} \\
+          \midrule
+          \texttt{e01\_baseline} & 42 & 71.63\% \\
+          \texttt{e31\_baseline\_seed1} & 1 & 68.85\% \\
+          \texttt{e32\_baseline\_seed2} & 2 & 70.97\% \\
+          \midrule
+          \multicolumn{2}{l}{\textbf{Spread (max $-$ min)}} & \textbf{2.78pp} \\
+          \bottomrule
+        \end{tabular}
+      \end{table}
+
+      \vspace{0.3em}
+      \begin{alertblock}{The rule for every slide that follows}
+        \small
+        Any difference smaller than \textbf{2.78 percentage points} is not an effect. It is seed variance.
+      \end{alertblock}
+    \end{column}
+    \begin{column}{0.44\textwidth}
+      \begin{block}{Why this slide exists}
+        \small
+        Two extra runs cost a few GPU-hours and change the status of all the others: without a measured band, every comparison is an opinion.
+
+        \vspace{0.4em}
+        It also sets the honest ceiling of this study. On CIFAR-10 with 1\,024 pixels and one GPU, most of the paper's ablations --- measured on ImageNet with 50\,176 pixels and 64 TPUs --- simply do not have room to show up.
+      \end{block}
+
+      \vspace{0.3em}
+      \scriptsize The band depends on the metric: 2.78pp on test accuracy, 2.94pp on best validation, 3.24pp on final validation. The conclusions do not change.
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ── Ablation overview ────────────────────────────────────────────────────────
+\begin{frame}[shrink=4]{CIFAR-10: What Survives the Noise Band}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.70\textwidth}
+      \includegraphics[width=\textwidth,height=0.80\textheight,keepaspectratio]{cifar10_ablation_correct.png}
+    \end{column}
+    \begin{column}{0.27\textwidth}
+      \textbf{23 runs, 11 conclusive}
+
+      \vspace{0.3em}
+      \begin{itemize}
+        \item \textcolor{AccentOrange}{\textbf{Outside}} the band: latent init scale, cross-attend arrangement, Fourier bands, no latent transformer
+        \item \textcolor{gray}{\textbf{Inside}}: permutation, learned PE, weight sharing, max frequency
+      \end{itemize}
+
+      \vspace{0.2em}
+      {\scriptsize Source: \texttt{test\_accuracy} at \texttt{selected\_epoch}, read from \texttt{logs/<run>/results.json}.}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ── Permutation ──────────────────────────────────────────────────────────────
+\begin{frame}[shrink=5]{CIFAR-10: Permutation Invariance --- the Headline Claim}
   \begin{table}
-    \centering\scriptsize
-    \begin{tabular}{llcccr}
+    \centering\small
+    \begin{tabular}{llcc}
       \toprule
-      \textbf{Run} & \textbf{PE} & \textbf{Perm.} & \textbf{Sharing} & \textbf{Params} & \textbf{Acc.} \\
+      \textbf{Comparison} & \textbf{Positional encoding} & \textbf{Natural $\to$ permuted} & \textbf{$\Delta$} \\
       \midrule
-      \textbf{Fourier permuted} & Fourier & yes & yes & 3.35M & \textbf{78.12\%} \\
-      Learned PE permuted & learned & yes & yes & 3.35M & 77.60\% \\
-      No weight sharing & Fourier & no & no & 8.67M & 73.85\% \\
-      Fourier control & Fourier & no & yes & 3.35M & 72.02\% \\
-      Baseline Fourier & Fourier & no & yes & 3.35M & 69.69\% \\
-      WS control & Fourier & no & yes & 3.35M & 68.49\% \\
-      \textcolor{AccentRed}{RGB only} & none & no & yes & 3.30M & \textcolor{AccentRed}{61.34\%} \\
+      \texttt{e01} $\to$ \texttt{e02} & Fourier & $71.63\% \to 68.95\%$ & $-2.68$ \\
+      \texttt{e03} $\to$ \texttt{e04} & learned & $71.07\% \to 69.87\%$ & $-1.20$ \\
+      \midrule
+      \multicolumn{4}{l}{\textit{Paper (ImageNet):} Fourier $78.0 \to 78.0$ \quad learned $70.9 \to 70.9$} \\
       \bottomrule
     \end{tabular}
   \end{table}
 
   \vspace{0.4em}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.33\textwidth}
-      \begin{block}{Position signal}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \begin{block}{What we measured}
         \small
-        Removing positional features costs \textbf{10.68pp} against Fourier control.
+        Both drops fall \textbf{inside} the 2.78pp band: shuffling the pixels causes no measurable damage. Invariance confirmed --- in the honest, weak form: \emph{we did not measure a loss}, which is not the same as proving the loss is zero.
       \end{block}
     \end{column}
-    \begin{column}{0.31\textwidth}
-      \begin{block}{Capacity}
+    \begin{column}{0.48\textwidth}
+      \begin{block}{The subtle point}
         \small
-        Removing sharing adds \textbf{5.32M} parameters and gives \textbf{+5.36pp}.
-      \end{block}
-    \end{column}
-    \begin{column}{0.31\textwidth}
-      \begin{block}{Permutation}
-        \small
-        Fixed permutation keeps the task learnable when coordinates are provided.
+        Invariance holds for \textbf{both} encodings. It comes from \textbf{attention} --- a weighted sum has no order --- not from the Fourier features. Fourier features buy \emph{absolute} accuracy on ImageNet (78.0 vs 70.9), because learning 50\,176 distinct positional embeddings is hard; they are not what makes the model permutation-proof.
       \end{block}
     \end{column}
   \end{columns}
 \end{frame}
 
-% â”€â”€ Slide 18: Weight Sharing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-\begin{frame}[shrink=4]{CIFAR-10: Weight Sharing Trade-off}
+% ── Capacity ─────────────────────────────────────────────────────────────────
+\begin{frame}[shrink=4]{CIFAR-10: Capacity Does Not Buy Accuracy}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.58\textwidth}
-      \includegraphics[width=\textwidth,height=0.65\textheight,keepaspectratio]{weight_sharing_tradeoff_correct.png}
+      \includegraphics[width=\textwidth,height=0.66\textheight,keepaspectratio]{weight_sharing_tradeoff_correct.png}
     \end{column}
     \begin{column}{0.38\textwidth}
-      \begin{table}
-        \centering\scriptsize
-        \begin{tabular}{lcc}
-          \toprule
-          \textbf{Config} & \textbf{Params} & \textbf{Acc.} \\
-          \midrule
-          Shared baseline & 3.35M & 69.69\% \\
-          WS control & 3.35M & 68.49\% \\
-          No sharing & 8.67M & 73.85\% \\
-          \bottomrule
-        \end{tabular}
-      \end{table}
-
-      \vspace{0.25em}
-      \textbf{Measured delta}
-      \begin{itemize}
-        \item Accuracy: \textbf{+5.36pp}
-        \item Parameters: \textbf{+5.32M}
-        \item Multiplier: \textbf{2.59$\times$}
+      \textbf{Weight sharing is free}
+      \begin{itemize}\small
+        \item \texttt{e01} 71.63\% with 10.2M params
+        \item \texttt{e16} 69.46\% with \textbf{31.5M} params
+        \item $3.1\times$ the weights, \textcolor{AccentRed}{$-$2.17pp} --- inside the band
       \end{itemize}
 
-      \vspace{0.15em}
-      \[
-        73.85 - 68.49 = 5.36
-      \]
+      \vspace{0.4em}
+      \textbf{Where you put capacity matters}
+      \begin{itemize}\small
+        \item Remove the latent transformer, add cross-attends instead:
+        \item 6.1M $\to$ 68.98\% \\ 12.2M $\to$ 67.24\% \\ 18.3M $\to$ 67.05\%
+        \item \textcolor{AccentRed}{\textbf{More parameters, less accuracy}}
+      \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}
 
-% â”€â”€ Slide 19: Permutation Robustness â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-\begin{frame}[shrink=12]{CIFAR-10: Fixed-Permutation Test}
+% ── Tab. 6 ───────────────────────────────────────────────────────────────────
+\begin{frame}[shrink=5]{CIFAR-10: How Many Cross-Attends, and Where}
+  \begin{table}
+    \centering\small
+    \begin{tabular}{lccc}
+      \toprule
+      \textbf{$T$} & \textbf{interleaved} & \textbf{all at start} & \textbf{$\Delta$ (arrangement)} \\
+      \midrule
+      1 & \textbf{72.91\%} & \textbf{72.91\%} & $0.00$ \\
+      2 & 66.23\% & 68.45\% & $+2.22$ \\
+      4 & \textbf{71.63\%} \tiny(baseline) & 67.19\% & \textcolor{AccentRed}{$\mathbf{-4.44}$} \\
+      8 & 65.63\% & 68.04\% & $+2.41$ \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+
+  \vspace{0.3em}
   \begin{columns}[T]
     \begin{column}{0.48\textwidth}
-      \textbf{Experiment:} train \emph{and} evaluate on pixels shuffled by a single fixed permutation $\sigma$ (same $\sigma$ throughout).
+      \begin{block}{The one conclusive result}
+        \small
+        At $T=4$, interleaving beats front-loading by \textbf{4.44pp} --- outside the band. Re-reading the input \emph{after} the latents have been refined lets each pass look for something different.
+      \end{block}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \begin{block}{A reproducibility check, for free}
+        \small
+        At $T=1$ the two arrangements produce the \emph{same computational graph}, and indeed give bit-identical results: 72.91\%, epoch 90, 8\,654\,662 params. Fixed seed $\Rightarrow$ reproducible training.
+      \end{block}
+    \end{column}
+  \end{columns}
 
-      \vspace{0.35em}
+  \vspace{0.2em}
+  \scriptsize Note the non-monotonicity along $T$: reading the input once is as good as reading it four times, with 15\% fewer parameters.
+\end{frame}
+
+% ── Fig. 6 ───────────────────────────────────────────────────────────────────
+\begin{frame}[shrink=5]{CIFAR-10: The Hyperparameter That Actually Matters}
+  \begin{columns}[T]
+    \begin{column}{0.50\textwidth}
       \begin{table}
         \centering\small
-        \begin{tabular}{lc}
+        \begin{tabular}{lcc}
           \toprule
-          \textbf{Configuration} & \textbf{Acc.} \\
+          \textbf{Sweep} & \textbf{Value} & \textbf{Test acc.} \\
           \midrule
-          Fourier PE (natural order) & 69.69\% \\
-          \textbf{Fourier PE (permuted)} & \textbf{78.12\%} \\
-          Learned PE (permuted) & 77.60\% \\
+          \multirow{3}{*}{Latent init $\sigma$}
+            & \textbf{0.02} & \textbf{71.63\%} \\
+            & 0.1 & \textcolor{AccentOrange}{65.69\%} \\
+            & 1.0 & \textcolor{AccentRed}{\textbf{52.08\%}} \\
+          \midrule
+          \multirow{3}{*}{Fourier bands}
+            & 4 & 66.39\% \\
+            & 16 & 62.58\% \\
+            & \textbf{64} & \textbf{71.63\%} \\
+          \midrule
+          \multirow{3}{*}{Max frequency}
+            & 8 & 69.50\% \\
+            & \textbf{16} & \textbf{71.63\%} \\
+            & 64 & 72.41\% \\
           \bottomrule
         \end{tabular}
       \end{table}
-
-      \vspace{0.25em}
-      \textbf{Measured result:}
-      \begin{itemize}\itemsep2pt
-        \item Permuted vs natural order: $+$8.43pp --- the shuffled task stays fully learnable
-        \item Fourier vs learned (permuted): $+$0.52pp
-      \end{itemize}
-
-      \vspace{0.2em}
-      {\scriptsize Config note: the learned-PE run used a single cross-attention stage (vs 4 in the other ablations); same parameter count.}
     \end{column}
-    \begin{column}{0.48\textwidth}
-      \textbf{Interpretation:}
-      \begin{itemize}
-        \item The Perceiver has \textbf{no built-in 2D bias}: position is read only from the PE
-        \item With a fixed $\sigma$ in train \emph{and} test, it learns the layout from the Fourier features alone
-        \item Fourier PE remains slightly ahead of learned PE in this setting
-        \item Read it as \emph{invariance}, not a gain from shuffling: order carries no information, only the PE does
-      \end{itemize}
+    \begin{column}{0.46\textwidth}
+      \begin{alertblock}{Latent initialisation: the only clean monotone effect}
+        \small
+        $\sigma$ from 0.02 to 1.0 costs \textbf{19.55pp}. At $\sigma=1.0$ the best epoch is \textbf{9 out of 120}: the model learns briefly, then degrades for the remaining 111 epochs.
+      \end{alertblock}
 
-      \vspace{0.5em}
-      \begin{block}{Architectural implication}
-        The input order is not hard-coded; ordering information enters through positional features.
+      \vspace{0.3em}
+      \begin{block}{Two honest caveats}
+        \scriptsize
+        \textbf{Bands} is non-monotone (4 beats 16), and both low points are runs whose \emph{final} validation collapsed (22.5\% and 55.5\%) --- an optimisation problem, not a resolution one.
+
+        \vspace{0.3em}
+        \textbf{Max frequency} sits entirely inside the noise band. The whole axis is inconclusive, and saying so is part of the result.
       \end{block}
     \end{column}
   \end{columns}
 \end{frame}
 
-% â”€â”€ Slide 20: Perceiver vs Perceiver IO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-\begin{frame}{CIFAR-10: Best Perceiver Configuration}
+% ── ModelNet40 ───────────────────────────────────────────────────────────────
+\begin{frame}[shrink=5]{ModelNet40: Same Network, 3D Point Clouds}
   \begin{columns}[T]
-    \begin{column}{0.48\textwidth}
-      \begin{center}
-      \begin{tikzpicture}
-        \begin{axis}[
-          resultbar,
-          width=6cm, height=5cm,
-          ymin=65, ymax=82,
-          ylabel={Accuracy (\%)},
-          symbolic x coords={Base,F.Perm,L.Perm,No WS},
-          xtick=data,
-        ]
-          \addplot[fill=ChartBlue] coordinates {
-            (Base,69.69)
-            (F.Perm,78.12)
-            (L.Perm,77.60)
-            (No WS,73.85)
-          };
-          \addplot[fill=AccentGreen, forget plot, nodes near coords={}] coordinates {
-            (F.Perm,78.12)
-          };
-        \end{axis}
-      \end{tikzpicture}
-      \end{center}
-    \end{column}
-    \begin{column}{0.48\textwidth}
-      \textbf{Best Perceiver result:}
-      \begin{table}
-        \centering\small
-        \begin{tabular}{lc}
-          \toprule
-          \textbf{Configuration} & \textbf{Acc.} \\
-          \midrule
-          \textbf{Fourier PE, permuted} & \textbf{78.12\%} \\
-          Learned PE, permuted & 77.60\% \\
-          No weight sharing & 73.85\% \\
-          Baseline Fourier & 69.69\% \\
-          \bottomrule
-        \end{tabular}
-      \end{table}
-
-      \vspace{0.35em}
-      {\small
-      \textbf{Result pattern:}
-      \begin{itemize}
-        \item Fourier PE carries the spatial signal explicitly.
-        \item Weight sharing is an efficiency--accuracy trade-off.
-      \end{itemize}
-      }
-    \end{column}
-  \end{columns}
-\end{frame}
-
-% â”€â”€ Slide 21: ModelNet40 Setup & Results â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-\begin{frame}[shrink=4]{ModelNet40: Setup \& Results}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.43\textwidth}
-      \textbf{Configuration:}
+    \begin{column}{0.44\textwidth}
       \begin{table}
         \centering\small
         \begin{tabular}{ll}
           \toprule
-          \textbf{Hyperparameter} & \textbf{Value} \\
+          \textbf{Setting} & \textbf{Value} \\
           \midrule
-          Latent dim ($N \times D$) & $128 \times 512$ \\
-          Cross-attn stages & 2 \\
-          Transformer blocks & 6 (shared) \\
-          Points per object & 2048 \\
-          Optimizer & LAMB \\
-          Epochs & 200 \\
-          Batch size & 128 \\
+          Latent array & $128 \times 512$ \\
+          Cross-attn / blocks & 2 / 6 \\
+          Points per model & 2\,048 \\
+          Input per point & 387 dims \\
+          Fourier bands / max f & 64 / 1120 \\
+          Optimizer / lr & LAMB / 0.001 \\
+          Batch (paper: 512) & \textbf{32} \\
+          Epochs & 120 \\
+          Parameters & 23\,288\,928 \\
           \bottomrule
         \end{tabular}
       \end{table}
 
-      \vspace{0.25em}
-      {\small
-      \textbf{Closest paper comparison:}
-      84.24\% vs 85.70\% (gap \textbf{1.46pp}).
-      }
+      \vspace{0.2em}
+      \scriptsize \textbf{Metric note:} ModelNet40 has no separate validation split --- the standard test set (2\,468 objects) \emph{is} the validation set, so the figure is \texttt{val\_accuracy} at the best epoch.
     \end{column}
-    \begin{column}{0.53\textwidth}
-      \includegraphics[width=\textwidth,height=0.66\textheight,keepaspectratio]{modelnet40_correct.png}
+    \begin{column}{0.52\textwidth}
+      \includegraphics[width=\textwidth,height=0.60\textheight,keepaspectratio]{modelnet40_correct.png}
+
+      \vspace{0.2em}
+      \begin{block}{Above the paper}
+        \small
+        \textbf{87.36\%} vs the paper's \textbf{85.7\%}, with a batch $16\times$ smaller. Plausible: ModelNet40 is small and its objects arrive canonically aligned, so the large-batch advantage that dominates ImageNet counts for little here.
+      \end{block}
     \end{column}
   \end{columns}
 \end{frame}
 
-% â”€â”€ Slide 22: ModelNet40 Augmentation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-\begin{frame}[shrink=10]{ModelNet40: Augmentation Effects}
+% ── ModelNet40 augmentation ──────────────────────────────────────────────────
+\begin{frame}[shrink=5]{ModelNet40: Rotation Costs 13 Points --- and Why}
   \begin{columns}[T]
-    \begin{column}{0.50\textwidth}
-      \begin{center}
-      \begin{tikzpicture}
-        \begin{axis}[
-          resultbar,
-          width=6cm, height=5cm,
-          bar width=18pt,
-          ymin=80, ymax=86,
-          ylabel={Accuracy (\%)},
-          symbolic x coords={Scale, +Translation, +Rotation},
-          xtick=data,
-        ]
-          \addplot[fill=ChartBlue] coordinates {
-            (Scale, 84.24)
-            (+Translation, 83.67)
-            (+Rotation, 83.14)
-          };
-          \addplot[fill=AccentGreen, forget plot, nodes near coords={}] coordinates {
-            (Scale, 84.24)
-          };
-        \end{axis}
-      \end{tikzpicture}
-      \end{center}
-    \end{column}
     \begin{column}{0.46\textwidth}
-      \small
-      \textbf{Measured deltas:}
-      \begin{itemize}
-        \item Scale baseline: \textbf{84.24\%}
-        \item + translation: \textbf{$-$0.57pp}
-        \item + rotation: \textbf{$-$1.10pp}
-      \end{itemize}
+      \begin{table}
+        \centering\small
+        \begin{tabular}{lcc}
+          \toprule
+          \textbf{Augmentation} & \textbf{Accuracy} & \textbf{$\Delta$} \\
+          \midrule
+          scale only & \textbf{87.36\%} & --- \\
+          $+$ translation & 87.20\% & $-0.16$ \\
+          $+$ rotation & \textcolor{AccentRed}{74.07\%} & \textcolor{AccentRed}{\textbf{$-13.29$}} \\
+          \bottomrule
+        \end{tabular}
+      \end{table}
 
-      \vspace{0.25em}
-      \textbf{Likely factors:}
-      \begin{itemize}
-        \item 3D Fourier PE already exposes coordinates
-        \item ModelNet40 objects are already centred
-        \item Extra variation did not improve this run
-      \end{itemize}
+      \vspace{0.4em}
+      \begin{block}{The largest effect in the whole project}
+        \small
+        And the one with the cleanest theoretical explanation.
+      \end{block}
+    \end{column}
+    \begin{column}{0.50\textwidth}
+      \begin{block}{The Perceiver has no rotational inductive bias}
+        \small
+        3D Fourier PE encodes \textbf{absolute} position. Rotating an object changes every coordinate --- and therefore every encoding --- while the label stays the same. The network must learn from scratch an invariance the architecture does not grant, and that this task does not even need: ModelNet40 objects are already canonically aligned.
 
-      \vspace{0.3em}
-      \textbf{Paper comparison:} 85.70\%\\
-      Gap: \textbf{1.46pp} from the scale baseline.
+        \vspace{0.4em}
+        Translation is nearly harmless ($-0.16$) because it shifts all points equally: the \emph{relative} structure survives.
+      \end{block}
+
+      \vspace{0.2em}
+      \scriptsize \textbf{Takeaway:} a missing inductive bias cannot be patched with augmentation.
     \end{column}
   \end{columns}
 \end{frame}
 
-% â”€â”€ Slide 23: WikiText-103 MLM Pre-training â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 \section{Perceiver IO}
 
 % -- Perceiver IO: Structured Outputs ------------------------------------------------
@@ -1136,167 +1130,137 @@
 \section{Experiments: Perceiver IO}
 
 % -- CIFAR comparison after IO explanation ------------------------------------------
-\begin{frame}[shrink=5]{CIFAR-10: Perceiver vs Perceiver IO}
+\begin{frame}[shrink=5]{Perceiver IO on CIFAR-10: Not Yet Measured}
   \begin{columns}[T]
-    \begin{column}{0.48\textwidth}
-      \begin{center}
-      \begin{tikzpicture}
-        \begin{axis}[
-          ybar,
-          width=5cm, height=5cm,
-          bar width=22pt,
-          ymin=70, ymax=82,
-          ylabel={\small Accuracy (\%)},
-          symbolic x coords={Best Perceiver,Perceiver IO},
-          xtick=data,
-          x tick label style={font=\small},
-          nodes near coords,
-          nodes near coords style={font=\small\bfseries},
-          enlarge x limits=0.5,
-          axis lines*=left,
-        ]
-          \addplot[fill=UnifiBlue!60] coordinates {(Best Perceiver,78.12)};
-          \addplot[fill=AccentGreen!70] coordinates {(Perceiver IO,78.20)};
-        \end{axis}
-      \end{tikzpicture}
-      \end{center}
-    \end{column}
-    \begin{column}{0.48\textwidth}
-      \textbf{Decoder effect:}
-      \begin{itemize}
-        \item Output query is a learned aggregation instead of fixed mean pooling
-        \item Decoder cross-attention attends selectively to relevant latents
-        \item Small gain on CIFAR-10, but same mechanism enables MLM and dense outputs
-        \item Cost: $\sim$1.6$\times$ parameters (5.22M vs 3.35M)
-      \end{itemize}
+    \begin{column}{0.50\textwidth}
+      \begin{block}{The question these runs will answer}
+        \small
+        Same encoder as \texttt{e01\_baseline}, but the mean-pooling head is replaced by a \textbf{decoder with one output query}.
 
-      \vspace{0.4em}
-      \begin{table}
-        \centering\small
-        \begin{tabular}{lcc}
-          \toprule
-          \textbf{Model} & \textbf{Acc.} & \textbf{$\Delta$} \\
-          \midrule
-          Best Perceiver & 78.12\% & --- \\
-          \textbf{Perceiver IO} & \textbf{78.20\%} & \textcolor{AccentGreen}{\textbf{+0.08pp}} \\
-          \bottomrule
-        \end{tabular}
-      \end{table}
+        \vspace{0.4em}
+        \texttt{io01\_cifar} and its seed replica \texttt{io02\_cifar\_seed1} are in the registry; \textbf{neither has been run}.
+      \end{block}
+
+      \vspace{0.3em}
+      \begin{block}{What to expect, honestly}
+        \small
+        Very little. The query decoder earns its keep when the output is \textbf{structured} --- a segmentation mask, an optical-flow field, 1\,024 tokens. For a single label out of ten, querying the latents and averaging them should be equivalent.
+
+        \vspace{0.3em}
+        The interesting outcome would be \emph{no difference}: evidence that the decoder generalises the output shape at no cost in the simple case.
+      \end{block}
+    \end{column}
+    \begin{column}{0.46\textwidth}
+      \begin{alertblock}{A number that used to be on this slide}
+        \small
+        Earlier versions of this deck reported \textbf{Perceiver IO 78.20\% vs Perceiver 69.69\%}, concluding the decoder was worth \textbf{$+$8.51pp}.
+
+        \vspace{0.4em}
+        That comparison came from a first-generation run in which the \textbf{test set was also used as validation}, and in which three ablation flags were never read by the code.
+
+        \vspace{0.4em}
+        It has been \textbf{removed, not updated}. Replacing it with an estimate would have meant inventing a result.
+      \end{alertblock}
+
+      \vspace{0.3em}
+      \scriptsize Paper reference (ImageNet): Perceiver IO \textbf{79.0\%} with 2D Fourier features, \textbf{84.5\%} with JFT pre-training --- never using a convolution.
     \end{column}
   \end{columns}
 \end{frame}
 
-\begin{frame}[shrink=5]{WikiText-103: Masked Language Model Pre-training}
-  \textbf{Goal:} pre-train a general language encoder without specialized tokenizers.
-
-  \vspace{0.3em}
+% ── MLM ──────────────────────────────────────────────────────────────────────
+\begin{frame}[shrink=5]{WikiText-103: Byte-Level Masked Language Model}
   \begin{columns}[T]
-    \begin{column}{0.48\textwidth}
+    \begin{column}{0.46\textwidth}
       \begin{table}
         \centering\small
         \begin{tabular}{ll}
           \toprule
-          \textbf{Component} & \textbf{Detail} \\
+          \textbf{Setting} & \textbf{Value} \\
           \midrule
-          Tokenization & Byte-level (UTF-8) \\
-          Vocabulary size & 256 \\
-          Sequence length & 1024 \\
-          Mask probability & 15\% \\
-          Model & Perceiver IO ($\sim$10M) \\
-          Epochs / batch & 50 / 32 \\
+          Latent array & $128 \times 512$ \\
+          Cross-attn / blocks & 1 / 4 \\
+          Heads (cross / self) & 1 / 8 \\
+          Sequence length & 512 bytes \\
+          Vocabulary & $256 + 1$ mask \\
+          Masking rate & 15\% \\
+          Output queries & one per position \\
+          Optimizer / lr & LAMB / 0.001 \\
+          Epochs / batch & 10 / 32 \\
+          Parameters & 18\,872\,740 \\
           \midrule
-          \textbf{Masked byte acc.} & \textbf{82.20\%} \\
+          \textbf{Masked-byte accuracy} & \textbf{86.68\%} \\
+          Chance level ($1/256$) & 0.39\% \\
           \bottomrule
         \end{tabular}
       \end{table}
     \end{column}
-    \begin{column}{0.48\textwidth}
-      \textbf{Why byte-level?}
-      \begin{itemize}
-        \item No BPE/WordPiece tokenizer needed
-        \item Truly language-agnostic input
-        \item Fixed vocabulary of size 256
-        \item Trade-off: longer sequences for same text
-      \end{itemize}
+    \begin{column}{0.50\textwidth}
+      \begin{block}{The only real Perceiver IO result --- and it is solid}
+        \small
+        \textbf{$\sim$222$\times$ better than chance}, reading raw UTF-8 with \textbf{no tokenizer at all}. Nearly nine masked bytes out of ten reconstructed.
+      \end{block}
 
-      \vspace{0.5em}
-      \textbf{MLM task:}
-      \begin{itemize}
-        \item 15\% of byte positions masked
-        \item Output queries = masked positions
-        \item Decoder predicts original byte values
-        \item Cross-entropy loss over 256 classes
-      \end{itemize}
+      \vspace{0.3em}
+      \begin{block}{Why bytes are affordable here}
+        \small
+        Cross-attention costs $O(M \cdot N)$ --- \emph{linear} in sequence length --- instead of $O(M^2)$. Going from 512 tokens to 2\,048 bytes costs BERT $16\times$ in attention, and Perceiver IO only $4\times$.
+      \end{block}
+
+      \vspace{0.3em}
+      \begin{alertblock}{Read this number carefully}
+        \scriptsize
+        Masked-\emph{byte} accuracy is not comparable to masked-\emph{token} accuracy: the space is 256 rather than tens of thousands, and many bytes are fixed by orthographic context. It shows the pre-training worked. It is not a comparison with BERT --- that comparison lives on GLUE.
+      \end{alertblock}
     \end{column}
   \end{columns}
 \end{frame}
 
-% â”€â”€ Slide 24: GLUE Fine-tuning â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-\begin{frame}[shrink=5]{GLUE: Fine-tuning on 8 Tasks}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.34\textwidth}
-      \textbf{Transfer pipeline:}
-
-      \vspace{0.4em}
-      \begin{center}
-        \includegraphics[width=\textwidth,height=0.46\textheight,keepaspectratio]{byte_latent_arrays.png}
-      \end{center}
+% ── GLUE ─────────────────────────────────────────────────────────────────────
+\begin{frame}[shrink=5]{GLUE: Protocol Ready, Runs Pending}
+  \begin{columns}[T]
+    \begin{column}{0.52\textwidth}
+      \begin{table}
+        \centering\scriptsize
+        \begin{tabular}{llcc}
+          \toprule
+          \textbf{Run} & \textbf{Task} & \textbf{Ep.} & \textbf{Majority} \\
+          \midrule
+          \texttt{io\_glue\_cola} & acceptability & 30 & $\approx$69\% \\
+          \texttt{io\_glue\_sst2} & sentiment & 10 & $\approx$50\% \\
+          \texttt{io\_glue\_mrpc} & paraphrase & 30 & $\approx$68\% \\
+          \texttt{io\_glue\_stsb} & similarity (reg.) & 30 & --- \\
+          \texttt{io\_glue\_qqp} & duplicate Q & 3 & $\approx$63\% \\
+          \texttt{io\_glue\_mnli} & NLI (3-way) & 3 & $\approx$33\% \\
+          \texttt{io\_glue\_qnli} & QA entailment & 10 & $\approx$50\% \\
+          \texttt{io\_glue\_rte} & entailment & 30 & $\approx$50\% \\
+          \midrule
+          \texttt{*\_scratch} $\times 2$ & \textbf{no pre-training} & --- & --- \\
+          \texttt{io\_glue\_multitask} & all 8, one query each & --- & --- \\
+          \bottomrule
+        \end{tabular}
+      \end{table}
+      \scriptsize \textbf{0 of 8 completed.} The GLUE average comparable with Table~1 of the IO paper (81.0 byte-level / 81.1 BERT) \textbf{does not exist yet}.
     \end{column}
-    \begin{column}{0.62\textwidth}
-      \textbf{Fine-tuning setup:}
-      \begin{itemize}
-        \item Transfer pre-trained MLM encoder
-        \item Replace output queries with classification query
-        \item 30 epochs, LR = $5 \times 10^{-4}$
-        \item Byte-level input (same as pre-training)
-      \end{itemize}
+    \begin{column}{0.44\textwidth}
+      \begin{block}{Fail-fast by design}
+        \small
+        Fine-tuning loads the encoder weights from the MLM checkpoint. If the checkpoint is missing the code \textbf{stops with an error} instead of silently training from scratch and calling it transfer.
+      \end{block}
+
+      \vspace{0.3em}
+      \begin{block}{The two control runs matter as much as the eight}
+        \small
+        A fine-tuned 61\% means nothing on its own --- maybe the task is solvable at 61\% from random weights. The \texttt{scratch} controls are chosen at the extremes: \textbf{SST-2} has 67\,000 training examples, \textbf{RTE} has 2\,500. Transfer should matter little where data abounds and a lot where it is scarce.
+      \end{block}
 
       \vspace{0.2em}
-      \textbf{8 GLUE benchmark tasks:}
-      \begin{itemize}
-        \item \textbf{Single sentence:} CoLA, SST-2
-        \item \textbf{Similarity:} MRPC, STS-B, QQP
-        \item \textbf{Inference:} MNLI, QNLI, RTE
-      \end{itemize}
-
-      \vspace{0.15em}
-      Each task tests a different NLU capability with the same architecture.
+      \scriptsize Scale gap to keep in mind when they land: 18.9M params on WikiText-103 versus the paper's \textbf{201M} on Wikipedia $+$ C4 for 500\,000 steps.
     \end{column}
   \end{columns}
 \end{frame}
 
-% â”€â”€ Slide 25: GLUE Per-Task Analysis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-\begin{frame}[shrink=6]{GLUE: Per-Task Results}
-  \begin{columns}[T]
-    \begin{column}{0.57\textwidth}
-      \begin{center}
-        \includegraphics[width=\textwidth,height=0.54\textheight,keepaspectratio]{glue_correct.png}
-      \end{center}
-    \end{column}
-    \begin{column}{0.39\textwidth}
-      \small
-      \textbf{Per-task pattern:}
-      \begin{itemize}
-        \item \textbf{QQP} (paraphrase): best task at 75.65\%
-        \item \textbf{CoLA} 69.13\%, \textbf{MRPC} 68.38\%
-        \item \textbf{MNLI} 46.47\%, \textbf{RTE} 52.71\%
-        \item Classification mean: $\sim$62\%
-      \end{itemize}
-
-      \vspace{0.15em}
-      \textbf{Setup factors:}
-      \begin{itemize}
-        \item Byte-level input, no subword tokenizer
-        \item Smaller model: $\sim$10M vs 201M
-        \item STS-B excluded: regression metric
-        \item CoLA acc.\ $\approx$ majority baseline ($\sim$69\%; official metric is MCC)
-      \end{itemize}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-% â”€â”€ Slide 26: Convergence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-\begin{frame}[shrink=5]{Convergence: Representative Checkpoints}
+\begin{frame}[shrink=5]{Convergence: When Each Run Peaks}
   \begin{columns}[T]
     \begin{column}{0.58\textwidth}
       \begin{center}
@@ -1304,31 +1268,24 @@
       \end{center}
     \end{column}
     \begin{column}{0.38\textwidth}
-      \textbf{Best validation epoch:}
+      \textbf{Why this matters}
 
       \vspace{0.3em}
-      \begin{table}
-        \centering\scriptsize
-        \begin{tabular}{lc}
-          \toprule
-          \textbf{Run} & \textbf{Epoch} \\
-          \midrule
-          GLUE QQP & 24 \\
-          WikiText-103 MLM & 49 \\
-          ModelNet40 & 74 \\
-          CIFAR-10 Perceiver & 108 \\
-          CIFAR-10 Perceiver IO & 120 \\
-          \bottomrule
-        \end{tabular}
-      \end{table}
+      Because there is \textbf{no early stopping}, every run trains the full 120 epochs and the reported checkpoint is the best one on \emph{validation}. The distribution of those epochs is itself a diagnostic.
+
+      \vspace{0.5em}
+      \begin{alertblock}{Three unstable runs}
+        \small
+        \texttt{e23}: best 67.74\% @42, final \textbf{22.54\%}\\
+        \texttt{e24}: best 62.66\% @30, final \textbf{55.46\%}\\
+        \texttt{e28}: best 53.36\% @\textbf{9}, final 46.32\%
+
+        \vspace{0.3em}
+        \scriptsize Their reported numbers come from the validation-selected checkpoint --- the correct methodology --- but the instability has to be declared, not hidden.
+      \end{alertblock}
 
       \vspace{0.3em}
-      \textbf{Pattern:}
-      \begin{itemize}
-        \item Fine-tuning peaks earlier than image training
-        \item Point clouds converge before CIFAR-10
-        \item CIFAR-10 requires the longest schedule
-      \end{itemize}
+      \scriptsize \texttt{e05\_no\_latent\_T4} peaks at epoch \textbf{120}: it was still improving when the schedule ended.
     \end{column}
   \end{columns}
 \end{frame}
@@ -1371,34 +1328,35 @@
       \toprule
       \textbf{Modality} & \textbf{Model} & \textbf{Best Acc.} & \textbf{Reference} & \textbf{Experiments} \\
       \midrule
-      Images (CIFAR-10) & Perceiver & 78.12\% & $>$90\%$^{\dagger}$ & 7 ablations \\
-      Images (CIFAR-10) & Perceiver IO & \textbf{78.20\%} & --- & 1 \\
-      Point Clouds (ModelNet40) & Perceiver & 84.24\% & 85.7\% & 3 augmentations \\
-      Text (WikiText-103) & Perceiver IO & 82.20\% MLM & --- & 1 \\
-      NLU (GLUE, 8 tasks) & Perceiver IO & $\sim$62\% avg & --- & 8 fine-tuning \\
+      Images (CIFAR-10) & Perceiver & 72.91\% & $>$90\%$^{\dagger}$ & \textbf{23} runs \\
+      Images (CIFAR-10) & Perceiver IO & \textcolor{gray}{not run} & --- & 2 pending \\
+      Point Clouds (ModelNet40) & Perceiver & \textbf{87.36\%} & 85.7\% & 3 augmentations \\
+      Text (WikiText-103) & Perceiver IO & \textbf{86.68\%} MLM & 0.39\% chance & 1 \\
+      NLU (GLUE, 8 tasks) & Perceiver IO & \textcolor{gray}{not run} & 81.0 (paper) & 11 pending \\
       \bottomrule
     \end{tabular}
   \end{table}
 
-  {\scriptsize $^{\dagger}$ Strong ViT/CNN baselines on CIFAR-10; the original Perceiver paper does not benchmark CIFAR-10.}
+  {\scriptsize $^{\dagger}$ Strong ViT/CNN baselines on CIFAR-10; neither Perceiver paper benchmarks CIFAR-10, so this column is context, not a target.}
 
   \vspace{0.4em}
   \begin{columns}[T]
     \begin{column}{0.48\textwidth}
-      \textbf{Measured results:}
-      \begin{itemize}
-        \item ModelNet40: 1.46pp gap from paper
-        \item Perceiver IO: 78.20\% vs best Perceiver: 78.12\%
-        \item MLM pre-training transfers to GLUE fine-tuning
+      \textbf{What is measured}
+      \begin{itemize}\small
+        \item ModelNet40 \textbf{beats} the paper: $+$1.66pp
+        \item Best CIFAR-10 run: $T{=}1$, 72.91\%, with 15\% fewer parameters than the baseline
+        \item Noise band \textbf{2.78pp}, measured on 3 seed replicas
+        \item 11 of 23 CIFAR runs are conclusive
       \end{itemize}
     \end{column}
     \begin{column}{0.48\textwidth}
-      \textbf{Overall numbers:}
-      \begin{itemize}
-        \item $\sim$2500 lines of PyTorch code
-        \item 20+ distinct training runs
-        \item 3 modalities: 2D images, 3D points, text
-        \item 100\% reproducible via \texttt{reproduce.py}
+      \textbf{Scope of the campaign}
+      \begin{itemize}\small
+        \item Declarative registry of \textbf{42 runs}, \textbf{27} completed
+        \item 3 modalities: 2D images, 3D point clouds, raw bytes
+        \item One command per run: \texttt{experiments.py --run <id>}
+        \item \textbf{15 runs pending}, almost all on the Perceiver IO branch
       \end{itemize}
     \end{column}
   \end{columns}
@@ -1421,16 +1379,16 @@
           \textbf{Source} & \textbf{Acc.} \\
           \midrule
           Original Paper & 85.7\% \\
-          This implementation & 84.24\% \\
+          This implementation & \textbf{87.36\%} \\
           \midrule
-          \textbf{Gap} & \textcolor{AccentGreen}{\textbf{1.46pp}} \\
+          \textbf{Gap} & \textcolor{AccentGreen}{\textbf{$+$1.66pp}} \\
           \bottomrule
         \end{tabular}
       \end{table}
 
       \vspace{0.3em}
-      \textbf{Small reproduction gap.}\\
-      Main scale difference: batch size 128 vs 512.
+      \textbf{We are above the paper.}\\
+      With a batch $16\times$ smaller (32 vs 512). Plausible because ModelNet40 is small and canonically aligned, so the large-batch advantage counts for little.
     \end{column}
     \begin{column}{0.48\textwidth}
       \textbf{CIFAR-10 (Images):}
@@ -1441,16 +1399,16 @@
           \textbf{Source} & \textbf{Acc.} \\
           \midrule
           ViT/CNN baseline & $>$90\% \\
-          This Perceiver IO & 78.20\% \\
+          Best Perceiver run & 72.91\% \\
           \midrule
-          \textbf{Gap} & \textcolor{AccentRed}{\textbf{$\sim$12pp}} \\
+          \textbf{Gap} & \textcolor{AccentRed}{\textbf{$\sim$17pp}} \\
           \bottomrule
         \end{tabular}
       \end{table}
 
       \vspace{0.3em}
       \textbf{Larger image gap.}\\
-      Reference is strong ViT/CNN baselines (the Perceiver paper has no CIFAR-10); scale gap: TPU cluster vs single GPU.
+      Reference is strong ViT/CNN baselines --- neither Perceiver paper benchmarks CIFAR-10. Scale gap: TPU cluster vs single GPU, 1\,024 pixels vs 50\,176.
     \end{column}
   \end{columns}
 
@@ -1546,30 +1504,37 @@
 \begin{frame}[shrink=5]{Empirical Summary}
   \begin{columns}[T]
     \begin{column}{0.48\textwidth}
-      \textbf{Observed strengths:}
-      \begin{itemize}
-        \item Modality-agnostic architecture
-        \item Weight sharing: $\sim$2.6$\times$ fewer parameters, modest accuracy cost
-        \item Perceiver IO slightly edges base Perceiver on CIFAR-10
-        \item MLM pre-training transfers to GLUE fine-tuning
-        \item Fourier PE is robust and general-purpose
+      \textbf{Conclusive (outside the 2.78pp band):}
+      \begin{itemize}\small
+        \item \textbf{Generality}: one architecture, 87.36\% on 3D point clouds --- above the paper --- and 86.68\% on raw bytes
+        \item \textbf{Where} capacity goes beats \textbf{how much}: 6.1M$\to$12.2M$\to$18.3M params gives 68.98$\to$67.24$\to$67.05\%
+        \item \textbf{Latent init scale} is the critical hyperparameter: 0.02$\to$71.63\%, 1.0$\to$52.08\%
+        \item \textbf{Interleaving} cross-attends beats front-loading by 4.44pp
+        \item \textbf{Rotation augmentation} costs 13.29pp on ModelNet40
       \end{itemize}
     \end{column}
     \begin{column}{0.48\textwidth}
-      \textbf{Observed limitations:}
-      \begin{itemize}
-        \item Performance gap vs paper on images ($\sim$12pp)
-        \item LAMB optimizer sensitive to batch size
-        \item Byte-level tokenization produces very long sequences for text
-        \item Augmentation can hurt with limited training
-        \item Hyperparameter tuning is time-consuming
+      \textbf{Inside the band --- ``no measurable damage'':}
+      \begin{itemize}\small
+        \item Permutation invariance, with \emph{both} positional encodings
+        \item Weight sharing: $3.1\times$ fewer parameters at no measurable cost
+        \item Fourier vs learned PE at this scale
+      \end{itemize}
+
+      \vspace{0.4em}
+      \textbf{Not measured --- runs still pending:}
+      \begin{itemize}\small
+        \item Lower bound with no positional encoding
+        \item Perceiver vs Perceiver IO on images
+        \item The GLUE average (0 of 8 tasks)
+        \item A convolutional baseline
       \end{itemize}
     \end{column}
   \end{columns}
 
   \vspace{0.5em}
-  \begin{block}{Central empirical finding}
-    \textbf{Positional encoding} is the largest single factor in the CIFAR-10 ablation: removing it changes accuracy from 72.02\% to 61.34\%.
+  \begin{block}{Central methodological finding}
+    Measuring the \textbf{noise band} --- three replicas differing only by seed --- cost two runs and changed the status of all the others. Without it, 9 of the 23 comparisons would have been reported as effects when they are variance.
   \end{block}
 \end{frame}
 

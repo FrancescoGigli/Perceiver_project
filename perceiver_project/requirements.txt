@@ -1,0 +1,23 @@
+# Core
+torch>=2.0
+torchvision>=0.15
+torch-geometric           # ModelNet40 (point cloud) dataset + loader
+torch-optimizer           # LAMB optimizer
+einops                    # Tensor rearrangement
+
+# Data & ML
+numpy
+pandas
+scikit-learn
+requests                  # download dei dataset GLUE
+
+# Visualization
+matplotlib
+seaborn
+tensorboard               # opzionale a runtime (--use_tensorboard), incluso per comodita'
+
+# Utilities
+tqdm
+
+# Testing
+pytest>=8.0
