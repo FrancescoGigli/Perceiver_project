@@ -1664,6 +1664,44 @@ Y = Y + MLP(LN(Y))</div>
         <p>Le output queries sono il modo con cui Perceiver IO dice: "voglio questo output qui". I latenti contengono l'informazione; le query decidono come leggerla.</p>
       </div>
 
+            <div class="concept-lab" data-lab="matrice-decoder">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">progetto · le tre matrici, con i numeri della nostra config</span>
+            <h3>Comprimere e riespandere: le tre matrici a confronto</h3>
+            <p>La stessa operazione — <code>softmax(QKᵀ)V</code> — cambia completamente forma a seconda di <em>chi</em> fornisce Q e chi fornisce K,V. Ogni riquadro è disegnato in scala.</p>
+          </div>
+        </div>
+
+        <div class="md-seg" role="radiogroup">
+          <button type="button" class="md-seg-b" data-m="self">Self-attention sull'input</button>
+          <button type="button" class="md-seg-b active" data-m="enc">Cross dell'encoder</button>
+          <button type="button" class="md-seg-b" data-m="dec">Cross del decoder</button>
+        </div>
+
+        <div class="md-body">
+          <div class="md-viz">
+            <div class="md-mat" id="md-mat"><span id="md-shape"></span></div>
+            <div class="md-scalebar">
+              <div class="md-scale-ref"></div>
+              <span>il quadrato tratteggiato è la self-attention sull'input: 1.024 × 1.024</span>
+            </div>
+          </div>
+
+          <div class="md-info">
+            <dl class="md-dl">
+              <div><dt>Q — chi domanda</dt><dd id="md-q"></dd></div>
+              <div><dt>K, V — chi risponde</dt><dd id="md-kv"></dd></div>
+              <div><dt>Forma della matrice</dt><dd id="md-forma"></dd></div>
+              <div><dt>Celle da calcolare</dt><dd id="md-celle"></dd></div>
+            </dl>
+            <div class="md-verdict" id="md-verdict"></div>
+          </div>
+        </div>
+
+        <p class="md-caption"><strong>L'asimmetria è tutto il Perceiver IO.</strong> L'encoder <em>comprime</em>: le domande vengono dai 96 latenti, le risposte dai 1.024 pixel. Il decoder <em>riespande</em>: le domande vengono dalle query di output — quante ne vuoi — e le risposte dai latenti. Per questo l'output può avere una forma qualunque senza toccare l'encoder: una classe per CIFAR-10, o 1.024 byte per il masked language model, con la stessa rete in mezzo.</p>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-16">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="16"><span class="check"></span><span class="check-label">Ho capito</span></label>

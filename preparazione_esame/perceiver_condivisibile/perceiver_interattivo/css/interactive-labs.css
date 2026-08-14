@@ -3197,3 +3197,130 @@ tr.rq-todo td {
 @media (prefers-reduced-motion: reduce) {
     .mh-cell, .mh-seg-b { transition: none; }
 }
+
+/* ============================================================
+   Le tre matrici di attention, disegnate in scala (cap. 16)
+   ============================================================ */
+.md-seg {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 4px 0 16px;
+    width: fit-content;
+}
+
+.md-seg-b {
+    border: 0;
+    padding: 8px 14px;
+    background: var(--card);
+    color: var(--muted);
+    font: inherit;
+    font-size: .84rem;
+    cursor: pointer;
+    transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out);
+}
+
+.md-seg-b + .md-seg-b { border-left: 1px solid var(--border); }
+.md-seg-b.active { background: var(--primary); color: #fff; font-weight: 600; }
+.md-seg-b:active { transform: scale(.98); }
+
+.md-body {
+    display: grid;
+    grid-template-columns: minmax(240px, 260px) 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+.md-viz {
+    padding: 14px;
+    border-radius: var(--radius);
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+}
+
+/* Il riquadro di riferimento e' sempre 1024x1024: tutto il resto si legge
+   in rapporto a quello, ed e' li' che si vede il risparmio. */
+.md-scalebar { position: relative; margin-top: 10px; }
+
+.md-scale-ref {
+    width: 100%;
+    height: 4px;
+    border: 1px dashed var(--muted);
+    border-radius: 2px;
+    opacity: .5;
+    margin-bottom: 5px;
+}
+
+.md-scalebar span { font-size: .72rem; color: var(--muted); line-height: 1.3; display: block; }
+
+.md-mat {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+}
+
+.md-rect {
+    position: relative;
+    background: repeating-linear-gradient(
+        45deg,
+        var(--primary) 0 2px,
+        var(--primary-soft) 2px 5px
+    );
+    border: 1.5px solid var(--primary);
+    border-radius: 2px;
+    min-width: 4px;
+    min-height: 4px;
+}
+
+.md-rect--dec { background: repeating-linear-gradient(45deg, var(--accent) 0 2px, #ffe9d9 2px 5px); border-color: var(--accent); }
+
+.md-rect-lab {
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    transform: translateX(-50%);
+    margin-top: 5px;
+    font-size: .68rem;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.md-dl { margin: 0; display: grid; gap: 9px; }
+.md-dl > div { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: baseline; }
+.md-dl dt { font-size: .78rem; color: var(--muted); }
+.md-dl dd { margin: 0; font-size: .9rem; color: var(--text); }
+.md-dl dd code { font-size: .85rem; }
+
+.md-verdict {
+    margin-top: 14px;
+    padding: 11px 13px;
+    border-radius: var(--radius);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--primary);
+    font-size: .88rem;
+    color: var(--text-soft);
+}
+
+.md-verdict.alert { border-left-color: var(--accent); }
+.md-caption { margin-top: 16px; font-size: .9rem; color: var(--text-soft); }
+
+@media (max-width: 720px) {
+    .md-body { grid-template-columns: 1fr; }
+    .md-dl > div { grid-template-columns: 1fr; gap: 2px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .md-seg-b { transition: none; }
+}

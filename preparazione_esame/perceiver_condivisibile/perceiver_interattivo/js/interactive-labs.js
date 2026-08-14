@@ -2780,7 +2780,96 @@ const LAB_SOURCE_REFS = {
     disegna(2);
   }
 
+
+  // ---------------------------------------------------------------------------
+  // Le tre matrici di attention in scala (cap. 16). Numeri dalla config di
+  // e01_baseline: M=1024 pixel, N=96 latenti. O dipende dal task.
+  // ---------------------------------------------------------------------------
+  function initMatriceDecoderLab() {
+    var box = document.querySelector('[data-lab="matrice-decoder"]');
+    if (!box) return;
+    var M = 1024, N = 96, LATO = 220;
+
+    var mat = box.querySelector("#md-mat");
+    var q = box.querySelector("#md-q");
+    var kv = box.querySelector("#md-kv");
+    var forma = box.querySelector("#md-forma");
+    var celle = box.querySelector("#md-celle");
+    var verdetto = box.querySelector("#md-verdict");
+    if (!mat) return;
+
+    function mila(n) { return n.toLocaleString("it-IT"); }
+
+    function rett(righe, colonne, etichetta, dec) {
+      var d = document.createElement("div");
+      d.className = "md-rect" + (dec ? " md-rect--dec" : "");
+      d.style.height = Math.max(4, righe / M * LATO) + "px";
+      d.style.width = Math.max(4, colonne / M * LATO) + "px";
+      if (etichetta) {
+        var l = document.createElement("span");
+        l.className = "md-rect-lab";
+        l.textContent = etichetta;
+        d.appendChild(l);
+      }
+      return d;
+    }
+
+    var MODI = {
+      self: {
+        q: "i 1.024 pixel", kv: "i 1.024 pixel stessi",
+        forma: "M \u00D7 M = 1.024 \u00D7 1.024", n: M * M,
+        rett: function () { return [rett(M, M, null, false)]; },
+        v: "\u00c8 la self-attention che il Perceiver <strong>evita</strong>. Su un'immagine ImageNet da 50.176 pixel questa matrice avrebbe 2,5 miliardi di celle: impraticabile. Il collo di bottiglia esiste per non doverla mai calcolare.",
+        alert: true
+      },
+      enc: {
+        q: "i <strong>96 latenti</strong>", kv: "i 1.024 pixel",
+        forma: "N \u00D7 M = 96 \u00D7 1.024", n: N * M,
+        rett: function () { return [rett(N, M, "96 righe \u00D7 1.024 colonne", false)]; },
+        v: "Qui si <strong>comprime</strong>: poche domande, tante risposte. Dieci volte pi\u00f9 piccola della self-attention, e soprattutto cresce in modo <em>lineare</em> con il numero di pixel invece che quadratico.",
+        alert: false
+      },
+      dec: {
+        q: "le <strong>query di output</strong> \u2014 quante ne servono",
+        kv: "i 96 latenti",
+        forma: "O \u00D7 N \u2014 O lo scegli tu",
+        n: null,
+        rett: function () {
+          return [rett(1, N, "CIFAR-10: 1 \u00D7 96", true),
+                  rett(M, N, "MLM: 1.024 \u00D7 96", true)];
+        },
+        v: "Qui si <strong>riespande</strong>, e la forma dell'uscita non dipende pi\u00f9 dall'ingresso. Per CIFAR-10 basta <strong>1 query</strong> (96 celle in tutto); per il masked language model ne servono <strong>1.024</strong>, una per byte. <em>Stesso encoder, stessi latenti, decoder diverso.</em>",
+        alert: false
+      }
+    };
+
+    function mostra(k) {
+      var m = MODI[k];
+      mat.textContent = "";
+      m.rett().forEach(function (r) { mat.appendChild(r); });
+      q.innerHTML = m.q;
+      kv.innerHTML = m.kv;
+      forma.innerHTML = "<code>" + m.forma + "</code>";
+      celle.innerHTML = m.n === null
+        ? "<strong>96</strong> per CIFAR-10 &nbsp;\u00b7&nbsp; <strong>" + mila(M * N) + "</strong> per il MLM"
+        : "<strong>" + mila(m.n) + "</strong>";
+      verdetto.innerHTML = m.v;
+      verdetto.className = "md-verdict" + (m.alert ? " alert" : "");
+    }
+
+    box.querySelectorAll(".md-seg-b").forEach(function (b) {
+      b.addEventListener("click", function () {
+        box.querySelectorAll(".md-seg-b").forEach(function (o) { o.classList.remove("active"); });
+        b.classList.add("active");
+        mostra(b.dataset.m);
+      });
+    });
+
+    mostra("enc");
+  }
+
   function initInteractiveLabs() {
+    initMatriceDecoderLab();
     initMultiHeadSplitLab();
     initCurveEpocaLab();
     initGradAccumuloLab();
