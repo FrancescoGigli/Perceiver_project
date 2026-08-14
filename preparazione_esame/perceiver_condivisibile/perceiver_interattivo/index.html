@@ -1459,6 +1459,47 @@ Y = Y + MLP(LN(Y))</div>
         <p>Perceiver IO non cambia il cuore del Perceiver: cambia il modo di <strong>estrarre</strong> informazione dai latenti. Il decoder a cross-attention rende l'output flessibile senza rinunciare al latent bottleneck.</p>
       </div>
 
+            <div class="concept-lab" data-lab="curve-epoca">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">progetto · 120 epoche per run, dai train_stdout.log</span>
+            <h3>Perché il checkpoint si sceglie sulla validation</h3>
+            <p>Ogni curva è l'accuratezza di validation epoca per epoca. Il pallino segna l'epoca scelta. Cambia il criterio in fondo e guarda cosa succede alla classifica.</p>
+          </div>
+        </div>
+
+        <div class="cv-chart-wrap">
+          <svg class="cv-chart" viewBox="0 0 720 340" role="img"
+               aria-label="Curve di accuratezza sulla validation, epoca per epoca, per sei run selezionate">
+            <title>Accuratezza di validation per epoca</title>
+            <g class="cv-grid"></g>
+            <g class="cv-lines"></g>
+            <g class="cv-marks"></g>
+          </svg>
+        </div>
+
+        <div class="cv-legend">
+            <label class="cv-chk"><input type="checkbox" data-run="e01_baseline" checked><i style="background:#1a237e"></i><code>e01_baseline</code> <span>riferimento</span></label>
+            <label class="cv-chk"><input type="checkbox" data-run="e08_T1_interleaved"><i style="background:#2e7d32"></i><code>e08_T1_interleaved</code> <span>la migliore, T=1</span></label>
+            <label class="cv-chk"><input type="checkbox" data-run="e05_no_latent_T4"><i style="background:#6e6e76"></i><code>e05_no_latent_T4</code> <span>ancora in salita a fine schedule</span></label>
+            <label class="cv-chk"><input type="checkbox" data-run="e28_init_scale_1p0" checked><i style="background:#e65100"></i><code>e28_init_scale_1p0</code> <span>init latenti 1.0</span></label>
+            <label class="cv-chk"><input type="checkbox" data-run="e23_bands_4" checked><i style="background:#b71c1c"></i><code>e23_bands_4</code> <span>4 bande di Fourier</span></label>
+            <label class="cv-chk"><input type="checkbox" data-run="e24_bands_16"><i style="background:#ad1457"></i><code>e24_bands_16</code> <span>16 bande</span></label>
+        </div>
+
+        <div class="cv-criterio">
+          <span class="cv-criterio-lab">Quale numero riporteresti?</span>
+          <div class="cv-seg" role="radiogroup">
+            <button type="button" class="cv-seg-b active" data-crit="best">epoca migliore sulla validation</button>
+            <button type="button" class="cv-seg-b" data-crit="last">ultima epoca</button>
+          </div>
+        </div>
+
+        <div class="cv-rank"></div>
+
+        <p class="cv-caption" id="cv-caption"></p>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-15">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="15"><span class="check"></span><span class="check-label">Ho capito</span></label>

@@ -2931,3 +2931,123 @@ tr.rq-todo td {
 @media (prefers-reduced-motion: reduce) {
     .ga-arrow, .ga-val, .ga-step, .ga-reset { transition: none; }
 }
+
+/* ============================================================
+   Curve di validation per epoca (cap. 15)
+   ============================================================ */
+.cv-chart-wrap { overflow-x: auto; }
+
+.cv-chart {
+    width: 100%;
+    min-width: 560px;
+    height: auto;
+    display: block;
+    margin: 6px 0 4px;
+}
+
+.cv-chart text { font-family: inherit; }
+
+.cv-gl { stroke: var(--border); stroke-width: 1; }
+.cv-gl--decay { stroke: var(--muted); stroke-dasharray: 3 4; opacity: .55; }
+
+.cv-ax { font-size: 10px; text-anchor: end; fill: var(--muted); }
+.cv-ax--x { text-anchor: middle; }
+.cv-axtitle { font-size: 10.5px; text-anchor: middle; fill: var(--muted); }
+
+.cv-line {
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.cv-mark { stroke: var(--card); stroke-width: 2; }
+
+.cv-legend {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 4px 14px;
+    margin: 10px 0 14px;
+}
+
+.cv-chk {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: .84rem;
+    color: var(--text-soft);
+    cursor: pointer;
+}
+
+.cv-chk input { accent-color: var(--primary); flex: none; }
+
+.cv-chk i {
+    width: 14px;
+    height: 3px;
+    border-radius: 2px;
+    flex: none;
+}
+
+.cv-chk code { font-size: .8rem; }
+.cv-chk span { color: var(--muted); font-size: .78rem; }
+
+.cv-criterio {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.cv-criterio-lab { font-size: .85rem; color: var(--text-soft); font-weight: 600; }
+
+.cv-seg {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.cv-seg-b {
+    border: 0;
+    padding: 7px 13px;
+    background: var(--card);
+    color: var(--muted);
+    font: inherit;
+    font-size: .82rem;
+    cursor: pointer;
+    transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out);
+}
+
+.cv-seg-b + .cv-seg-b { border-left: 1px solid var(--border); }
+.cv-seg-b.active { background: var(--primary); color: #fff; font-weight: 600; }
+
+.cv-rank { display: grid; gap: 3px; margin-bottom: 10px; }
+
+.cv-rank-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: var(--bg-soft);
+    font-size: .84rem;
+}
+
+.cv-rank-n {
+    width: 18px;
+    text-align: center;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.cv-rank-row i { width: 12px; height: 3px; border-radius: 2px; flex: none; }
+.cv-rank-row code { flex: 1; font-size: .8rem; }
+.cv-rank-row strong { font-variant-numeric: tabular-nums; }
+.cv-rank-ep { color: var(--muted); font-size: .76rem; min-width: 68px; text-align: right; }
+
+.cv-caption { font-size: .9rem; color: var(--text-soft); }
+
+@media (prefers-reduced-motion: reduce) {
+    .cv-seg-b { transition: none; }
+}

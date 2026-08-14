@@ -2583,7 +2583,126 @@ const LAB_SOURCE_REFS = {
     pulisci();
   }
 
+
+  // ---------------------------------------------------------------------------
+  // Curve di validation per epoca (cap. 15). Dati estratti dai train_stdout.log
+  // delle run v2: 120 punti ciascuna. Il massimo di ogni curva coincide con
+  // val_accuracy del results.json, l'ultimo punto con final_val_accuracy.
+  // ---------------------------------------------------------------------------
+  var CURVE_DATI = {"e01_baseline":{"c":[36.72,40.06,44.9,49.5,47.58,49.58,51.32,52.56,53.6,53.54,56.1,54.72,55.36,57.16,56.36,57.48,59.76,60.02,60.48,61.48,61.18,61.4,62.08,62.9,61.18,62.54,62.84,63.74,62.8,63.32,64.72,64.18,66.18,62.98,65.02,65.42,65.4,65.52,65.84,66.62,65.48,66.36,67.44,66.5,67.36,67.68,67.56,67.6,67.96,68.32,68.24,67.18,68.48,68.22,68.78,68.06,68.94,68.14,68.48,69.06,67.88,68.6,68.9,69.9,69.24,69.24,68.94,69.32,69.76,69.58,68.94,68.4,68.48,68.42,69.92,68.22,68.56,67.82,70.12,69.9,69.76,69.12,69.42,69.42,71.8,72.56,72.56,72.34,72.62,72.06,71.9,72.92,72.5,72.1,72.92,71.82,72.74,72.48,72.68,72.8,72.24,72.52,72.4,72.44,72.46,72.44,72.38,72.52,72.44,72.38,72.54,72.6,72.48,72.6,72.6,72.62,72.62,72.7,72.72,72.68],"best":92,"test":71.63,"fin":72.68},"e08_T1_interleaved":{"c":[37.28,44.14,45.52,47.44,49.94,49.62,52.44,55.06,55.88,56.5,57.26,57.7,58.08,59.46,59.38,60.82,60.82,60.4,61.26,61.86,62.04,62.52,62.86,64.24,63.66,63.32,65.16,64.84,64.66,64.62,63.26,65.32,63.22,65.56,65.18,64.96,65.16,65.86,65.88,66.68,67.3,66.96,67.7,68.32,66.86,68.72,67.86,67.4,67.82,67.52,66.94,67.46,68.04,68.06,68.0,67.02,69.54,69.5,69.5,69.82,69.64,69.44,70.94,68.84,69.0,68.34,70.16,69.44,70.14,69.96,68.88,70.1,70.06,70.02,69.38,71.02,70.04,70.6,70.02,70.72,71.36,70.5,70.14,70.46,73.46,73.56,73.16,73.42,73.62,74.1,73.56,73.32,73.78,73.5,73.68,73.42,73.76,73.84,73.6,73.56,73.12,73.44,73.64,73.6,73.78,73.48,73.52,73.66,73.58,73.42,73.56,73.62,73.5,73.5,73.56,73.6,73.58,73.34,73.44,73.62],"best":90,"test":72.91,"fin":73.62},"e28_init_scale_1p0":{"c":[35.08,41.5,44.02,47.5,47.34,48.56,50.36,52.56,53.36,51.24,49.88,49.7,48.02,48.98,47.08,42.82,45.66,44.26,42.82,43.2,37.98,39.54,30.78,30.9,29.34,32.4,35.66,34.5,26.94,34.64,34.88,37.34,36.78,37.76,36.2,35.02,35.74,28.72,27.0,26.62,23.7,28.72,26.1,27.42,30.52,28.54,31.98,33.9,31.02,27.74,22.14,18.18,12.88,13.84,18.38,19.94,19.48,21.68,21.86,18.44,11.24,15.4,16.08,19.16,16.7,12.0,18.26,15.14,17.68,17.8,10.64,19.06,19.66,16.04,24.74,20.32,28.78,27.82,32.96,34.1,35.68,37.68,36.9,39.44,43.44,43.32,43.36,43.88,44.44,44.16,44.62,44.9,44.6,45.26,45.24,44.86,45.32,45.42,45.26,45.74,46.02,45.94,45.46,45.82,46.3,46.1,46.02,46.22,46.02,46.42,46.2,46.38,46.12,46.24,46.2,46.24,46.14,46.28,46.18,46.32],"best":9,"test":52.08,"fin":46.32},"e23_bands_4":{"c":[35.12,44.26,48.32,50.88,51.28,52.14,54.7,54.48,54.08,57.06,57.44,55.7,59.24,59.82,60.42,59.02,61.06,59.5,60.82,61.98,61.24,60.62,62.18,62.12,63.56,61.92,61.86,62.14,61.68,64.22,64.24,64.76,63.88,64.2,66.16,66.0,65.76,65.56,67.18,64.78,66.9,67.74,67.6,65.78,66.56,66.86,66.44,65.92,64.16,60.9,61.3,48.12,49.22,45.04,40.26,43.4,38.36,32.52,35.58,36.06,31.52,30.54,34.24,25.54,25.52,21.34,23.42,19.68,13.04,11.64,19.04,13.66,15.44,16.04,12.48,12.0,12.78,14.72,13.18,14.28,13.74,10.64,11.68,10.1,16.22,16.44,17.0,16.8,18.32,18.46,16.22,18.04,14.82,16.4,14.88,19.26,18.38,18.86,18.7,17.1,18.28,16.3,21.86,21.86,21.7,21.86,21.6,23.14,21.74,22.32,21.54,21.44,22.76,21.3,22.32,22.88,22.48,22.48,22.18,22.54],"best":42,"test":66.39,"fin":22.54},"e24_bands_16":{"c":[41.2,46.16,47.7,47.86,50.48,53.44,53.66,56.68,58.32,56.56,59.2,60.28,60.32,60.7,60.4,59.58,60.22,62.26,60.18,57.52,59.06,60.04,59.96,60.26,61.54,61.44,62.52,61.56,61.34,62.66,62.54,60.28,58.86,58.8,57.74,54.52,54.48,47.64,40.82,37.88,26.88,23.2,23.1,27.02,24.64,25.7,22.32,17.8,23.44,23.56,20.36,23.62,29.36,26.2,19.66,18.12,14.58,22.6,13.08,21.62,14.48,19.66,15.12,20.28,25.18,22.48,22.5,28.32,32.22,29.78,18.68,26.48,27.92,30.32,32.12,35.56,34.68,36.14,39.46,41.22,40.8,43.4,45.58,43.94,50.1,51.64,51.46,51.88,52.5,52.6,52.9,53.3,53.36,53.16,53.62,54.02,54.14,54.26,54.08,54.82,54.18,54.44,54.94,55.22,55.18,55.18,55.22,55.16,55.46,55.22,55.44,54.98,55.36,55.14,55.26,55.46,55.2,55.34,55.4,55.46],"best":30,"test":62.58,"fin":55.46},"e05_no_latent_T4":{"c":[39.9,43.8,48.86,51.12,52.56,53.82,53.34,55.64,56.46,57.18,56.14,58.16,58.44,58.04,59.62,59.28,60.8,61.5,60.86,61.98,61.54,61.9,62.56,63.78,62.08,62.64,62.64,63.74,62.9,62.28,64.7,65.12,63.78,63.84,64.96,63.92,64.16,62.38,63.82,64.4,63.5,64.6,64.42,64.86,65.0,65.94,65.84,65.64,65.56,65.22,65.14,65.1,65.64,66.12,66.6,65.92,65.24,64.82,63.9,67.5,66.2,65.96,66.28,66.68,66.42,64.76,65.82,67.02,65.68,65.9,65.4,66.08,66.52,65.44,66.02,67.4,66.12,66.46,67.04,65.1,66.94,66.48,66.74,65.8,68.72,68.76,68.48,68.98,69.04,68.86,69.12,69.14,68.9,68.92,68.44,68.84,69.02,69.06,68.68,68.64,68.86,68.84,69.0,69.2,69.06,69.2,69.14,69.3,69.26,69.24,69.38,69.36,69.18,69.12,69.24,69.32,69.24,69.32,69.28,69.4],"best":120,"test":68.98,"fin":69.4}};
+  var CURVE_COLORI = {"e01_baseline":"#1a237e","e08_T1_interleaved":"#2e7d32","e05_no_latent_T4":"#6e6e76","e28_init_scale_1p0":"#e65100","e23_bands_4":"#b71c1c","e24_bands_16":"#ad1457"};
+
+  function initCurveEpocaLab() {
+    var box = document.querySelector('[data-lab="curve-epoca"]');
+    if (!box) return;
+    var svg = box.querySelector(".cv-chart");
+    var gGrid = svg.querySelector(".cv-grid");
+    var gLines = svg.querySelector(".cv-lines");
+    var gMarks = svg.querySelector(".cv-marks");
+    var rank = box.querySelector(".cv-rank");
+    var cap = box.querySelector("#cv-caption");
+    var NS = "http://www.w3.org/2000/svg";
+
+    var L = 46, R = 16, T = 16, B = 40, W = 720, H = 340;
+    var pw = W - L - R, ph = H - T - B;
+    var YMIN = 18, YMAX = 80;
+
+    function x(ep) { return L + (ep - 1) / 119 * pw; }
+    function y(v) { return T + (YMAX - v) / (YMAX - YMIN) * ph; }
+
+    function el(tag, attr, cls) {
+      var n = document.createElementNS(NS, tag);
+      for (var k in attr) n.setAttribute(k, attr[k]);
+      if (cls) n.setAttribute("class", cls);
+      return n;
+    }
+
+    // griglia e assi: si disegnano una volta sola
+    [20, 30, 40, 50, 60, 70, 80].forEach(function (v) {
+      gGrid.appendChild(el("line", { x1: L, y1: y(v), x2: W - R, y2: y(v) }, "cv-gl"));
+      var t = el("text", { x: L - 8, y: y(v) + 4 }, "cv-ax");
+      t.textContent = v + "%";
+      gGrid.appendChild(t);
+    });
+    [1, 30, 60, 84, 102, 114, 120].forEach(function (e) {
+      var decay = (e === 84 || e === 102 || e === 114);
+      gGrid.appendChild(el("line",
+        { x1: x(e), y1: T, x2: x(e), y2: T + ph }, decay ? "cv-gl cv-gl--decay" : "cv-gl"));
+      var t = el("text", { x: x(e), y: H - 18 }, "cv-ax cv-ax--x");
+      t.textContent = e;
+      gGrid.appendChild(t);
+    });
+    var lab = el("text", { x: L + pw / 2, y: H - 3 }, "cv-axtitle");
+    lab.textContent = "epoca  (le tre righe tratteggiate sono i decay del learning rate: 84, 102, 114)";
+    gGrid.appendChild(lab);
+
+    function attive() {
+      return Array.prototype.slice.call(box.querySelectorAll(".cv-chk input:checked"))
+        .map(function (i) { return i.dataset.run; });
+    }
+
+    function criterio() {
+      var b = box.querySelector(".cv-seg-b.active");
+      return b ? b.dataset.crit : "best";
+    }
+
+    function disegna() {
+      gLines.textContent = "";
+      gMarks.textContent = "";
+      var crit = criterio();
+      var sel = attive();
+
+      sel.forEach(function (r) {
+        var d = CURVE_DATI[r];
+        if (!d) return;
+        var pts = d.c.map(function (v, i) { return x(i + 1) + "," + y(Math.max(YMIN, v)); }).join(" ");
+        var p = el("polyline", { points: pts, stroke: CURVE_COLORI[r] }, "cv-line");
+        gLines.appendChild(p);
+
+        var ep = crit === "best" ? d.best : 120;
+        var val = crit === "best" ? Math.max.apply(null, d.c) : d.c[119];
+        gMarks.appendChild(el("circle",
+          { cx: x(ep), cy: y(val), r: 5, fill: CURVE_COLORI[r] }, "cv-mark"));
+      });
+
+      // classifica secondo il criterio scelto
+      var righe = sel.map(function (r) {
+        var d = CURVE_DATI[r];
+        return { r: r, v: crit === "best" ? Math.max.apply(null, d.c) : d.c[119],
+                 ep: crit === "best" ? d.best : 120 };
+      }).sort(function (a, b) { return b.v - a.v; });
+
+      rank.innerHTML = righe.map(function (o, i) {
+        return '<div class="cv-rank-row"><span class="cv-rank-n">' + (i + 1) + '</span>' +
+               '<i style="background:' + CURVE_COLORI[o.r] + '"></i>' +
+               '<code>' + o.r + '</code>' +
+               '<strong>' + o.v.toFixed(2) + '%</strong>' +
+               '<span class="cv-rank-ep">epoca ' + o.ep + '</span></div>';
+      }).join("");
+
+      if (crit === "best") {
+        cap.innerHTML = "Questo \u00e8 il criterio usato nel progetto: si allena per 120 epoche piene e si tiene il checkpoint con la validation migliore. <strong>Nessun early stopping</strong>: fermarsi prima farebbe perdere le run che risalgono dopo un decay del learning rate.";
+      } else {
+        cap.innerHTML = "Con il criterio \u00abultima epoca\u00bb <strong>la classifica cambia e alcuni numeri crollano</strong>: <code>e23_bands_4</code> passa da 67,74% a <strong>22,54%</strong> e <code>e28_init_scale_1p0</code> da 53,36% a 46,32%. Non sono run da buttare: sono run <em>instabili a fine training</em>, e riportare l'ultima epoca le penalizzerebbe per un motivo che non ha a che vedere con l'ablation in esame.";
+      }
+    }
+
+    box.querySelectorAll(".cv-chk input").forEach(function (i) {
+      i.addEventListener("change", disegna);
+    });
+    box.querySelectorAll(".cv-seg-b").forEach(function (b) {
+      b.addEventListener("click", function () {
+        box.querySelectorAll(".cv-seg-b").forEach(function (o) { o.classList.remove("active"); });
+        b.classList.add("active");
+        disegna();
+      });
+    });
+
+    disegna();
+  }
+
   function initInteractiveLabs() {
+    initCurveEpocaLab();
     initGradAccumuloLab();
     initPrenormLab();
     initStepAnimLab();
