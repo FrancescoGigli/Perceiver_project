@@ -25,13 +25,26 @@ ORDER = {e["id"]: i for i, e in enumerate(EXPERIMENTS)}
 NOISE_BAND_IDS = ["e01_baseline", "e31_baseline_seed1", "e32_baseline_seed2"]
 BASELINE_ID = "e01_baseline"
 
+MODALITY_OF = {e["id"]: e.get("modality", "image") for e in EXPERIMENTS}
+# Ogni modalita' si confronta col proprio baseline: ModelNet40 e' un altro task.
+BASELINE_OF = {"image": "e01_baseline", "modelnet": "mn01_baseline"}
+
 OUT_DIR = "analysis_results_v2"
 OUT_CSV = os.path.join(OUT_DIR, "summary.csv")
 
 
 def _is_missing(acc):
-    """True se test_accuracy e' None o nan (run divergita)."""
+    """True se l'accuratezza e' None o nan (run divergita)."""
     return acc is None or (isinstance(acc, float) and math.isnan(acc))
+
+
+def _acc(data):
+    """Accuratezza da riportare: test_accuracy, o val_accuracy quando non c'e'
+    una split di test separata (ModelNet40: la val E' l'insieme di test)."""
+    acc = data.get("test_accuracy")
+    if acc is None:
+        acc = data.get("val_accuracy")
+    return acc
 
 
 def load_results(log_dir="logs"):
@@ -53,7 +66,7 @@ def noise_band(results):
         data = results.get(eid)
         if data is None:
             continue
-        acc = data.get("test_accuracy")
+        acc = _acc(data)
         if _is_missing(acc):
             continue
         used.append(eid)
@@ -66,29 +79,45 @@ def noise_band(results):
 def build_rows(results, band):
     """Per ogni run con results.json: id, gruppo, test_acc, epoca, params,
     delta rispetto a e01_baseline, verdetto sulla banda di rumore."""
-    baseline_data = results.get(BASELINE_ID)
-    baseline_acc = None
-    if baseline_data is not None and not _is_missing(baseline_data.get("test_accuracy")):
-        baseline_acc = baseline_data["test_accuracy"]
+    # baseline per modalita': ogni run si confronta col riferimento del proprio task.
+    baseline_acc = {}
+    for mod, bid in BASELINE_OF.items():
+        bd = results.get(bid)
+        if bd is not None and not _is_missing(_acc(bd)):
+            baseline_acc[mod] = _acc(bd)
 
     rows = []
     for eid, data in results.items():
-        acc = data.get("test_accuracy")
+        if eid not in GROUP_OF:
+            # Cartella in logs/ che non corrisponde a nessuna run del registro
+            # (prove, run di versioni precedenti): niente delta ne' verdetto, che
+            # sarebbero senza senso rispetto a un baseline con cui non condivide
+            # la configurazione. Elencata a parte in coda alla tabella.
+            continue
+        acc = _acc(data)
         epoch = data.get("selected_epoch")
         params = data.get("params")
         group = GROUP_OF.get(eid, "?")
+        mod = MODALITY_OF.get(eid, "image")
+        base = baseline_acc.get(mod)
+        base_id = BASELINE_OF.get(mod)
 
         if _is_missing(acc):
             delta = None
             verdetto = "DIVERGITA"
-        elif eid == BASELINE_ID:
+        elif eid == base_id:
             delta = 0.0
-            verdetto = "-"  # e' il riferimento, il confronto con se stesso non ha senso
-        elif baseline_acc is None:
+            verdetto = "- (riferimento)"
+        elif base is None:
             delta = None
             verdetto = "banda ignota"
+        elif mod != "image":
+            # la banda di rumore e' stimata solo sulle repliche immagine: per ModelNet
+            # mostriamo il delta vs il suo baseline senza verdetto sulla banda.
+            delta = acc - base
+            verdetto = f"vs {base_id}"
         else:
-            delta = acc - baseline_acc
+            delta = acc - base
             if band is None:
                 verdetto = "banda ignota"
             elif abs(delta) > band:
@@ -166,6 +195,88 @@ def print_table(rows, band, band_ids):
         print(f"Banda di rumore (escursione max-min fra {band_ids}): {band * 100:.2f} punti percentuali")
 
 
+# Gli 8 task GLUE della Tab. 1 (WNLI escluso, come nel paper).
+GLUE_TASKS_ORDER = ["cola", "sst2", "mrpc", "stsb", "qqp", "mnli", "qnli", "rte"]
+
+
+def _acc_of(results, run_id):
+    data = results.get(run_id)
+    if data is None:
+        return None
+    acc = _acc(data)
+    return None if _is_missing(acc) else acc
+
+
+def print_io_section(results, band):
+    """Sintesi delle run Perceiver IO: confronto con il Perceiver su immagini,
+    media GLUE (il numero confrontabile con la Tab. 1) e valore del pre-training."""
+    print("\n\n=== PERCEIVER IO ===")
+
+    # 1. Su classificazione il decoder a query dovrebbe pareggiare il pooling.
+    # NB: architettura/dati identici a e01, ma ricetta di training del paper IO
+    # (App. A.1: lr 1e-3 cosine): il multistep v1 con IO sotto-allena.
+    perceiver = _acc_of(results, BASELINE_ID)
+    print("\n-- Immagini: decoder a query (IO) vs pooling (Perceiver), stesso encoder --")
+    if perceiver is None:
+        print("   manca e01_baseline")
+    else:
+        print(f"   e01_baseline (Perceiver, pooling)      : {_fmt_pct(perceiver)}")
+        for rid, label in (("io01_cifar", "io01_cifar (IO, ricetta paper)"),
+                           ("io02_cifar_seed1", "io02_cifar_seed1 (replica, seed 1)")):
+            acc = _acc_of(results, rid)
+            if acc is None:
+                print(f"   {label:<39}: run mancante")
+                continue
+            delta = acc - perceiver
+            if band is None:
+                verdetto = "banda ignota"
+            else:
+                verdetto = "sopra il rumore" if abs(delta) > band else "NON concludente"
+            print(f"   {label:<39}: {_fmt_pct(acc)}   delta {_fmt_signed_pct(delta)}   {verdetto}")
+
+    # 2. Media GLUE. Il paper riporta 81.0 (byte-level) / 81.1 (BERT su token).
+    print("\n-- GLUE (paper Tab. 1: Perceiver IO byte-level 81.0, BERT 81.1) --")
+    print(f"   {'task':8s} {'metrica':10s} {'da MLM':>9s} {'scratch':>9s} {'delta':>9s}")
+    print("   " + "-" * 50)
+    scores, missing = [], []
+    for task in GLUE_TASKS_ORDER:
+        pre = _acc_of(results, f"io_glue_{task}")
+        scr = _acc_of(results, f"io_glue_{task}_scratch")
+        if pre is None:
+            missing.append(task)
+        else:
+            scores.append(pre)
+        metrica = "Pearson" if task == "stsb" else "accuracy"
+        delta = (pre - scr) if (pre is not None and scr is not None) else None
+        print(f"   {task:8s} {metrica:10s} {_fmt_pct(pre):>9s} {_fmt_pct(scr):>9s} "
+              f"{_fmt_signed_pct(delta):>9s}")
+    print("   " + "-" * 50)
+    if scores:
+        media = sum(scores) / len(scores)
+        print(f"   media su {len(scores)}/8 task: {media * 100:.2f}")
+        if missing:
+            print(f"   ATTENZIONE: media parziale, mancano {', '.join(missing)}")
+        print("   NB: non e' esattamente il numero del paper: qui CoLA usa accuracy")
+        print("       invece del coefficiente di Matthews. STS-B usa Pearson (come il paper).")
+    else:
+        print("   nessuna run GLUE completata")
+
+    # 3. Il pre-training e' servito? Lo dicono i due controlli senza checkpoint.
+    print("\n-- Quanto vale il pre-training MLM (run con e senza checkpoint) --")
+    mlm = results.get("io_mlm")
+    if mlm is not None and not _is_missing(_acc(mlm)):
+        print(f"   io_mlm: accuratezza sui byte mascherati {_fmt_pct(_acc(mlm))} "
+              f"(a caso: 0.39%, cioe' 1/256)")
+    for task in ("sst2", "rte"):
+        pre = _acc_of(results, f"io_glue_{task}")
+        scr = _acc_of(results, f"io_glue_{task}_scratch")
+        if pre is None or scr is None:
+            print(f"   {task}: controllo incompleto")
+        else:
+            print(f"   {task}: {_fmt_pct(scr)} da zero -> {_fmt_pct(pre)} col pre-training "
+                  f"({_fmt_signed_pct(pre - scr)})")
+
+
 def main():
     results = load_results()
     if not results:
@@ -179,6 +290,13 @@ def main():
     rows = build_rows(results, band)
 
     print_table(rows, band, band_ids)
+
+    extra = sorted(eid for eid in results if eid not in GROUP_OF)
+    if extra:
+        print(f"\nAltre cartelle in logs/ non presenti nel registro ({len(extra)}), "
+              f"escluse dal confronto: {', '.join(extra)}")
+
+    print_io_section(results, band)
     out_path = write_csv(rows)
     print(f"\nScritto: {out_path}")
 

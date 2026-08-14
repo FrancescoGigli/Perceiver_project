@@ -5,7 +5,8 @@ import zipfile
 import pandas as pd
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
-import pytorch_lightning as pl
+
+from ..utils.positional_encoding import FourierPositionalEncoding
 
 class SST2Dataset(Dataset):
     def __init__(self, data_path, split='train', seq_len=512):
@@ -39,11 +40,10 @@ class SST2Dataset(Dataset):
         
         return torch.tensor(bytes_list, dtype=torch.long), torch.tensor(label, dtype=torch.long)
 
-class SST2PerceiverDataModule(pl.LightningDataModule):
+class SST2PerceiverDataModule:
     def __init__(self, data_dir, batch_size=64, num_workers=4, seq_len=512, 
                  fourier_dim=64, max_frequencies=64, num_frequency_bands=6,
                  use_positional_encoding=True):
-        super().__init__()
         self.data_dir = data_dir
         self.sst2_dir = os.path.join(data_dir, 'SST-2')
         self.batch_size = batch_size
@@ -55,7 +55,28 @@ class SST2PerceiverDataModule(pl.LightningDataModule):
         self.max_frequencies = max_frequencies
         self.num_frequency_bands = num_frequency_bands
         self.use_positional_encoding = use_positional_encoding
-        self.input_dim = 257 + (self.fourier_dim * 2 + 1) if use_positional_encoding else 257 # vocab size (256+1 for compatibility) + pos encoding
+
+        # Stesso positional encoding del pre-training MLM (src/data/wikitext103.py):
+        # stessa classe, stesse bande lineari, stesse coordinate in [0, 1]. Prima qui
+        # c'era un Fourier scritto a mano con frequenze logaritmiche su [-1, 1]: il
+        # segnale posizionale era diverso e il primo cross-attention del checkpoint
+        # (input_dim 270 vs 386) non si trasferiva -- il fine-tuning ripartiva da pesi
+        # casuali proprio nel modulo che legge il testo.
+        self.pos_encodings = None
+        self.input_dim = 257
+        if self.use_positional_encoding:
+            self._setup_pos_encoding()
+            self.input_dim += self.pos_encoding.out_dim
+
+    def _setup_pos_encoding(self):
+        self.pos_encoding = FourierPositionalEncoding(
+            num_bands=self.num_frequency_bands,
+            max_freq=self.max_frequencies,
+            num_pos_feats=1,
+        )
+        positions = torch.arange(self.seq_len).float() / max(1, (self.seq_len - 1))
+        with torch.no_grad():
+            self.pos_encodings = self.pos_encoding(positions.unsqueeze(-1))
 
     def download_data(self):
         if not os.path.exists(self.sst2_dir):
@@ -108,34 +129,8 @@ class SST2PerceiverDataModule(pl.LightningDataModule):
         inputs_one_hot = torch.nn.functional.one_hot(inputs, num_classes=vocab_size).float() # [B, L, 257]
         
         if self.use_positional_encoding:
-            # Generate positional encodings
-            pos = torch.linspace(-1, 1, L, device=inputs.device) # [L]
-            pos = pos.view(1, L, 1).expand(B, L, 1) # [B, L, 1]
-            
-            # Fourier Features
-            # encodings = [pos]
-            # for i in range(self.num_frequency_bands):
-            #     freq = self.max_frequencies ** (i / (self.num_frequency_bands - 1))
-            #     encodings.append(torch.sin(pos * freq * np.pi))
-            #     encodings.append(torch.cos(pos * freq * np.pi))
-            # pos_enc = torch.cat(encodings, dim=-1) # [B, L, 2*bands + 1]
-            
-            # REUSE the implementation from src.utils.positional_encoding?
-            # Or just implement simple 1D fourier here. The original code uses 2D for images.
-            # Let's keep it simple and consistent with 1D.
-            
-            # Simple 1D Fourier:
-            encodings = [pos] # [B, L, 1]
-            # Log-linear spacing of frequencies
-            full_freqs = torch.logspace(0, np.log10(self.max_frequencies), self.fourier_dim, base=10, device=inputs.device)
-            
-            for freq in full_freqs:
-                 encodings.append(torch.sin(pos * freq * np.pi))
-                 encodings.append(torch.cos(pos * freq * np.pi))
-            
-            pos_features = torch.cat(encodings, dim=-1) # [B, L, 1 + 2 * fourier_dim]
-            
-            # Concatenate
+            pos_features = self.pos_encodings[:L].to(inputs.device)      # [L, out_dim]
+            pos_features = pos_features.unsqueeze(0).expand(B, -1, -1)   # [B, L, out_dim]
             model_input = torch.cat([inputs_one_hot, pos_features], dim=-1)
         else:
             model_input = inputs_one_hot

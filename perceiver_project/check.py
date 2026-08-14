@@ -41,6 +41,8 @@ def _status_of(experiment_id):
     with open(path, encoding="utf-8") as handle:
         data = json.load(handle)
     acc = data.get("test_accuracy")
+    if acc is None:  # ModelNet40 non ha una split di test separata: la val E' l'insieme di test
+        acc = data.get("val_accuracy")
     ep = data.get("selected_epoch")
     if acc is None or (isinstance(acc, float) and acc != acc):  # None o nan
         return ("DIVERGITA", acc, ep)
@@ -61,7 +63,8 @@ def dashboard():
         elif stato == "DIVERGITA":
             diverged += 1
     print("-" * 74)
-    print(f"fatte: {done}/23   divergite: {diverged}   mancanti: {23 - done - diverged}")
+    total = len(ORDER)
+    print(f"fatte: {done}/{total}   divergite: {diverged}   mancanti: {total - done - diverged}")
     if diverged:
         print("ATTENZIONE: run divergite presenti. Controlla grad_clip / lr prima di rifarle.")
     return diverged

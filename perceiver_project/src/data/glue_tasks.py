@@ -10,7 +10,8 @@ import zipfile
 import pandas as pd
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
-import pytorch_lightning as pl
+
+from ..utils.positional_encoding import FourierPositionalEncoding
 
 
 # Task configurations
@@ -130,8 +131,13 @@ class GLUEDataset(Dataset):
                              quoting=3,  # QUOTE_NONE - handle malformed quotes
                              on_bad_lines='skip')
         else:
+            # usecols: carica SOLO le colonne che servono. Il train.tsv di MNLI pesa
+            # 409 MB quasi tutti in colonne di parsing mai usate; il DataFrame resta
+            # vivo per tutta la run e su Windows viene picklato a ogni worker.
+            needed = list(config['sentence_cols']) + [config['label_col']]
             df = pd.read_csv(data_path, sep='\t',
                              quoting=3,
+                             usecols=lambda c: c in needed,
                              on_bad_lines='skip')
         
         # For MNLI, filter out rows with '-' label (unlabeled)
@@ -160,19 +166,28 @@ class GLUEDataset(Dataset):
         # Get text: single sentence or sentence pair
         if len(config['sentence_cols']) == 1:
             text = str(row[config['sentence_cols'][0]])
+            bytes_list = list(text.encode('utf-8', errors='replace'))[:self.seq_len]
         else:
-            # Sentence pair: concatenate with separator byte
-            s1 = str(row[config['sentence_cols'][0]])
-            s2 = str(row[config['sentence_cols'][1]])
-            text = s1 + chr(SEPARATOR_BYTE) + s2
-        
-        # Byte-level tokenization (UTF-8)
-        bytes_list = list(text.encode('utf-8', errors='replace'))
-        
-        # Pad or truncate
-        if len(bytes_list) > self.seq_len:
-            bytes_list = bytes_list[:self.seq_len]
-        else:
+            # Coppia di frasi. Troncare la concatenazione dall'inizio buttava via la
+            # seconda frase quando la prima era gia' lunga (nel 13% del dev di RTE
+            # l'ipotesi non arrivava mai al modello: esempi non rispondibili).
+            # Si accorcia invece la piu' lunga delle due, come fa il troncamento
+            # "longest first" standard.
+            b1 = list(str(row[config['sentence_cols'][0]]).encode('utf-8', errors='replace'))
+            b2 = list(str(row[config['sentence_cols'][1]]).encode('utf-8', errors='replace'))
+            budget = self.seq_len - 1  # un byte per il separatore
+            if len(b1) + len(b2) > budget:
+                half = budget // 2
+                if len(b1) > half and len(b2) > half:
+                    b1, b2 = b1[:half], b2[:budget - half]
+                elif len(b1) > half:
+                    b1 = b1[:budget - len(b2)]
+                else:
+                    b2 = b2[:budget - len(b1)]
+            bytes_list = b1 + [SEPARATOR_BYTE] + b2
+
+        # Pad
+        if len(bytes_list) < self.seq_len:
             bytes_list = bytes_list + [0] * (self.seq_len - len(bytes_list))
         
         # Get label
@@ -185,15 +200,12 @@ class GLUEDataset(Dataset):
         return torch.tensor(bytes_list, dtype=torch.long), label_tensor
 
 
-class GLUEPerceiverDataModule(pl.LightningDataModule):
-    """
-    LightningDataModule for all GLUE tasks.
-    Handles download, preprocessing, and batching.
-    """
+class GLUEPerceiverDataModule:
+    """DataModule per tutti i task GLUE: download, preprocessing e batching.
+    (Classe semplice: non usava nulla di pytorch_lightning oltre al nome.)"""
     def __init__(self, task_name, data_dir, batch_size=64, num_workers=4, seq_len=512,
                  fourier_dim=64, max_frequencies=64, num_frequency_bands=6,
                  use_positional_encoding=True):
-        super().__init__()
         assert task_name in GLUE_TASKS, f"Unknown GLUE task: {task_name}. Available: {list(GLUE_TASKS.keys())}"
         
         self.task_name = task_name
@@ -209,12 +221,31 @@ class GLUEPerceiverDataModule(pl.LightningDataModule):
         self.max_frequencies = max_frequencies
         self.num_frequency_bands = num_frequency_bands
         self.use_positional_encoding = use_positional_encoding
-        self.input_dim = 257 + (self.fourier_dim * 2 + 1) if use_positional_encoding else 257
+
+        # Stesso positional encoding del pre-training MLM (src/data/wikitext103.py):
+        # stessa classe, bande lineari, coordinate in [0, 1]. Vedi la nota in
+        # glue_sst2.py: con il Fourier a mano l'input_dim non combaciava (386 vs 270)
+        # e il primo cross-attention non si trasferiva dal checkpoint.
+        self.pos_encodings = None
+        self.input_dim = 257
+        if self.use_positional_encoding:
+            self._setup_pos_encoding()
+            self.input_dim += self.pos_encoding.out_dim
         
         # Task-specific properties
         self.num_classes = self.task_config['num_classes']
         self.is_regression = (self.task_config['label_type'] == 'float')
-    
+
+    def _setup_pos_encoding(self):
+        self.pos_encoding = FourierPositionalEncoding(
+            num_bands=self.num_frequency_bands,
+            max_freq=self.max_frequencies,
+            num_pos_feats=1,
+        )
+        positions = torch.arange(self.seq_len).float() / max(1, (self.seq_len - 1))
+        with torch.no_grad():
+            self.pos_encodings = self.pos_encoding(positions.unsqueeze(-1))
+
     def _has_data_files(self):
         """Check if the task directory has the expected train and dev files."""
         train_path = os.path.join(self.task_dir, self.task_config['train_file'])
@@ -326,18 +357,8 @@ class GLUEPerceiverDataModule(pl.LightningDataModule):
         inputs_one_hot = torch.nn.functional.one_hot(inputs, num_classes=vocab_size).float()
         
         if self.use_positional_encoding:
-            pos = torch.linspace(-1, 1, L, device=inputs.device)
-            pos = pos.view(1, L, 1).expand(B, L, 1)
-            
-            encodings = [pos]
-            full_freqs = torch.logspace(0, np.log10(self.max_frequencies), self.fourier_dim,
-                                        base=10, device=inputs.device)
-            
-            for freq in full_freqs:
-                encodings.append(torch.sin(pos * freq * np.pi))
-                encodings.append(torch.cos(pos * freq * np.pi))
-            
-            pos_features = torch.cat(encodings, dim=-1)
+            pos_features = self.pos_encodings[:L].to(inputs.device)      # [L, out_dim]
+            pos_features = pos_features.unsqueeze(0).expand(B, -1, -1)   # [B, L, out_dim]
             model_input = torch.cat([inputs_one_hot, pos_features], dim=-1)
         else:
             model_input = inputs_one_hot

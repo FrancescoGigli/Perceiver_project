@@ -375,14 +375,222 @@ def test_defaults_match_the_paper_faithful_base_config():
     assert not hasattr(args, "cifar10_fourier_bands")
 
 
-def test_registry_has_26_runs_with_unique_ids():
+def test_registry_has_42_runs_with_unique_ids():
     ids = [e["id"] for e in EXPERIMENTS]
-    assert len(ids) == 26  # 23 immagini (CIFAR-10) + 3 point cloud (ModelNet40)
-    assert len(set(ids)) == 26
-    image = [e for e in EXPERIMENTS if e.get("modality", "image") == "image"]
-    modelnet = [e for e in EXPERIMENTS if e.get("modality") == "modelnet"]
-    assert len(image) == 23
-    assert len(modelnet) == 3
+    # Perceiver: 24 immagini (con il controllo senza PE) + 3 point cloud.
+    # Perceiver IO: 2 immagini + 1 MLM + 10 GLUE + 1 multitask. Piu' 1 baseline CNN.
+    assert len(ids) == 42
+    assert len(set(ids)) == 42
+    counts = {}
+    for e in EXPERIMENTS:
+        m = e.get("modality", "image")
+        counts[m] = counts.get(m, 0) + 1
+    assert counts == {"image": 24, "modelnet": 3, "io_image": 2, "io_mlm": 1,
+                      "io_glue": 10, "io_multitask": 1, "baseline": 1}
+
+
+def test_io_cifar_uses_the_paper_recipe_not_the_v1_multistep():
+    """Il paper IO (App. A.1) abbandona il multistep del Perceiver v1 per la
+    classificazione: lr basso + cosine. Con la ricetta v1 (4e-3 multistep) la run
+    IO su CIFAR sotto-allena (train fermo, val oscillante): questo test impedisce
+    di reintrodurla per sbaglio, e verifica che TUTTO il resto resti gemello di e01."""
+    from experiments import command_for
+
+    def effective(cmd):
+        # argparse tiene l'ultima occorrenza: e' la semantica del registro
+        return {cmd[i]: cmd[i + 1] for i in range(len(cmd) - 1) if cmd[i].startswith("--")}
+
+    io01 = effective(command_for(next(e for e in EXPERIMENTS if e["id"] == "io01_cifar")))
+    e01 = effective(command_for(next(e for e in EXPERIMENTS if e["id"] == "e01_baseline")))
+
+    assert io01["--lr"] == "0.001" and io01["--scheduler"] == "cosine"
+    # architettura e dati identici a e01: stesse chiavi condivise, stessi valori
+    for key in ("--num_latents", "--latent_dim", "--num_cross_attend_stages",
+                "--num_transformer_blocks", "--fourier_num_bands", "--fourier_max_freq",
+                "--latent_init_scale", "--dropout", "--epochs", "--batch_size_cifar10",
+                "--patch_size", "--val_split", "--optimizer"):
+        assert io01[key] == e01[key], f"{key}: {io01[key]} != {e01[key]}"
+
+
+def test_glue_finetuning_matches_the_mlm_pretraining_sequence_length():
+    """I positional encoding si trasferiscono solo se seq_len coincide fra MLM e GLUE."""
+    from experiments import BASE_IO_GLUE, BASE_IO_MLM
+
+    def seq_len(base):
+        return base[base.index("--text_seq_len") + 1]
+
+    assert seq_len(BASE_IO_MLM) == seq_len(BASE_IO_GLUE)
+
+
+def test_glue_and_mlm_build_the_same_input_representation():
+    """Il transfer MLM -> GLUE vale solo se l'input ha la STESSA larghezza e lo STESSO
+    positional encoding: con due Fourier diversi il primo cross-attention del
+    checkpoint viene scartato e il fine-tuning riparte da pesi casuali proprio nel
+    modulo che legge il testo (seq_len uguale non basta a garantirlo)."""
+    from src.data.glue_sst2 import SST2PerceiverDataModule
+    from src.data.glue_tasks import GLUEPerceiverDataModule
+    from src.data.wikitext103 import WikiText103PerceiverDataModule
+
+    kw = dict(seq_len=64, fourier_dim=64, max_frequencies=64.0)
+    mlm = WikiText103PerceiverDataModule(data_dir="./data", num_frequency_bands=6, **kw)
+    glue = GLUEPerceiverDataModule(task_name="rte", data_dir="./data", **kw)
+    sst2 = SST2PerceiverDataModule(data_dir="./data", **kw)
+
+    assert mlm.input_dim == glue.input_dim == sst2.input_dim
+    assert torch.allclose(mlm.pos_encodings, glue.pos_encodings)
+    assert torch.allclose(mlm.pos_encodings, sst2.pos_encodings)
+
+
+def test_perceiver_io_latents_use_the_configured_init_scale():
+    """Con torch.randn i latenti partivano a std 1.0, cioe' la configurazione che in
+    Fig. 6 fa collassare il training (e28_init_scale_1p0)."""
+    from src.perceiver_io.perceiver_io import PerceiverIO
+
+    model = PerceiverIO(input_dim=261, num_classes=10, num_latents=96, latent_dim=384,
+                        latent_init_scale=0.02)
+    assert model.latents.detach().std() < 0.05
+    assert model.output_queries.detach().std() < 0.05
+
+
+def test_perceiver_io_applies_the_input_positional_encoding_on_images():
+    """Senza input_pe il modello IO riceveva 3 canali grezzi pur essendo costruito
+    per token+PE: errore di shape al primo batch."""
+    from src.perceiver.input_pe import InputPositionalEncoding
+    from src.perceiver_io.perceiver_io import PerceiverIO
+
+    pe = InputPositionalEncoding(grid_size=8, mode="fourier", num_bands=4, max_freq=4.0)
+    model = PerceiverIO(input_dim=3 + pe.pe_dim, num_classes=10, num_latents=8,
+                        latent_dim=32, num_heads=4, input_pe=pe)
+    raw_tokens = torch.randn(2, 64, 3)          # come li produce il DataModule CIFAR
+    assert model(raw_tokens).shape == (2, 10)
+
+
+def test_io_summary_computes_the_glue_average_and_the_pretraining_delta(capsys):
+    """La media GLUE e' il numero confrontabile con la Tab. 1 del paper; il delta
+    pretrained-vs-scratch e' cio' che i due controlli devono misurare."""
+    from analyze_v2 import print_io_section
+
+    results = {
+        "e01_baseline": {"test_accuracy": 0.70},
+        "io01_cifar": {"test_accuracy": 0.72},
+        "io_mlm": {"val_accuracy": 0.80},
+        # media voluta: (0.60+0.80+0.70+0.50+0.60+0.40+0.70+0.50)/8 = 0.6
+        "io_glue_cola": {"val_accuracy": 0.60}, "io_glue_sst2": {"val_accuracy": 0.80},
+        "io_glue_mrpc": {"val_accuracy": 0.70}, "io_glue_stsb": {"val_accuracy": 0.50},
+        "io_glue_qqp": {"val_accuracy": 0.60}, "io_glue_mnli": {"val_accuracy": 0.40},
+        "io_glue_qnli": {"val_accuracy": 0.70}, "io_glue_rte": {"val_accuracy": 0.50},
+        "io_glue_sst2_scratch": {"val_accuracy": 0.65},
+        "io_glue_rte_scratch": {"val_accuracy": 0.55},
+    }
+    print_io_section(results, band=0.0278)
+    out = capsys.readouterr().out
+
+    assert "media su 8/8 task: 60.00" in out
+    assert "ATTENZIONE: media parziale" not in out
+    assert "+15.00%" in out          # sst2: 0.80 col pre-training contro 0.65 da zero
+    assert "-5.00%" in out           # rte: 0.50 contro 0.55, il pre-training non aiuta
+    assert "+2.00%" in out           # io01_cifar vs e01_baseline
+    assert "NON concludente" in out  # 2 punti stanno dentro la banda di rumore (2.78)
+
+
+def test_a_run_with_a_valid_result_is_never_queued_for_rerun(tmp_path, monkeypatch):
+    """e28_init_scale_1p0 finisce sotto il livello del caso: e' il risultato della
+    Fig. 6, non un errore. Il numero riportato viene dal checkpoint scelto sulla
+    validation, quindi la run e' completa; rilanciarla con lo stesso seed darebbe lo
+    stesso esito e --next ci resterebbe dentro in loop."""
+    import json as _json
+
+    import experiments as _exp
+
+    run_dir = tmp_path / "logs" / "e28_init_scale_1p0"
+    run_dir.mkdir(parents=True)
+    (run_dir / "results.json").write_text(_json.dumps({
+        "test_accuracy": 0.5208, "val_accuracy": 0.5336,
+        "final_val_accuracy": 0.4632, "selected_epoch": 9,
+    }), encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    exp = next(e for e in EXPERIMENTS if e["id"] == "e28_init_scale_1p0")
+    stato, acc, pulito = _exp._run_status(exp)
+    assert pulito is True, "una run con un risultato valido non va rimessa in coda"
+    assert "instabile" in stato
+    assert acc == pytest.approx(0.5208)
+
+
+def test_a_run_without_any_result_is_queued_for_rerun(tmp_path, monkeypatch):
+    import json as _json
+
+    import experiments as _exp
+
+    run_dir = tmp_path / "logs" / "e28_init_scale_1p0"
+    run_dir.mkdir(parents=True)
+    (run_dir / "results.json").write_text(_json.dumps({
+        "test_accuracy": None, "val_accuracy": None,
+        "final_val_accuracy": None, "selected_epoch": 3,
+    }), encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    exp = next(e for e in EXPERIMENTS if e["id"] == "e28_init_scale_1p0")
+    stato, _, pulito = _exp._run_status(exp)
+    assert pulito is False and "rifare" in stato
+
+
+def test_glue_runs_are_not_flagged_as_diverged_by_the_cifar_threshold():
+    """La soglia 0.5 vale per CIFAR-10 (caso 0.10), non per GLUE: i task binari hanno
+    il caso proprio a 0.50 e STS-B e' una regressione con valori negativi. Con la
+    soglia sbagliata ogni run GLUE risultava divergita e --next restava in loop."""
+    from experiments import _COLLAPSE_FLOOR
+
+    assert _COLLAPSE_FLOOR["io_glue"] is None
+    assert _COLLAPSE_FLOOR["image"] == 0.5
+
+
+def test_wikitext2_does_not_redownload_when_the_data_is_already_extracted(tmp_path, monkeypatch):
+    """Il controllo 'gia' scaricato' deve guardare nella cartella annidata in cui lo
+    zip estrae (e da cui legge setup()), altrimenti riscarica a ogni run."""
+    import urllib.request
+
+    from src.data.wikitext2 import WikiText2PerceiverDataModule
+
+    extracted = tmp_path / "wikitext-2" / "wikitext-2"
+    extracted.mkdir(parents=True)
+    for name in ("wiki.train.tokens", "wiki.valid.tokens", "wiki.test.tokens"):
+        (extracted / name).write_text("ciao\n", encoding="utf-8")
+
+    def boom(*args, **kwargs):
+        raise AssertionError("ha tentato il download benche' i dati fossero gia' estratti")
+
+    monkeypatch.setattr(urllib.request, "urlretrieve", boom)
+    monkeypatch.setattr(urllib.request, "urlopen", boom)
+
+    dm = WikiText2PerceiverDataModule(data_dir=str(tmp_path), seq_len=8)
+    dm._download_wikitext2()  # non deve fare rete
+
+
+def test_short_runs_do_not_use_multistep_whose_milestones_are_fixed_at_120_epochs():
+    """MultiStepLR ha milestone fisse [84,102,114]: su una run piu' corta il
+    learning rate non decadrebbe mai. Le run IO (10/30 epoche) devono usare cosine."""
+    from experiments import command_for
+
+    for exp in EXPERIMENTS:
+        cmd = command_for(exp)
+        if "--scheduler" not in cmd:
+            continue
+        epochs = int(cmd[cmd.index("--epochs") + 1])
+        scheduler = cmd[cmd.index("--scheduler") + 1]
+        if scheduler == "multistep":
+            assert epochs > 114, f"{exp['id']}: multistep con {epochs} epoche non decade mai"
+
+
+def test_glue_runs_load_the_mlm_checkpoint_except_the_scratch_controls():
+    glue = [e for e in EXPERIMENTS if e.get("modality") == "io_glue"]
+    pretrained = [e for e in glue if not e["id"].endswith("_scratch")]
+    scratch = [e for e in glue if e["id"].endswith("_scratch")]
+    assert len(pretrained) == 8 and len(scratch) == 2
+    for exp in pretrained:
+        assert "--load_checkpoint_path" in exp["overrides"]
+    for exp in scratch:
+        assert "--load_checkpoint_path" not in exp["overrides"]
 
 
 def test_every_override_is_a_known_flag():

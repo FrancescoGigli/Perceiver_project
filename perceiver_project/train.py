@@ -151,6 +151,10 @@ def main(args):
     train_loader = data_module.train_dataloader()
     val_loader = data_module.val_dataloader()
     
+    # Per i dataset testuali il positional encoding e' gia' concatenato dal DataModule:
+    # resta None e il modello non ne applica un altro.
+    input_pe = None
+
     # For CIFAR-10, build the input positional encoding (lives in the model, not the DataModule)
     if args.dataset == 'cifar10':
         from src.perceiver.input_pe import InputPositionalEncoding, make_token_permutation
@@ -247,7 +251,9 @@ def main(args):
             task=args.model_task,
             mlm_vocab_size=args.mlm_vocab_size,
             save_attention_maps=args.save_attention_maps,
-            weight_sharing=not args.no_weight_sharing
+            weight_sharing=not args.no_weight_sharing,
+            latent_init_scale=args.latent_init_scale,
+            input_pe=input_pe,
         )
         total_params = sum(p.numel() for p in temp_model.parameters() if p.requires_grad)
         del temp_model  # Free up memory
@@ -325,7 +331,9 @@ def main(args):
             task=args.model_task,
             mlm_vocab_size=args.mlm_vocab_size,
             save_attention_maps=args.save_attention_maps, # Pass the flag
-            weight_sharing=weight_sharing # Pass weight sharing flag
+            weight_sharing=weight_sharing, # Pass weight sharing flag
+            latent_init_scale=args.latent_init_scale,
+            input_pe=input_pe,
         ).to(device)
     else:
         raise ValueError(f"Unsupported model_type: {args.model_type}")
@@ -352,11 +360,25 @@ def main(args):
                 print(f"Skipped loading {len(skipped_keys)} keys due to mismatch (e.g. output heads):")
                 print(f"Examples: {skipped_keys[:5]}")
             
+            if not pretrained_dict:
+                raise SystemExit(
+                    f"Nessun peso compatibile in {args.load_checkpoint_path}: l'architettura "
+                    f"non combacia (controlla --text_seq_len, --num_latents, --latent_dim). "
+                    f"Proseguire addestrerebbe da zero fingendo un transfer."
+                )
+
             model_dict.update(pretrained_dict)
             model.load_state_dict(model_dict, strict=False)
             print(f"Successfully loaded {len(pretrained_dict)}/{len(model_dict)} keys.")
         else:
-            print(f"Warning: Checkpoint path {args.load_checkpoint_path} does not exist!")
+            # Niente warning: proseguire addestrerebbe da pesi casuali producendo una run
+            # etichettata "da checkpoint" ma in realta' from-scratch, indistinguibile nei
+            # risultati. Meglio fermarsi subito.
+            raise SystemExit(
+                f"Checkpoint non trovato: {args.load_checkpoint_path}\n"
+                f"Se e' il pre-training MLM, lancialo prima (experiments.py --run io_mlm) "
+                f"e attendi che finisca."
+            )
 
     # Optimizer
     if args.optimizer.lower() == 'lamb':
@@ -437,13 +459,15 @@ def main(args):
             avg_val_loss, avg_val_acc = validate_one_epoch(
                 model, val_loader, criterion, device, epoch, logger, args, data_module
             )
-            # For STS-B regression, override accuracy metric with negative loss
+            # STS-B: validate_one_epoch ritorna gia' la correlazione di Pearson
+            # (metrica ufficiale GLUE). Prima qui veniva sovrascritta con -MSE, che
+            # finiva in results.json come "val_accuracy" negativa: non confrontabile
+            # con gli altri task e sempre marcata come run divergita'.
             if args.dataset == 'glue_stsb':
-                avg_val_acc = -avg_val_loss  # Use negative loss as improvement metric
-                val_acc_pct = avg_val_loss  # Display as loss
+                val_acc_pct = avg_val_loss  # a schermo mostriamo anche l'MSE
                 val_diff = prev_val_acc - avg_val_loss  # Improvement = loss decrease
                 diff_sign = '+' if val_diff > 0 else ''
-                best_val_acc_pct = -best_val_accuracy  # Display best - loss
+                best_val_acc_pct = best_val_accuracy
                 print(f"Epoch {epoch+1} Val: Avg Loss: {avg_val_loss:.4f} ({diff_sign}{val_diff:.4f}), Best Loss: {best_val_acc_pct:.4f}")
             else:
                 val_acc_pct = avg_val_acc * 100
@@ -738,7 +762,9 @@ def validate_one_epoch(model, val_loader, criterion, device, epoch_num, logger, 
                 all_targets.extend(masked_targets)
             else:
                 if args.dataset == 'glue_stsb':
-                    predicted = output.squeeze(-1).detach()
+                    # .float(): sotto autocast l'uscita e' bfloat16 e .numpy() non lo
+                    # supporta (TypeError). Le altre task passano indici argmax int64.
+                    predicted = output.squeeze(-1).detach().float()
                 all_predictions.extend(predicted.cpu().numpy())
                 all_targets.extend(target.cpu().numpy())
             
@@ -748,7 +774,19 @@ def validate_one_epoch(model, val_loader, criterion, device, epoch_num, logger, 
 
     avg_loss = total_loss / max(1, total_samples)
     avg_acc = total_correct / max(1, total_samples)
-    
+
+    # STS-B e' una regressione: la metrica ufficiale GLUE e' la correlazione di
+    # Pearson, non l'accuracy (che qui resterebbe 0) ne' l'MSE cambiato di segno
+    # (numero negativo, non confrontabile con gli altri task nella media GLUE).
+    if args.dataset == 'glue_stsb' and len(all_predictions) > 1:
+        import numpy as _np
+        preds = _np.asarray(all_predictions, dtype=_np.float64)
+        targs = _np.asarray(all_targets, dtype=_np.float64)
+        if preds.std() > 0 and targs.std() > 0:
+            avg_acc = float(_np.corrcoef(preds, targs)[0, 1])
+        else:
+            avg_acc = 0.0   # predizioni costanti: correlazione non definita
+
     # Calculate and save advanced metrics if enabled
     if hasattr(args, 'save_metrics') and args.save_metrics:
         calculate_and_save_metrics(all_targets, all_predictions, epoch_num, args)

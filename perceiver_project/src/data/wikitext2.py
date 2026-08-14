@@ -96,8 +96,12 @@ class WikiText2PerceiverDataModule:
         target_dir = os.path.join(self.data_dir, "wikitext-2")
         os.makedirs(target_dir, exist_ok=True)
 
-        train_path = os.path.join(target_dir, "wiki.train.tokens")
-        valid_path = os.path.join(target_dir, "wiki.valid.tokens")
+        # Lo zip estrae in wikitext-2/wikitext-2/: e' quella la cartella che legge
+        # setup(), quindi il controllo "gia' scaricato" deve guardare li' dentro.
+        # Cercando un livello piu' in alto non trovava mai nulla e riscaricava sempre.
+        extracted_dir = os.path.join(target_dir, "wikitext-2")
+        train_path = os.path.join(extracted_dir, "wiki.train.tokens")
+        valid_path = os.path.join(extracted_dir, "wiki.valid.tokens")
         if os.path.exists(train_path) and os.path.exists(valid_path):
             return
 

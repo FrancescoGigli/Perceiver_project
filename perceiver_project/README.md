@@ -7,226 +7,141 @@ Università degli Studi di Firenze — Prof. Paolo Frasconi
 
 ## Panoramica
 
-Implementazione from-scratch dei modelli **Perceiver** ([Jaegle et al., 2021](https://arxiv.org/abs/2103.03206)) e **Perceiver IO** ([Jaegle et al., 2021](https://arxiv.org/abs/2107.14795)) in PyTorch. Il progetto riproduce e analizza i risultati del paper originale su tre modalità:
+Implementazione from-scratch dei modelli **Perceiver** ([Jaegle et al., 2021](https://arxiv.org/abs/2103.03206))
+e **Perceiver IO** ([Jaegle et al., 2021](https://arxiv.org/abs/2107.14795)) in PyTorch,
+con replica e analisi degli esperimenti del paper su due modalità:
 
-- **Immagini**: classificazione CIFAR-10 con ablation study su positional encoding, weight sharing, permutazione pixel
-- **Point cloud 3D**: classificazione ModelNet40 con studio augmentation
-- **Testo**: pre-training MLM su WikiText-103 → fine-tuning su 8 task GLUE (SST-2, CoLA, MRPC, STS-B, QQP, MNLI, QNLI, RTE)
+- **Immagini** — classificazione CIFAR-10, con ablation su positional encoding,
+  permutazione dei pixel, weight sharing, numero e disposizione dei cross-attend,
+  bande/frequenza di Fourier e scala di inizializzazione dei latent.
+- **Point cloud 3D** — classificazione ModelNet40 (paper Tab. 4), studio augmentation.
 
-## Struttura del repository
+Più **Perceiver IO** sul caso in cui il suo decoder serve davvero: pre-training
+**MLM byte-level senza tokenizer** e fine-tuning su **GLUE** (paper Tab. 1).
 
+Il progetto è guidato da un **registro dichiarativo** ([experiments.py](experiments.py)):
+42 run — 27 Perceiver (24 CIFAR-10 + 3 ModelNet40), 14 Perceiver IO (2 CIFAR,
+1 pre-training MLM, 10 GLUE, 1 multitask GLUE) e 1 baseline convoluzionale di
+riferimento — ognuna un override della config base, ciascuna mappata alla
+tabella/figura del paper che replica.
+
+## Struttura
+
+```text
+perceiver_project/
+├── train.py                    # training loop (CIFAR-10, ModelNet40, WikiText MLM, GLUE)
+├── experiments.py              # registro delle run + runner (--list/--run/--next/--all/--group)
+├── multitask_glue.py           # Perceiver IO multitask sugli 8 task GLUE (paper IO Tab. 2)
+├── baseline_cnn.py             # baseline ResNet-18 su CIFAR-10 (termine di paragone)
+├── check.py                    # stato delle run: fatte / da fare / divergite (sola lettura)
+├── analyze_v2.py               # analisi comparativa dei risultati vs baseline (sola lettura)
+├── bench.py                    # micro-benchmark: VRAM di picco e tempo/batch
+├── visualize_v2_attention.py   # mappe d'attenzione (--experiment <id>)
+├── requirements.txt
+├── tests/                      # pytest: verifica delle correzioni v2
+└── src/
+    ├── perceiver/              # perceiver.py, encoder.py, attention.py, blocks.py, input_pe.py
+    ├── perceiver_io/           # perceiver_io.py  (decoder con output queries)
+    ├── data/                   # cifar10.py, modelnet40.py, transforms.py
+    ├── config/base_cfg.py      # configurazione centralizzata (argparse)
+    └── utils/                  # positional_encoding, learned_pe, scheduler, logger, seed
 ```
-Perceiver_project/
-├── train.py                    # Training loop principale (tutti i dataset)
-├── run_glue.py                 # Launcher singolo task GLUE
-├── run_all_glue.py             # Launcher tutti i task GLUE in sequenza
-├── reproduce.py                # Script interattivo per riprodurre esperimenti
-├── visualize_attention.py      # Visualizzazione attention maps
-├── visualize_perceiver_attention.py
-├── visualize_results.py        # Grafici e analisi risultati
-├── requirements.txt            # Dipendenze Python
-│
-├── src/
-│   ├── perceiver/
-│   │   ├── perceiver.py        # Modello Perceiver (classificazione)
-│   │   ├── encoder.py          # Encoder con cross/self-attention iterata
-│   │   ├── attention.py        # Moduli CrossAttention e SelfAttention
-│   │   └── blocks.py           # Blocchi Transformer latenti
-│   │
-│   ├── perceiver_io/
-│   │   └── perceiver_io.py     # Perceiver IO (decoder con output queries)
-│   │
-│   ├── data/
-│   │   ├── cifar10.py          # DataModule CIFAR-10 con Fourier PE e patching
-│   │   ├── modelnet40.py       # DataModule ModelNet40 (point cloud)
-│   │   ├── wikitext2.py        # DataModule WikiText-2 (byte-level MLM)
-│   │   ├── wikitext103.py      # DataModule WikiText-103 (byte-level MLM)
-│   │   ├── glue_sst2.py        # DataModule SST-2
-│   │   ├── glue_tasks.py       # DataModule generico per tutti i task GLUE
-│   │   └── transforms.py       # Trasformazioni e augmentation
-│   │
-│   ├── config/
-│   │   └── base_cfg.py         # Configurazione centralizzata (argparse)
-│   │
-│   └── utils/
-│       ├── positional_encoding.py  # Fourier positional encoding
-│       ├── learned_pe.py           # Learned positional encoding
-│       ├── scheduler.py            # Learning rate schedulers
-│       ├── logger.py               # Logger (TensorBoard / WandB)
-│       └── summarize_results.py    # Utility per riassumere checkpoint
-│
-├── data/                       # Directory dati (non inclusa nel repo)
-└── logs/                       # Directory esperimenti (non inclusa nel repo)
-```
+
+I dati (`data/`) e i risultati (`logs/`) **non** sono nel repo: vedi
+[Dati](#dati) e [Riprodurre gli esperimenti](#riprodurre-gli-esperimenti).
+
+## Configurazione base
+
+Ogni esperimento parte da una base e ne cambia solo alcuni parametri
+(le costanti esatte sono in cima a [experiments.py](experiments.py)):
+
+| parametro | Immagini (CIFAR-10) | Point cloud (ModelNet40) |
+|---|---|---|
+| latent (N × D) | 96 × 384 | 128 × 512 |
+| cross-attend (T) / self-attn per blocco (L) | 4 / 4 | 2 / 6 |
+| Fourier (bande K, f_max) | 64, 16 | — |
+| ottimizzatore / lr | LAMB / 0.004 | LAMB / 0.001 |
+| epoche / batch | 120 / 64 | 120 / 32 |
+| seed | 42 | 42 |
 
 ## Requisiti
 
 - Python ≥ 3.10
-- CUDA ≥ 11.8 (consigliato, funziona anche su CPU ma molto lento)
-- GPU con almeno 6 GB VRAM (esperimenti eseguiti su NVIDIA RTX 3060 12GB)
-
-### Installazione
+- GPU CUDA consigliata (esperimenti eseguiti su NVIDIA RTX 3080). Gira anche su CPU, molto lento.
 
 ```bash
-git clone <repo_url>
-cd Perceiver_project
 pip install -r requirements.txt
 ```
 
-## Download dati
+## Dati
 
-| Dataset | Dimensione | Download |
-|---------|-----------|----------|
-| **CIFAR-10** | ~170 MB | Automatico (torchvision lo scarica alla prima esecuzione) |
-| **ModelNet40** | ~2 GB | [Download manuale](https://shapenet.cs.stanford.edu/media/modelnet40_normal_resampled.zip) → estrarre in `data/modelnet40/` |
-| **WikiText-2** | ~12 MB | Automatico (scaricato alla prima esecuzione) |
-| **WikiText-103** | ~500 MB | Automatico (scaricato alla prima esecuzione) |
-| **GLUE tasks** | ~varia | Automatico (scaricato alla prima esecuzione via HuggingFace) |
+Entrambi i dataset si scaricano **automaticamente** alla prima esecuzione dentro `./data`:
 
-## Risultati principali
-
-### CIFAR-10 — Ablation Study (Perceiver)
-
-| Esperimento | Configurazione | Parametri | Accuracy |
-|-------------|---------------|-----------|----------|
-| **Exp1** Baseline Fourier PE | 96 latent, 384 dim, 4 cross-attn, LAMB | 3.35M | ~72% |
-| **Exp3A** Fourier Control | Identico a Exp1 (riproduzione) | 3.35M | ~72% |
-| **Exp3B** RGB Only (no PE) | Senza positional encoding | 3.35M | ~35% |
-| **Exp4A** Weight Sharing | Baseline con weight sharing | 3.35M | ~72% |
-| **Exp4B** No Weight Sharing | Senza weight sharing | ~11M | ~73% |
-| **Exp6** Fourier + Permuted | PE Fourier con pixel permutati | 3.35M | ~62% |
-| **Exp2** Learned PE + Permuted | PE learned con pixel permutati | 3.35M | ~55% |
-
-### CIFAR-10 — Perceiver IO
-
-| Esperimento | Configurazione | Parametri | Accuracy |
-|-------------|---------------|-----------|----------|
-| Perceiver IO | 128 latent, 512 dim, output queries | 9.5M | ~74% |
-
-### ModelNet40 — Point Cloud Classification
-
-| Esperimento | Augmentation | Accuracy |
-|-------------|-------------|----------|
-| Baseline (paper config) | Scale only | 84.16% |
-| Con rotation | Scale + rotation | 83.06% |
-| Con translation | Scale + translation | 82.90% |
-
-*Paper originale riporta 85.7% con batch=512 e 150 epochs; i nostri risultati usano batch=128 e GPU più limitata.*
-
-### WikiText-103 → GLUE (Perceiver IO, pre-train + fine-tune)
-
-| Task | Tipo | Metrica | Risultato |
-|------|------|---------|-----------|
-| MLM Pre-training | Language modeling | Masked accuracy | Checkpoint disponibile |
-| SST-2 | Sentiment | Accuracy | Fine-tuned |
-| CoLA | Acceptability | Accuracy | Fine-tuned |
-| MRPC | Paraphrase | Accuracy | Fine-tuned |
-| STS-B | Similarity | MSE Loss | Fine-tuned |
-| QQP | Paraphrase | Accuracy | Fine-tuned |
-| MNLI | NLI | Accuracy | Fine-tuned |
-| QNLI | NLI | Accuracy | Fine-tuned |
-| RTE | NLI | Accuracy | Fine-tuned |
+| Dataset | Dimensione | Come |
+|---|---|---|
+| **CIFAR-10** | ~170 MB | `torchvision` lo scarica in `data/` |
+| **ModelNet40** | ~2 GB | `torch_geometric.datasets.ModelNet` lo scarica in `data/modelnet40/` |
 
 ## Riprodurre gli esperimenti
 
-### Modo rapido: script interattivo
+Tutto passa dal registro [experiments.py](experiments.py), che è l'unica fonte
+autorevole dei comandi (costruisce l'invocazione esatta di `train.py`):
 
 ```bash
-python reproduce.py
+python experiments.py --list                 # elenca le 26 run e i loro override
+python experiments.py --run e01_baseline      # esegue una singola run
+python experiments.py --group tab6            # esegue tutte le run di un gruppo
+python experiments.py --all                   # esegue tutte le run in sequenza
+python experiments.py --next                  # riassunto di stato + lancia la prima mancante/divergita
 ```
 
-Mostra un menu con tutti gli esperimenti disponibili e permette di selezionare quale lanciare.
+`--next` è il modo consigliato per andare avanti: stampa la tabella di stato
+(divisa immagini / ModelNet) e lancia il primo esperimento ancora da fare.
 
-### Modo manuale: comandi singoli
+### Gruppi ↔ paper
 
-#### 1. CIFAR-10 Baseline (Perceiver)
+| gruppo | replica |
+|---|---|
+| `tab1` | Tab. 1 — baseline di riferimento |
+| `tab2` | Tab. 2 — permutazione & positional encoding |
+| `tab5` | Tab. 5 — senza latent transformer |
+| `tab6` | Tab. 6 — numero e disposizione dei cross-attend |
+| `tab7` | Tab. 7 — weight sharing |
+| `fig6` | Fig. 6 — bande / freq. max / init scale |
+| `noise` | fuori dal paper — banda di rumore (seed diversi) |
+| `modelnet` | Tab. 4 — ModelNet40 (augmentation) |
+| `io_image` | Perceiver IO su CIFAR-10: decoder a query vs pooling (ricetta di training del paper IO, App. A.1) |
+| `io_mlm` | Perceiver IO — pre-training MLM byte-level (WikiText-103) |
+| `io_glue` | Perceiver IO — Tab. 1: fine-tuning GLUE (8 task + 2 controlli senza pre-training) e Tab. 2: multitask (`multitask_glue.py`) |
+| `baseline` | ResNet-18 su CIFAR-10 (`baseline_cnn.py`): riferimento non-Perceiver a parità di split/epoche |
+
+> **Ordine obbligato**: le run `io_glue_*` partono dal checkpoint di `io_mlm`,
+> quindi il pre-training va completato prima. Lanciarle in anticipo si ferma con
+> un errore esplicito invece di addestrare da zero fingendo un transfer.
+
+## Risultati
+
+I risultati si leggono dai file generati da ogni run in `logs/<id>/results.json`
+(`test_accuracy`, `val_accuracy`, `selected_epoch`, `params`, ...). Non sono
+riportati qui a mano: usa gli strumenti di sola lettura, che restano allineati
+alle run effettivamente eseguite.
 
 ```bash
-python train.py \
-    --experiment_name exp1_baseline_fourier \
-    --dataset cifar10 \
-    --cifar10_fourier_bands 64 --cifar10_max_freq 32.0 \
-    --num_latents 96 --latent_dim 384 \
-    --num_cross_attend_stages 4 --num_transformer_blocks 4 \
-    --num_heads 3 --dropout 0.2 \
-    --optimizer lamb --lr 0.004 \
-    --scheduler multistep --epochs 120 \
-    --batch_size_cifar10 64 \
-    --save_attention_maps --use_tensorboard
+python check.py            # tabella di stato: fatte / da fare / divergite + test acc
+python analyze_v2.py       # analisi comparativa di ogni run rispetto al baseline
 ```
 
-#### 2. CIFAR-10 senza Positional Encoding
+## Mappe d'attenzione
 
 ```bash
-python train.py \
-    --experiment_name exp3B_rgb_only \
-    --dataset cifar10 --no_positional_encoding \
-    --num_latents 96 --latent_dim 384 \
-    --num_cross_attend_stages 4 --num_transformer_blocks 4 \
-    --num_heads 3 --dropout 0.2 \
-    --optimizer lamb --lr 0.004 \
-    --scheduler multistep --epochs 120 \
-    --batch_size_cifar10 64 \
-    --save_attention_maps --use_tensorboard
+python visualize_v2_attention.py --experiment e01_baseline
+# richiede logs/<id>/checkpoints/best_model.pt; salva le PNG in perceiver_visualizations_v2/
 ```
 
-#### 3. ModelNet40 (paper config)
+## Test
 
 ```bash
-python train.py \
-    --experiment_name modelnet40_baseline_paper \
-    --dataset modelnet40 \
-    --modelnet40_num_points 2048 \
-    --modelnet40_fourier_bands 64 --modelnet40_max_freq 1120.0 \
-    --batch_size_modelnet40 128 \
-    --num_latents 128 --latent_dim 512 \
-    --num_cross_attend_stages 2 --num_transformer_blocks 6 \
-    --num_heads 8 --dropout 0.1 \
-    --optimizer lamb --lr 0.001 \
-    --scheduler none --epochs 200 \
-    --save_attention_maps --save_metrics --use_tensorboard
-```
-
-#### 4. Pre-training MLM su WikiText-103 (Perceiver IO)
-
-```bash
-python train.py \
-    --experiment_name mlm_wikitext103_optimized_batch32 \
-    --dataset wikitext103 \
-    --model_type perceiver_io --model_task mlm \
-    --num_latents 128 --latent_dim 512 \
-    --num_cross_attend_stages 1 --num_transformer_blocks 4 \
-    --num_heads 8 --dropout 0.1 \
-    --text_seq_len 1024 --text_fourier_dim 64 --text_max_freq 64.0 \
-    --mlm_mask_prob 0.15 --mlm_vocab_size 256 \
-    --num_output_queries 1024 \
-    --optimizer lamb --lr 0.001 \
-    --scheduler multistep --epochs 50 \
-    --batch_size_cifar10 32 --num_workers 2
-```
-
-#### 5. Fine-tuning GLUE (singolo task, es. SST-2)
-
-```bash
-python run_glue.py sst2 --epochs 30 --lr 0.0005 --batch_size 32
-```
-
-#### 6. Fine-tuning tutti i task GLUE
-
-```bash
-python run_all_glue.py
-```
-
-> **Nota**: il fine-tuning GLUE richiede il checkpoint del pre-training MLM (`logs/mlm_wikitext103_optimized_batch32/checkpoints/last_checkpoint.pth`).
-
-## Visualizzazione
-
-```bash
-# Attention maps
-python visualize_attention.py
-
-# Grafici risultati
-python visualize_results.py
+python -m pytest tests/ -q
 ```
 
 ## Riferimenti

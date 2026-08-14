@@ -31,8 +31,15 @@ class PerceiverIO(nn.Module):
         mlm_vocab_size=256,
         save_attention_maps=False,
         weight_sharing=True,
+        latent_init_scale=0.02,
+        input_pe=None,
     ):
         super().__init__()
+        # Positional encoding applicato ai token in ingresso (immagini). Per i dataset
+        # testuali il PE e' gia' concatenato dal DataModule, quindi resta None.
+        # Senza questo, sulle immagini il modello riceveva 3 canali grezzi mentre era
+        # costruito per 261 (token + PE): errore al primo batch.
+        self.input_pe = input_pe
         self.num_latents = num_latents
         self.latent_dim = latent_dim
         self.num_output_queries = num_output_queries
@@ -41,8 +48,17 @@ class PerceiverIO(nn.Module):
         self.save_attention_maps_flag = save_attention_maps
         self.attn_maps = []
 
-        # Learned latent array (shared across batch)
-        self.latents = nn.Parameter(torch.randn(num_latents, latent_dim))
+        # Learned latent array (shared across batch).
+        # Stessa inizializzazione del Perceiver (App. C): normale troncata con
+        # std=latent_init_scale. Con il precedente torch.randn i latenti partivano a
+        # std 1.0, cioe' la configurazione che in Fig. 6 (e28_init_scale_1p0) fa
+        # collassare il training: il confronto con il Perceiver non sarebbe stato equo.
+        latents = torch.empty(num_latents, latent_dim)
+        nn.init.trunc_normal_(
+            latents, mean=0.0, std=latent_init_scale,
+            a=-2.0 * latent_init_scale, b=2.0 * latent_init_scale,
+        )
+        self.latents = nn.Parameter(latents)
 
         # Encoder: input -> latents (reuse existing PerceiverEncoder)
         self.encoder = PerceiverEncoder(
@@ -58,8 +74,13 @@ class PerceiverIO(nn.Module):
             weight_sharing=weight_sharing,
         )
 
-        # Learned output query (single query by default)
-        self.output_queries = nn.Parameter(torch.randn(num_output_queries, latent_dim))
+        # Learned output query (single query by default), stessa init dei latenti.
+        queries = torch.empty(num_output_queries, latent_dim)
+        nn.init.trunc_normal_(
+            queries, mean=0.0, std=latent_init_scale,
+            a=-2.0 * latent_init_scale, b=2.0 * latent_init_scale,
+        )
+        self.output_queries = nn.Parameter(queries)
 
         # Decoder: output queries -> latents (cross-attention)
         self.decoder = CrossAttention(
@@ -81,6 +102,9 @@ class PerceiverIO(nn.Module):
         )
 
     def forward(self, data, input_mask=None):
+        if self.input_pe is not None:
+            data = self.input_pe(data)
+
         batch_size = data.shape[0]
         self.attn_maps = []
 
@@ -108,6 +132,13 @@ class PerceiverIO(nn.Module):
             input_mask=None,
             return_attn_weights=False,
         )
+
+        if self.task == "features":
+            # Una query per task (multitask, paper Tab. 2): restituiamo le query
+            # decodificate cosi' come sono e la testa la mette chi chiama, una per
+            # task. E' il punto in cui il decoder di IO disaccoppia l'output
+            # dall'input: niente token [CLS] da infilare nella sequenza.
+            return decoded_queries
 
         if self.task == "classification":
             # For classification, use the first (or only) query
