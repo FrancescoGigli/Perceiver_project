@@ -1,57 +1,40 @@
-# Dataset e risultati (troppo grandi per il repo)
+# ── Materiale fuori dal deliverable ───────────────────────────────────────────
+# Bozze superate, fonti scaricate, artefatti della prima generazione di
+# esperimenti. Resta su disco per consultazione; la storia git lo conserva.
+/archivio/
+
+# ── Dataset e risultati ───────────────────────────────────────────────────────
+# ~24 GB fra CIFAR-10, ModelNet40, WikiText-103 e i checkpoint delle run.
+# Si riscaricano/rigenerano: vedi progetto/README.md
 /progetto/data/
 /progetto/logs/
-# Output rigenerabili degli strumenti v2
+
+# Output rigenerabili degli strumenti di analisi
 /progetto/perceiver_visualizations_v2/
 /progetto/analysis_results_v2/
 
-# Python cache
+# ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Distribution / packaging
 dist/
 build/
 *.egg-info/
-
-# Virtual environments
 venv/
 env/
 ENV/
 .venv/
-
-# Jupyter Notebook
 .ipynb_checkpoints/
 
-# IDE
+# ── Editor e assistenti ───────────────────────────────────────────────────────
 .idea/
 .vscode/
 *.swp
 *.swo
-
-# AI assistants
 .claude/
 .gemini/
 
-# LaTeX paper (separato)
-/Perceiver_Paper/
-
-# Generated PowerPoint output files
-slides_V2/presentation_v3_*.pptx
-slides_V2/presentation_v2_*.pptx
-
-# PowerPoint lock files
-~$*.pptx
-
-# Snapshot e diagnostica locali del deck (non deliverable)
-slides_V2/backups/
-slides_V2/_diag/
-
-# Vecchia iterazione delle slide, superata da slides_V2/
-/slides/
-
-# Intermedi LaTeX
+# ── LaTeX: intermedi di compilazione ──────────────────────────────────────────
 *.aux
 *.fdb_latexmk
 *.fls
@@ -60,27 +43,10 @@ slides_V2/_diag/
 *.out
 *.snm
 *.toc
-*.lof
 *.synctex.gz
 
-# Lock file di Office
-~$*
+# ── PowerPoint ────────────────────────────────────────────────────────────────
+~$*.pptx
 
-# Archivi e sorgenti Word (materiale di lavoro, non deliverable)
-*.zip
-*.rar
-*.docx
-
-# Scratch e materiale scaricato in preparazione_esame/
-/preparazione_esame/PDF_Bibliografia_Perceiver/
-/preparazione_esame/PDF_Bibliografia_Perceiver_immagini_estratte/
-/preparazione_esame/pdf_scaricati/
-/preparazione_esame/materiali_corso/
-/preparazione_esame/temp_images/
-/preparazione_esame/docx_images/
-/preparazione_esame/catalogo_images/
-/preparazione_esame/_*
-/preparazione_esame/*_TEMP.*
-
-# Artefatti di tooling
+# Artefatti dei controlli con browser
 .playwright-mcp/
