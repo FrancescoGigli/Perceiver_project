@@ -1,7 +1,7 @@
 # Pannello esperimenti Perceiver
 
 App desktop per lanciare e monitorare gli esperimenti. **Non** fa parte del
-codice da consegnare (`perceiver_project/`): è solo uno strumento di controllo locale.
+codice da consegnare (`progetto/`): è solo uno strumento di controllo locale.
 
 Tkinter (standard library) + `psutil`. Nessun server, nessun browser, nessun
 `pip install` particolare.
@@ -30,5 +30,5 @@ Si apre una finestra.
 - **Barra in alto** — CPU / RAM / GPU (via `nvidia-smi`), aggiornate ogni 2 s.
 - **Riquadro in basso** — stdout live del training in corso.
 
-Il registro degli esperimenti è importato da `perceiver_project/experiments.py`;
-i training girano con `cwd = perceiver_project/`, quindi i `logs/` finiscono lì.
+Il registro degli esperimenti è importato da `progetto/experiments.py`;
+i training girano con `cwd = progetto/`, quindi i `logs/` finiscono lì.

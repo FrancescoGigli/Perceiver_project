@@ -1,9 +1,9 @@
 # Dataset e risultati (troppo grandi per il repo)
-/perceiver_project/data/
-/perceiver_project/logs/
+/progetto/data/
+/progetto/logs/
 # Output rigenerabili degli strumenti v2
-/perceiver_project/perceiver_visualizations_v2/
-/perceiver_project/analysis_results_v2/
+/progetto/perceiver_visualizations_v2/
+/progetto/analysis_results_v2/
 
 # Python cache
 __pycache__/

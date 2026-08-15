@@ -49,7 +49,7 @@ Perceiver_project/
 │       ├── index.html  *.pdf  *.tex  *.pptx
 │       └── figure/             ex charts/
 │
-├── progetto/                   ex perceiver_project/ — il codice consegnato
+├── progetto/                   ex progetto/ — il codice consegnato
 │   ├── train.py experiments.py multitask_glue.py baseline_cnn.py
 │   ├── check.py analyze_v2.py bench.py visualize_v2_attention.py
 │   ├── README.md requirements.txt src/ tests/
@@ -91,7 +91,7 @@ Gli stessi due errori sono corretti su `main` anche in `perceiver_interattivo/in
 
 ### R2 — Il working tree è sporco e nulla è committato
 
-`git status --porcelain` → 34 voci. La rinomina di tutto `perceiver_project/` è **staged ma non committata** (32 file, +386 righe), e sopra ci sono **842 righe non staged in 13 file** (`perceiver_io.py` +39, `train.py` +56, `test_v2_corrections.py` +222…).
+`git status --porcelain` → 34 voci. La rinomina di tutto `progetto/` è **staged ma non committata** (32 file, +386 righe), e sopra ci sono **842 righe non staged in 13 file** (`perceiver_io.py` +39, `train.py` +56, `test_v2_corrections.py` +222…).
 **Conseguenza:** un `git tag` qui non salva niente. **Mitigazione:** F0 committa prima di taggare.
 
 ### R3 — `tools/` non è mai stata committata
@@ -153,11 +153,11 @@ Ogni fase ha un collaudo che deve passare prima di procedere.
 
 **Collaudo:** `git status --porcelain` vuoto · `grep '70.9 & 70.9' appunti_ml_definitivo.tex` trova la riga · `git worktree list` → 1 sola voce.
 
-### F1 — Codice: `perceiver_project/` → `progetto/`
+### F1 — Codice: `progetto/` → `progetto/`
 
-Verificato: **0 riferimenti** a `perceiver_project` in `index.html`, nella lezione, negli appunti e nelle slide. Il sito non è toccato.
+Verificato: **0 riferimenti** a `progetto` in `index.html`, nella lezione, negli appunti e nelle slide. Il sito non è toccato.
 
-1. `git mv perceiver_project progetto`
+1. `git mv progetto progetto`
 2. `.gitignore` righe 2, 3, 5, 6 → `/progetto/{data,logs,perceiver_visualizations_v2,analysis_results_v2}/` — **se salti questo, 24 GB tornano visibili a git**
 3. `strumenti/make_consegna.py` righe 28, 34, 43, 118 · `strumenti/dashboard/app.py` riga 28 *(`dashboard.bat` usa `%~dp0`: non toccare)*
 

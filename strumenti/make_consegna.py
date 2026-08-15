@@ -5,7 +5,7 @@
 #   python tools/make_consegna.py --keep-comments # senza spogliare i commenti
 #
 # Cosa fa, in ordine:
-#   1. copia da perceiver_project/ i soli file TRACCIATI da git
+#   1. copia da progetto/ i soli file TRACCIATI da git
 #      (esclude per costruzione data/ ~19 GB, logs/, __pycache__, output rigenerabili);
 #   2. rimuove commenti e docstring dai .py (default), lasciando le stringhe di
 #      argparse: il --help continua a funzionare;
@@ -25,13 +25,13 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]   # tools/ -> radice del repo
-SOURCE = ROOT / "perceiver_project"
+SOURCE = ROOT / "progetto"
 
 
 def tracked_files():
-    """File tracciati da git dentro perceiver_project/. E' il filtro piu' affidabile:
+    """File tracciati da git dentro progetto/. E' il filtro piu' affidabile:
     quello che git ignora (dati, log, cache) non finisce nella consegna."""
-    out = subprocess.check_output(["git", "ls-files", "perceiver_project/"],
+    out = subprocess.check_output(["git", "ls-files", "progetto/"],
                                   cwd=str(ROOT), text=True)
     return [line.strip() for line in out.splitlines() if line.strip()]
 
@@ -40,7 +40,7 @@ def check_nothing_is_left_behind():
     """File .py presenti ma non tracciati da git verrebbero esclusi in SILENZIO:
     la consegna partirebbe senza uno script che il registro invoca. Meglio fermarsi."""
     out = subprocess.check_output(
-        ["git", "ls-files", "--others", "--exclude-standard", "perceiver_project/"],
+        ["git", "ls-files", "--others", "--exclude-standard", "progetto/"],
         cwd=str(ROOT), text=True)
     untracked = [line.strip() for line in out.splitlines()
                  if line.strip().endswith(".py")]
@@ -110,12 +110,12 @@ def main():
     check_nothing_is_left_behind()
     files = tracked_files()
     if not files:
-        raise SystemExit("git ls-files non ha trovato nulla sotto perceiver_project/")
+        raise SystemExit("git ls-files non ha trovato nulla sotto progetto/")
 
     n_py = 0
     for rel in files:
         src = ROOT / rel
-        target = dest / Path(rel).relative_to("perceiver_project")
+        target = dest / Path(rel).relative_to("progetto")
         target.parent.mkdir(parents=True, exist_ok=True)
         if src.suffix == ".py" and not args.keep_comments:
             target.write_text(strip_comments(src.read_text(encoding="utf-8"), src),

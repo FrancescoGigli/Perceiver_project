@@ -25,7 +25,7 @@ from tkinter import ttk, messagebox
 import psutil
 
 ROOT = Path(__file__).resolve().parents[2]
-PROJECT = ROOT / "perceiver_project"
+PROJECT = ROOT / "progetto"
 LOGS = PROJECT / "logs"
 VIZ = PROJECT / "perceiver_visualizations_v2"
 
