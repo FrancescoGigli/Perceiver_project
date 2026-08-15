@@ -3324,3 +3324,49 @@ tr.rq-todo td {
 @media (prefers-reduced-motion: reduce) {
     .md-seg-b { transition: none; }
 }
+
+/* ============================================================
+   Sweep di Fig. 6 e barplot ModelNet40 (cap. 45)
+   ============================================================ */
+.sw-plot, .mn-plot {
+    width: 100%;
+    height: auto;
+    display: block;
+    margin: 8px 0 2px;
+    overflow: visible;
+}
+
+.sw-plot text, .mn-plot text { font-family: inherit; }
+
+.sw-band { fill: var(--primary-soft); opacity: .55; }
+.sw-base { stroke: var(--primary); stroke-width: 1.2; }
+.sw-ax   { stroke: var(--border); stroke-width: 1; }
+.sw-line { fill: none; stroke: var(--muted); stroke-width: 1.6; opacity: .55; }
+
+.sw-t  { font-size: 12px; font-weight: 700; text-anchor: middle; fill: var(--text); }
+.sw-yt { font-size: 9.5px; text-anchor: end; fill: var(--muted); }
+.sw-xt { font-size: 10.5px; text-anchor: middle; fill: var(--text-soft); }
+.sw-v  { font-size: 10px; text-anchor: middle; fill: var(--text-soft); font-variant-numeric: tabular-nums; }
+.sw-n  { font-size: 10px; text-anchor: middle; fill: var(--muted); }
+
+.sw-dot { stroke: var(--card); stroke-width: 1.5; }
+.sw-dot--out { fill: var(--accent); }
+.sw-dot--in  { fill: var(--muted); opacity: .55; }
+
+.mn-bar { fill: var(--primary); }
+.mn-bar--bad { fill: var(--accent); }
+.mn-g { stroke: var(--border); stroke-width: 1; }
+.mn-paper { stroke: var(--success); stroke-width: 1.6; stroke-dasharray: 6 4; }
+
+.mn-papert { font-size: 10.5px; text-anchor: end; fill: var(--success); font-weight: 600; }
+.mn-yt { font-size: 10px; text-anchor: end; fill: var(--muted); }
+.mn-v  { font-size: 14px; font-weight: 700; text-anchor: middle; fill: var(--text); font-variant-numeric: tabular-nums; }
+.mn-l  { font-size: 11.5px; text-anchor: middle; fill: var(--text-soft); }
+.mn-id { font-size: 9.5px; text-anchor: middle; fill: var(--muted); font-family: ui-monospace, Menlo, Consolas, monospace; }
+.mn-d  { font-size: 11px; font-weight: 700; text-anchor: middle; fill: var(--muted); }
+.mn-d--bad { fill: var(--accent); }
+.mn-note { font-size: 10px; text-anchor: middle; fill: var(--muted); }
+
+.sw-wrap, .mn-wrap { overflow-x: auto; }
+.sw-plot { min-width: 640px; }
+.mn-plot { min-width: 520px; }

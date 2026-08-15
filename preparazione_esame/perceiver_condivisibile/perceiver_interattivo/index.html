@@ -5199,6 +5199,83 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
 
       <h3>Fig. 6 — bande di Fourier, frequenza massima, inizializzazione</h3>
       <p>Tre sweep su tre iperparametri che il paper studia in figura. Qui c'è l'unico effetto grande e monotono di tutto il progetto, e anche l'unico asse su cui non si conclude proprio nulla.</p>
+
+      <div class="concept-lab" data-lab="sweep-fig6">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">progetto · Fig. 6 del paper, sui nostri 23 risultati</span>
+            <h3>Tre iperparametri, tre risposte diverse</h3>
+            <p>La fascia azzurra è la banda di rumore. Un pallino grigio dentro la fascia significa «non l'abbiamo misurato»; arancione fuori significa «effetto reale».</p>
+          </div>
+        </div>
+        <div class="sw-wrap">
+          <svg class="sw-plot" viewBox="0 0 700 210" role="img" aria-label="I tre sweep di Fig. 6 letti contro la banda di rumore">
+            <title>Bande, frequenza massima e scala di inizializzazione, contro la banda di rumore</title>
+            <g>
+              <text class="sw-t" x="140" y="20">bande di Fourier</text>
+              <rect class="sw-band" x="42" y="48.1" width="196" height="21.9"/>
+              <line class="sw-base" x1="42" y1="59.1" x2="238" y2="59.1"/>
+              <line class="sw-ax" x1="42" y1="34" x2="42" y2="152.0"/>
+              <text class="sw-yt" x="37" y="147.1">50</text>
+              <text class="sw-yt" x="37" y="107.8">60</text>
+              <text class="sw-yt" x="37" y="68.5">70</text>
+              <polyline class="sw-line" points="74.7,79.7 140.0,94.7 205.3,59.1"/>
+              <circle class="sw-dot sw-dot--out" cx="74.7" cy="79.7" r="5"><title>K = 4 → 66.39%</title></circle>
+              <text class="sw-v" x="74.7" y="68.7">66.39</text>
+              <text class="sw-xt" x="74.7" y="167.0">4</text>
+              <circle class="sw-dot sw-dot--out" cx="140.0" cy="94.7" r="5"><title>K = 16 → 62.58%</title></circle>
+              <text class="sw-v" x="140.0" y="83.7">62.58</text>
+              <text class="sw-xt" x="140.0" y="167.0">16</text>
+              <circle class="sw-dot sw-dot--in" cx="205.3" cy="59.1" r="5"><title>K = 64 → 71.63%</title></circle>
+              <text class="sw-v" x="205.3" y="48.1">71.63</text>
+              <text class="sw-xt" x="205.3" y="167.0">64</text>
+              <text class="sw-n" x="140" y="188">non monotona: 4 bande fa meglio di 16</text>
+            </g>
+            <g>
+              <text class="sw-t" x="362" y="20">frequenza massima</text>
+              <rect class="sw-band" x="264" y="48.1" width="196" height="21.9"/>
+              <line class="sw-base" x1="264" y1="59.1" x2="460" y2="59.1"/>
+              <line class="sw-ax" x1="264" y1="34" x2="264" y2="152.0"/>
+              <text class="sw-yt" x="259" y="147.1">50</text>
+              <text class="sw-yt" x="259" y="107.8">60</text>
+              <text class="sw-yt" x="259" y="68.5">70</text>
+              <polyline class="sw-line" points="296.7,67.4 362.0,59.1 427.3,56.0"/>
+              <circle class="sw-dot sw-dot--in" cx="296.7" cy="67.4" r="5"><title>f_max = 8 → 69.50%</title></circle>
+              <text class="sw-v" x="296.7" y="56.4">69.50</text>
+              <text class="sw-xt" x="296.7" y="167.0">8</text>
+              <circle class="sw-dot sw-dot--in" cx="362.0" cy="59.1" r="5"><title>f_max = 16 → 71.63%</title></circle>
+              <text class="sw-v" x="362.0" y="48.1">71.63</text>
+              <text class="sw-xt" x="362.0" y="167.0">16</text>
+              <circle class="sw-dot sw-dot--in" cx="427.3" cy="56.0" r="5"><title>f_max = 64 → 72.41%</title></circle>
+              <text class="sw-v" x="427.3" y="45.0">72.41</text>
+              <text class="sw-xt" x="427.3" y="167.0">64</text>
+              <text class="sw-n" x="362" y="188">tutto dentro la banda: nessun effetto misurato</text>
+            </g>
+            <g>
+              <text class="sw-t" x="584" y="20">scala di init dei latenti</text>
+              <rect class="sw-band" x="486" y="48.1" width="196" height="21.9"/>
+              <line class="sw-base" x1="486" y1="59.1" x2="682" y2="59.1"/>
+              <line class="sw-ax" x1="486" y1="34" x2="486" y2="152.0"/>
+              <text class="sw-yt" x="481" y="147.1">50</text>
+              <text class="sw-yt" x="481" y="107.8">60</text>
+              <text class="sw-yt" x="481" y="68.5">70</text>
+              <polyline class="sw-line" points="518.7,59.1 584.0,82.4 649.3,136.0"/>
+              <circle class="sw-dot sw-dot--in" cx="518.7" cy="59.1" r="5"><title>σ = 0.02 → 71.63%</title></circle>
+              <text class="sw-v" x="518.7" y="48.1">71.63</text>
+              <text class="sw-xt" x="518.7" y="167.0">0.02</text>
+              <circle class="sw-dot sw-dot--out" cx="584.0" cy="82.4" r="5"><title>σ = 0.1 → 65.69%</title></circle>
+              <text class="sw-v" x="584.0" y="71.4">65.69</text>
+              <text class="sw-xt" x="584.0" y="167.0">0.1</text>
+              <circle class="sw-dot sw-dot--out" cx="649.3" cy="136.0" r="5"><title>σ = 1.0 → 52.08%</title></circle>
+              <text class="sw-v" x="649.3" y="125.0">52.08</text>
+              <text class="sw-xt" x="649.3" y="167.0">1.0</text>
+              <text class="sw-n" x="584" y="188">monotona e fuori banda: l'unico effetto netto</text>
+            </g>
+          </svg>
+        </div>
+        <p class="mh-caption">Tre sweep, tre esiti che vale la pena saper distinguere. Le <strong>bande</strong> non danno una tendenza leggibile — e i due punti bassi sono proprio le run che a fine training erano instabili, quindi il problema è l'ottimizzazione, non la risoluzione posizionale. La <strong>frequenza massima</strong> resta interamente dentro il rumore: su CIFAR-10 a questa scala non abbiamo misurato niente, e dirlo è il risultato. La <strong>scala di inizializzazione</strong> è l'unica che scende in modo netto e monotono: da 0,02 a 1,0 si perdono 19,55 punti. Se ti chiedono quale iperparametro conta davvero, la risposta misurata è questa.</p>
+      </div>
+
       <div class="dataset-cards">
         <div class="dataset-card dataset-card--wide">
           <div class="dataset-name"><code>e23_bands_4</code> <span class="dataset-tag">4 bande di Fourier</span></div>
@@ -5347,6 +5424,40 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
           <tr><td><code>mn02_rotation</code></td><td>scala + rotazione</td><td><strong>74,07%</strong></td><td>87</td><td><strong>−13,29</strong></td></tr>
         </tbody>
       </table>
+      </div>
+
+
+      <div class="mn-wrap">
+          <svg class="mn-plot" viewBox="0 0 640 250" role="img" aria-label="ModelNet40: effetto delle tre augmentation">
+            <title>ModelNet40 — effetto delle augmentation</title>
+            <line class="mn-paper" x1="60" y1="57.2" x2="610" y2="57.2"/>
+            <text class="mn-papert" x="608" y="51.2">paper: 85,7%</text>
+            <line class="mn-g" x1="60" y1="196.0" x2="610" y2="196.0"/>
+            <text class="mn-yt" x="54" y="200.0">0%</text>
+            <line class="mn-g" x1="60" y1="155.5" x2="610" y2="155.5"/>
+            <text class="mn-yt" x="54" y="159.5">25%</text>
+            <line class="mn-g" x1="60" y1="115.0" x2="610" y2="115.0"/>
+            <text class="mn-yt" x="54" y="119.0">50%</text>
+            <line class="mn-g" x1="60" y1="74.5" x2="610" y2="74.5"/>
+            <text class="mn-yt" x="54" y="78.5">75%</text>
+            <line class="mn-g" x1="60" y1="34.0" x2="610" y2="34.0"/>
+            <text class="mn-yt" x="54" y="38.0">100%</text>
+            <rect class="mn-bar" x="96" y="54.5" width="96" height="141.5" rx="3"/>
+            <text class="mn-v" x="144" y="46.5">87.36%</text>
+            <text class="mn-l" x="144" y="214">solo scala</text>
+            <text class="mn-id" x="144" y="228">mn01_baseline</text>
+            <rect class="mn-bar" x="264" y="54.7" width="96" height="141.3" rx="3"/>
+            <text class="mn-v" x="312" y="46.7">87.20%</text>
+            <text class="mn-l" x="312" y="214">+ traslazione</text>
+            <text class="mn-id" x="312" y="228">mn03_translation</text>
+            <text class="mn-d" x="312" y="246">-0.16</text>
+            <rect class="mn-bar mn-bar--bad" x="432" y="76.0" width="96" height="120.0" rx="3"/>
+            <text class="mn-v" x="480" y="68.0">74.07%</text>
+            <text class="mn-l" x="480" y="214">+ rotazione</text>
+            <text class="mn-id" x="480" y="228">mn02_rotation</text>
+            <text class="mn-d mn-d--bad" x="480" y="246">-13.29</text>
+            <text class="mn-note" x="320" y="244">accuratezza sull'insieme di test (per ModelNet40 la validation è il test set)</text>
+          </svg>
       </div>
 
       <div class="nota">
