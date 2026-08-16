@@ -19,14 +19,27 @@ function slice(from, to) {
   return source.slice(start, end + to.length);
 }
 
-const { CHAPTER_TITLES, TOTAL, GLOSSARY_TERMS, TERM_CHAPTER } = new Function(`
+const { CHAPTER_TITLES, TOTAL, MAIN_TOTAL, GLOSSARY_TERMS, TERM_CHAPTER, QUICK_LINKS } = new Function(`
   ${slice("const TOTAL = 52;", "\n];")}
+  ${slice("const QUICK_LINKS = {", "\n};")}
   ${slice("const GLOSSARY_TERMS = {", "\n};")}
   ${slice("const TERM_CHAPTER = {", "\n};")}
-  return { CHAPTER_TITLES, TOTAL, GLOSSARY_TERMS, TERM_CHAPTER };
+  return { CHAPTER_TITLES, TOTAL, MAIN_TOTAL, GLOSSARY_TERMS, TERM_CHAPTER, QUICK_LINKS };
 `)();
 
 assert.strictEqual(CHAPTER_TITLES.length, TOTAL, "CHAPTER_TITLES non copre tutti i capitoli");
+
+// 0. Ogni capitolo del percorso principale ha almeno un rimando, e i rimandi
+//    puntano a capitoli che esistono davvero.
+for (let i = 1; i <= MAIN_TOTAL; i++) {
+  const links = QUICK_LINKS[i];
+  assert.ok(links?.length, `Cap. ${i}: nessun richiamo rapido`);
+  for (const link of links) {
+    assert.ok(link.chapter >= 1 && link.chapter <= TOTAL, `Cap. ${i}: rimando fuori range (${link.chapter})`);
+    assert.notStrictEqual(link.chapter, i, `Cap. ${i}: rimando a se stesso`);
+    assert.ok(link.label && link.note, `Cap. ${i}: rimando senza label o note`);
+  }
+}
 
 // 1. Ogni voce ha i campi che il popover mostra e un capitolo valido.
 for (const [id, term] of Object.entries(GLOSSARY_TERMS)) {

@@ -259,13 +259,72 @@ const SOURCE_DATA = {
   52: { pdfPage: null, fileLabel: "Paper originali", pdfPages: "Riferimenti citati nel tool", section: "Bibliografia con link ad arXiv/DOI", url: "https://arxiv.org/", urlLabel: "arXiv.org", note: "Tutti i paper citati, con link diretto alle fonti originali (dove vivono le figure). Nessuna figura copiata: solo link." }
 };
 const PIPE_STAGES = ["Input", "Fourier", "Latenti", "Cross-Att", "Latent Tr.", "×T", "Pooling/Decoder"];
+// Rimandi per capitolo del percorso principale: il prerequisito sta a un click,
+// e la pill di ritorno riporta indietro senza perdere il segno.
 const QUICK_LINKS = {
   1: [
-    {
-      chapter: 31,
-      label: "Apri il riepilogo CNN",
-      note: "Convolution, pooling, inductive bias e ResNet."
-    }
+    { chapter: 31, label: "Apri il riepilogo CNN", note: "Convoluzione, pooling, inductive bias." },
+    { chapter: 34, label: "Apri il Transformer", note: "Da dove viene la self-attention quadratica." }
+  ],
+  2: [
+    { chapter: 34, label: "Apri il Transformer", note: "La self-attention nella versione originale." },
+    { chapter: 19, label: "Apri Softmax", note: "Come gli score diventano pesi di attenzione." }
+  ],
+  3: [
+    { chapter: 35, label: "Apri il Vision Transformer", note: "L'altra via sulle immagini: patch invece di pixel." }
+  ],
+  4: [
+    { chapter: 35, label: "Apri il Vision Transformer", note: "Perché il ViT accorpa i pixel e il Perceiver no." }
+  ],
+  5: [
+    { chapter: 20, label: "Apri Fourier e positional encoding", note: "Le formule per esteso, con le alternative." }
+  ],
+  6: [
+    { chapter: 37, label: "Apri Inizializzazione dei pesi", note: "Perché i latenti partono piccoli." }
+  ],
+  7: [
+    { chapter: 22, label: "Apri Layer Normalization", note: "Il pre-norm che apre il blocco." },
+    { chapter: 24, label: "Apri Residual Connections", note: "Il ramo che porta gradiente e informazione." }
+  ],
+  8: [
+    { chapter: 34, label: "Apri il Transformer", note: "Multi-head e MLP: stessa primitiva, altro contesto." },
+    { chapter: 23, label: "Apri Funzioni di attivazione", note: "Perché GELU dentro l'MLP." }
+  ],
+  9: [
+    { chapter: 28, label: "Apri le RNN", note: "Con i pesi condivisi il Perceiver è un RNN srotolato." }
+  ],
+  10: [
+    { chapter: 19, label: "Apri Softmax", note: "Dai logit alle probabilità di classe." },
+    { chapter: 21, label: "Apri Cross-Entropy Loss", note: "La loss che chiude il forward." }
+  ],
+  11: [
+    { chapter: 25, label: "Apri Ottimizzatori", note: "LAMB, AdamW, schedule e warmup." },
+    { chapter: 39, label: "Apri Data Augmentation", note: "La regolarizzazione al posto del dropout." }
+  ],
+  12: [
+    { chapter: 33, label: "Apri ResNet", note: "Il modello che crolla sotto permutazione." },
+    { chapter: 35, label: "Apri il Vision Transformer", note: "L'altro termine di paragone della tabella." }
+  ],
+  13: [
+    { chapter: 38, label: "Apri Regolarizzazione L1/L2", note: "Il weight sharing letto come regolarizzatore." }
+  ],
+  14: [
+    { chapter: 21, label: "Apri Cross-Entropy Loss", note: "Da dove esce il gradiente p − y." },
+    { chapter: 28, label: "Apri le RNN", note: "Il BPTT che spiega la somma sui T passi." }
+  ],
+  15: [
+    { chapter: 40, label: "Apri i risultati di Perceiver IO", note: "Cosa ottiene sui domini strutturati." }
+  ],
+  16: [
+    { chapter: 20, label: "Apri Fourier e positional encoding", note: "Le query posizionali del decoder." }
+  ],
+  17: [
+    { chapter: 41, label: "Apri il formulario ragionato", note: "Tutte le formule in una pagina." },
+    { chapter: 42, label: "Apri la mappa forward", note: "Le forme, stadio per stadio." }
+  ],
+  18: [
+    { chapter: 43, label: "Apri confronti e glossario", note: "Le 39 voci e le tabelle di confronto." },
+    { chapter: 47, label: "Apri la scheda d'esame", note: "Modalità, priorità di studio, domande probabili." }
   ]
 };
 const GLOSSARY_TERMS = {
