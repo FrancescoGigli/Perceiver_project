@@ -846,6 +846,9 @@ function initGlossary() {
       closeGlossaryPopover();
     }
   });
+  window.addEventListener("scroll", repositionGlossaryPopover, { passive: true });
+  window.addEventListener("resize", repositionGlossaryPopover);
+  document.getElementById("content")?.addEventListener("scroll", repositionGlossaryPopover, { passive: true });
   document.getElementById("glossaryPopoverClose")?.addEventListener("click", closeGlossaryPopover);
   document.getElementById("glossaryPopoverChapter")?.addEventListener("click", () => {
     const id = document.getElementById("glossaryPopover")?.dataset.activeGlossary;
@@ -926,6 +929,21 @@ function replaceGlossaryTextNode(node, regex, aliasToId, seen) {
   node.replaceWith(fragment);
 }
 
+// Il popover è fixed e va riposizionato a ogni scroll, altrimenti resta inchiodato
+// dov'era mentre il testo gli scorre sotto e si stacca dal termine che spiega.
+let glossaryAnchor = null;
+
+function repositionGlossaryPopover() {
+  const popover = document.getElementById("glossaryPopover");
+  if (!popover || popover.hidden || !glossaryAnchor) return;
+  const rect = glossaryAnchor.getBoundingClientRect();
+  if (rect.bottom < 0 || rect.top > window.innerHeight) {
+    closeGlossaryPopover(); // termine uscito dallo schermo: non ha più a cosa agganciarsi
+    return;
+  }
+  positionGlossaryPopover(popover, glossaryAnchor);
+}
+
 function openGlossaryPopover(termButton) {
   const id = termButton?.dataset.glossary;
   const term = GLOSSARY_TERMS[id];
@@ -947,6 +965,7 @@ function openGlossaryPopover(termButton) {
   popover.dataset.activeGlossary = id;
   popover.removeAttribute("hidden");
   popover.classList.add("open");
+  glossaryAnchor = termButton;
   positionGlossaryPopover(popover, termButton);
 }
 
@@ -967,6 +986,7 @@ function positionGlossaryPopover(popover, anchor) {
 function closeGlossaryPopover() {
   const popover = document.getElementById("glossaryPopover");
   if (!popover) return;
+  glossaryAnchor = null;
   popover.classList.remove("open");
   popover.setAttribute("hidden", "");
 }
