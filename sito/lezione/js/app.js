@@ -131,6 +131,14 @@ function renderToc() {
   biblioTitle.textContent = "Bibliografia";
   toc.appendChild(biblioTitle);
   toc.appendChild(createTocItem(BIBLIO_CHAPTER, "biblio"));
+  // L'indice è lungo 59 voci: scegliendo un capitolo in fondo, la voce attiva
+  // restava fuori dalla barra e sembrava che la scelta non avesse fatto nulla.
+  // Si muove solo lo scroll della barra, mai quello della pagina.
+  const active = toc.querySelector("li.active");
+  const sidebar = document.getElementById("sidebar");
+  if (active && sidebar) {
+    sidebar.scrollTop = active.offsetTop - sidebar.clientHeight / 2 + active.offsetHeight / 2;
+  }
 }
 function createTocItem(i, kind = "main") {
     const li = document.createElement("li");

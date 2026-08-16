@@ -1776,7 +1776,9 @@ const LAB_SOURCE_REFS = {
       html += '</tr></thead><tbody>';
       d.rows.forEach(function(row) {
         const isPerceiver = row[row.length - 1] === true;
-        const cells = isPerceiver ? row.slice(0, -1) : row;
+        // L'ultimo elemento è il flag di evidenziazione, mai una colonna: veniva
+        // tolto solo quando era true, così le altre righe stampavano "false".
+        const cells = row.slice(0, -1);
         html += '<tr class="' + (isPerceiver ? 'highlight' : '') + '">';
         cells.forEach(function(c) { html += '<td>' + c + '</td>'; });
         html += '</tr>';
