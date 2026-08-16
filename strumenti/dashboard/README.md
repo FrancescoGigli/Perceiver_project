@@ -11,14 +11,14 @@ Tkinter (standard library) + `psutil`. Nessun server, nessun browser, nessun
 Dalla root del repo, con lo stesso ambiente Python che ha `torch`:
 
 ```bash
-python tools/dashboard/app.py
+python strumenti/dashboard/app.py
 ```
 
 Si apre una finestra.
 
 ## Cosa fa
 
-- **Tabella esperimenti** — i 26 del registro `experiments.py`: id, tabella del
+- **Tabella esperimenti** — i 42 del registro `experiments.py`: id, tabella del
   paper replicata, config (override), modalità, stato (`ok` / `in corso` /
   `da fare` / `DIVERGITA`) e test-accuracy letta dai `logs/`.
 - **▶ Lancia selezionato** — avvia `train.py` per l'esperimento selezionato,
