@@ -66,7 +66,7 @@ esecuzione.
 tranne il seed danno 71,63% / 68,85% / 70,97%: l'escursione è **2,78 punti
 percentuali**. Qualunque differenza più piccola non è un effetto, è varianza.
 
-Delle 23 run su CIFAR-10, **11 escono dalla banda** — le altre sono dichiarate
+Delle 24 run su CIFAR-10, **12 escono dalla banda** — le altre sono dichiarate
 non concludenti invece di essere presentate come tendenze.
 
 Risultati principali:
@@ -77,11 +77,18 @@ Risultati principali:
 | CIFAR-10, migliore | 72,91% con un solo cross-attend |
 | CIFAR-10, riferimento | 71,63% |
 | Pre-training MLM byte-level | **86,68%** contro lo 0,39% del caso |
-| Effetto più grande misurato | augmentation rotazionale su ModelNet40: **−13,29** |
+| Perceiver IO vs Perceiver su immagini | 71,79% vs 71,63% — nessuna differenza |
+| Effetto più grande misurato | togliere il positional encoding: **−39,27** |
 
-Stato: **27 run completate su 42**. Le 15 mancanti sono quasi tutte del ramo
-Perceiver IO — manca la media GLUE e il confronto Perceiver vs Perceiver IO su
-immagini, e questo è detto esplicitamente ovunque invece di essere stimato.
+Nessuna configurazione batte il baseline al di fuori della banda: tutti gli
+effetti che superano il rumore sono negativi. Il più netto è anche il più
+istruttivo — senza positional encoding il modello crolla al 32,36%, mentre
+permutare i pixel lo lascia dov'era: la posizione entra solo dalla codifica,
+non dalla griglia.
+
+Stato: **34 run completate su 42**. Le 8 mancanti sono tutte del ramo Perceiver
+IO — manca la media GLUE completa (ne girano 4 su 8) e il baseline CNN, e questo
+è detto esplicitamente ovunque invece di essere stimato.
 
 ## Riferimenti
 
