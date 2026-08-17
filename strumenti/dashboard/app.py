@@ -47,6 +47,42 @@ GROUP_PAPER = {
     "io_glue": "IO — Tab.1 GLUE",
 }
 
+# Valore riportato dal paper per la riga che ogni run replica. Le fonti sono le
+# tabelle gia' trascritte nel cap. 13 della lezione (sito/lezione/index.html):
+# Tab.2 permutazione/PE, Tab.5 solo cross-attend, Tab.6 numero di cross-attend,
+# Tab.7 weight sharing, Tab.4 ModelNet40.
+#
+# Dove il paper non riporta quella configurazione si lascia vuoto invece di
+# stimare: Fig.6 e' un grafico senza numeri in tabella, l'at-start e' dato solo
+# per T=8, e il ramo IO non ha ne' CIFAR-10 ne' l'accuratezza sui byte mascherati.
+# GLUE il paper lo da' come media sugli 8 task (81.0 byte-level, BERT 81.1), non
+# per singolo task: metterla su ogni riga sarebbe un confronto falso.
+#
+# ATTENZIONE al confronto diretto: il paper e' ImageNet a piena scala, queste run
+# sono CIFAR-10 ridotto. Tab.5 e Tab.6 vengono per giunta dal modello ablativo
+# ridotto dell'App. B (~60-76%), non dal modello principale al 78.0%. La colonna
+# serve a sapere quale riga si sta replicando, non a leggere la differenza.
+PAPER_ACC = {
+    "e01_baseline":            "78.0%",   # Tab.2, Perceiver con Fourier features
+    "e02_permuted":            "78.0%",   # Tab.2, stesso modello sotto permutazione
+    "e03_learned_pe":          "70.9%",   # Tab.2, learned position encoding
+    "e04_learned_pe_permuted": "70.9%",   # Tab.2, learned PE sotto permutazione
+    "e05_no_latent_T4":        "39.4%",   # Tab.5, 4 cross-attend senza self-attention
+    "e06_no_latent_T8":        "45.3%",   # Tab.5, 8 cross-attend senza self-attention
+    "e07_no_latent_T12":       "OOM",     # Tab.5, 12 va in out of memory nel paper
+    "e08_T1_interleaved":      "76.7%",   # Tab.6, interleaved T=1
+    "e09_T2_interleaved":      "76.5%",   # Tab.6, interleaved T=2
+    "e10_T8_interleaved":      "78.0%",   # Tab.6, interleaved T=8 (configurazione finale)
+    "e14_T8_at_start":         "73.7%",   # Tab.6, at-start T=8 (unico at-start riportato)
+    "e16_no_weight_sharing":   "72.9%",   # Tab.7, val senza weight sharing (326M param)
+    "mn01_baseline":           "85.7%",   # Tab.4, ModelNet40
+}
+
+# Un id sbagliato qui sparirebbe in silenzio: la colonna mostrerebbe "—" e
+# sembrerebbe che il paper non riporti quella riga. Meglio non partire.
+_IGNOTI = sorted(set(PAPER_ACC) - {e["id"] for e in exp.EXPERIMENTS})
+assert not _IGNOTI, f"PAPER_ACC cita run che non esistono nel registro: {_IGNOTI}"
+
 
 def run_status(experiment):
     d = LOGS / experiment["id"]
@@ -112,8 +148,8 @@ class App:
         self.run_lbl = ttk.Label(top, text="", font=("Consolas", 10, "bold"))
         self.run_lbl.pack(side="right")
 
-        cols = ("id", "paper", "config", "mod", "stato", "acc")
-        widths = (170, 150, 470, 90, 110, 70)
+        cols = ("id", "paper", "config", "mod", "stato", "paper acc", "acc")
+        widths = (170, 150, 430, 90, 110, 80, 70)
         mid = ttk.Frame(root, padding=(8, 0))
         mid.pack(fill="both", expand=True)
         self.tree = ttk.Treeview(mid, columns=cols, show="headings", height=16)
@@ -124,7 +160,8 @@ class App:
             self.tree.insert("", "end", iid=e["id"], values=(
                 e["id"], GROUP_PAPER.get(e["group"], e["group"]),
                 " ".join(e["overrides"]) or "baseline",
-                e.get("modality", "image"), "…", "—"))
+                e.get("modality", "image"), "…",
+                PAPER_ACC.get(e["id"], "—"), "—"))
         self.tree.tag_configure("ok", foreground="#127c12")
         self.tree.tag_configure("todo", foreground="#777")
         self.tree.tag_configure("warn", foreground="#b06000")
