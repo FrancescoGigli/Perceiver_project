@@ -28,6 +28,11 @@ Si apre una finestra.
   il ramo IO non ha né CIFAR-10 né accuratezza sui byte mascherati; GLUE il paper
   lo dà come media sugli 8 task (81.0 byte-level, BERT 81.1), non per task.
   Ne risultano 13 righe su 42 con un valore.
+- **Riga di confronto** — selezionando una run, sopra il comando compaiono due
+  righe: `NOSTRO` (verde) con dataset e configurazione **effettiva** della run e
+  `PAPER` (ambra) con dataset e configurazione della riga replicata. La riga
+  NOSTRO è derivata dal comando che verrebbe lanciato, non scritta a mano, così
+  non resta indietro quando un override cambia T, le bande o l'init scale.
 
   > Non è una colonna da leggere per differenza. Il paper è ImageNet a piena
   > scala, queste run sono CIFAR-10 ridotto; Tab. 5 e Tab. 6 vengono per giunta

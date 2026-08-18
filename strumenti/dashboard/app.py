@@ -83,6 +83,97 @@ PAPER_ACC = {
 _IGNOTI = sorted(set(PAPER_ACC) - {e["id"] for e in exp.EXPERIMENTS})
 assert not _IGNOTI, f"PAPER_ACC cita run che non esistono nel registro: {_IGNOTI}"
 
+# Etichetta leggibile del dataset, per la riga di confronto.
+DATASET_LABEL = {
+    "cifar10": "CIFAR-10 32x32", "modelnet40": "ModelNet40 2048 punti",
+    "wikitext103": "WikiText-103 byte-level",
+    "glue_sst2": "GLUE SST-2", "glue_cola": "GLUE CoLA", "glue_mrpc": "GLUE MRPC",
+    "glue_stsb": "GLUE STS-B", "glue_qqp": "GLUE QQP", "glue_mnli": "GLUE MNLI",
+    "glue_qnli": "GLUE QNLI", "glue_rte": "GLUE RTE",
+}
+
+
+def setup_nostro(e):
+    """Config EFFETTIVA della run, letta dal comando che verrebbe lanciato.
+    Ricavarla qui invece di scriverla a mano evita che resti indietro quando un
+    override la cambia: e10 gira a T=8, non al T=4 della config base."""
+    cmd = exp.command_for(e)
+
+    def val(flag, default=None):
+        # ULTIMA occorrenza: command_for concatena base + override e argparse
+        # tiene l'ultimo, quindi la prima darebbe il valore base (e10 -> T=4).
+        if flag not in cmd:
+            return default
+        return cmd[len(cmd) - 1 - cmd[::-1].index(flag) + 1]
+
+    ds = val("--dataset") or ("cifar10" if e.get("modality") == "baseline" else "?")
+    pezzi = [DATASET_LABEL.get(ds, ds)]
+    if e.get("modality") == "baseline":
+        pezzi.append("CNN di riferimento, non Perceiver")
+    if val("--model_type") == "perceiver_io":
+        q = val("--num_output_queries")
+        pezzi.append(f"IO, {q} query" if q else "IO, 1 query per posizione")
+
+    dims = [f"{k}={v}" for k, v in (
+        ("N", val("--num_latents")), ("D", val("--latent_dim")),
+        ("T", val("--num_cross_attend_stages")), ("l", val("--num_transformer_blocks")),
+        # Senza questi, le run di Fig. 6 sembrerebbero tutte identiche al baseline:
+        # il loro unico override e' proprio qui.
+        ("K", val("--fourier_num_bands")), ("f_max", val("--fourier_max_freq")),
+        ("init", val("--latent_init_scale")),
+    ) if v]
+    if dims:
+        pezzi.append(" ".join(dims))
+
+    # Le varianti strutturali cambiano il senso della run: vanno viste subito.
+    varianti = [etichetta for flag, etichetta in (
+        ("--no_latent_transformer", "NO latent transformer"),
+        ("--no_weight_sharing", "NO weight sharing"),
+        ("--no_positional_encoding", "NO positional encoding"),
+        ("--no_share_cross_attend", "cross-attend non condivise"),
+    ) if flag in cmd]
+    if val("--cross_attend_arrangement"):
+        varianti.append(val("--cross_attend_arrangement").replace("_", " "))
+    if val("--seed"):
+        varianti.append(f"seed {val('--seed')}")
+    if varianti:
+        pezzi.append(", ".join(varianti))
+
+    train = [t for t in (
+        (val("--optimizer") or "").upper() or None,
+        val("--lr"), val("--scheduler"),
+        f"{val('--epochs')} ep" if val("--epochs") else None,
+    ) if t]
+    if train:
+        pezzi.append(", ".join(train))
+    return " | ".join(pezzi)
+
+
+# Setup del PAPER per la riga replicata. Fonti: cap. 3 della lezione (config
+# ImageNet del modello principale) e cap. 13 (avvertenza App. B + tabelle).
+# Dove il paper non copre il caso lo si dice, invece di lasciare intendere che
+# esista un termine di paragone.
+SETUP_PAPER = {
+    "tab1":     "ImageNet 224x224 (M=50.176, C_tot=261) | N=512 D=1024 T=8 l=6 H=8 K=64, weight sharing | 78.0%",
+    "tab2":     "ImageNet 224x224 | stesso modello principale | Fourier 78.0% -> 78.0% permutato, learned PE 70.9% -> 70.9%",
+    "tab5":     "ImageNet | modello ridotto App. B: D=512, l=4, 2 cross-attend, NO weight sharing, batch 64 (accuracy 60-76%)",
+    "tab6":     "ImageNet | modello ridotto App. B (D=512, l=4, no weight sharing); la riga a 78.0% e' invece il modello principale",
+    "tab7":     "ImageNet | 326M senza weight sharing vs 45M con | val 72.9% vs 78.0%, train 87.7% vs 79.5%",
+    "fig6":     "ImageNet | Fig. 6 e' un grafico: il paper non da' numeri in tabella per bande, f_max e init scale",
+    "noise":    "il paper non riporta la dispersione fra seed: la banda di rumore e' misurata solo qui",
+    "modelnet": "ModelNet40 2048 punti (Tab. 4) | 85.7%",
+    "io_image": "il paper Perceiver IO non valuta su CIFAR-10: nessun termine di paragone diretto",
+    "io_mlm":   "il paper IO da' BPC 1.74 su language modeling byte-level (201M par), non l'accuratezza sui byte mascherati",
+    "io_glue":  "GLUE byte-level, media sugli 8 task 81.0 (BERT 81.1) | il paper non da' il dettaglio per singolo task",
+    "baseline": "in Tab. 1 il paper confronta con ResNet-50 (73.5%) e ViT-B/16 (76.7%) su ImageNet",
+}
+
+# Stessa ragione dell'assert sopra: un gruppo non mappato mostrerebbe una riga
+# vuota, che si legge come "il paper non lo copre" ed e' un'altra cosa.
+_GRP_SCOPERTI = sorted({e["group"] for e in exp.EXPERIMENTS} - set(SETUP_PAPER))
+assert not _GRP_SCOPERTI, f"SETUP_PAPER non copre i gruppi: {_GRP_SCOPERTI}"
+
+
 
 def run_status(experiment):
     d = LOGS / experiment["id"]
@@ -182,6 +273,13 @@ class App:
         ttk.Button(bar, text="📂 Mappe", command=lambda: self.open_dir(VIZ)).pack(side="left", padx=4)
         ttk.Button(bar, text="📁 Logs", command=lambda: self.open_dir(LOGS)).pack(side="left", padx=4)
 
+        conf = ttk.Frame(root, padding=(8, 4, 8, 0))
+        conf.pack(fill="x")
+        self.setup_nostro = ttk.Label(conf, text="", font=("Consolas", 9), foreground="#127c12", anchor="w")
+        self.setup_nostro.pack(fill="x")
+        self.setup_paper = ttk.Label(conf, text="", font=("Consolas", 9), foreground="#8a5000", anchor="w")
+        self.setup_paper.pack(fill="x")
+
         self.cmd_lbl = ttk.Label(root, text="", font=("Consolas", 9), foreground="#555", padding=(8, 0))
         self.cmd_lbl.pack(fill="x")
         self.log = tk.Text(root, height=12, bg="#0e0e0e", fg="#d0d0d0", font=("Consolas", 9), wrap="none")
@@ -212,6 +310,10 @@ class App:
     def show_cmd(self):
         e = next((x for x in exp.EXPERIMENTS if x["id"] in self.tree.selection()), None)
         self.cmd_lbl.config(text=(" ".join(exp.command_for(e)) if e else ""))
+        nostro = setup_nostro(e) if e else ""
+        paper = SETUP_PAPER.get(e["group"], "") if e else ""
+        self.setup_nostro.config(text=f"NOSTRO  {nostro}" if e else "")
+        self.setup_paper.config(text=f"PAPER   {paper}" if e else "")
 
     def _busy(self):
         return self.proc is not None and self.proc.poll() is None
