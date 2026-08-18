@@ -141,6 +141,7 @@ BASE_CNN = [
 
 # Multitask GLUE (paper IO Tab. 2): un solo modello, una query di output per task.
 BASE_MULTITASK = [
+    "--optimizer", "lamb",   # dichiarato qui come nelle altre basi, non nascosto nello script
     "--epochs", "10",
     "--batch_size", "32",
     "--lr", "0.0005",

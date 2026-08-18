@@ -641,3 +641,26 @@ def test_ogni_datamodule_glue_dichiara_num_classes():
               else GLUEPerceiverDataModule(task_name=task, **comune))
         assert hasattr(dm, "num_classes"), f"{task}: manca num_classes"
         assert dm.num_classes == attese[task], f"{task}: num_classes {dm.num_classes}"
+
+
+# --- ricetta del paper: LAMB ovunque, dichiarato nel registro ---------------
+# Il paper dice esplicitamente che il Perceiver e' piu' facile da ottimizzare con
+# LAMB che con Adam. multitask_glue.py aveva AdamW hardcodato e non leggeva
+# --optimizer: era l'unico punto del progetto che si scostava dalla ricetta.
+def test_ogni_base_dichiara_lamb():
+    import experiments as exp
+
+    basi = {"BASE": exp.BASE, "BASE_MODELNET": exp.BASE_MODELNET,
+            "BASE_IO_CIFAR": exp.BASE_IO_CIFAR, "BASE_IO_MLM": exp.BASE_IO_MLM,
+            "BASE_IO_GLUE": exp.BASE_IO_GLUE, "BASE_MULTITASK": exp.BASE_MULTITASK}
+    for nome, base in basi.items():
+        assert "--optimizer" in base, f"{nome}: non dichiara l'ottimizzatore"
+        assert base[base.index("--optimizer") + 1] == "lamb", \
+            f"{nome}: usa {base[base.index('--optimizer') + 1]} invece di lamb"
+
+
+def test_multitask_non_hardcoda_un_altro_ottimizzatore():
+    import io as _io
+    sorgente = _io.open("multitask_glue.py", encoding="utf-8").read()
+    assert "custom_optim.Lamb(" in sorgente, "multitask_glue non costruisce LAMB"
+    assert "torch.optim.AdamW" not in sorgente, "AdamW e' tornato nel multitask"

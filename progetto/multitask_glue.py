@@ -19,6 +19,7 @@ import os
 
 import numpy as np
 import torch
+import torch_optimizer as custom_optim  # LAMB, come train.py
 import torch.nn as nn
 from torch.utils.data import ConcatDataset, DataLoader, Dataset
 from tqdm import tqdm
@@ -160,6 +161,7 @@ def main():
     parser.add_argument("--text_seq_len", type=int, default=512)
     parser.add_argument("--text_fourier_dim", type=int, default=64)
     parser.add_argument("--text_max_freq", type=float, default=64.0)
+    parser.add_argument("--optimizer", default="lamb")
     parser.add_argument("--max_steps_per_epoch", type=int, default=4000,
                         help="i task grandi (QQP, MNLI) dominerebbero: si campiona")
     args = parser.parse_args()
@@ -197,7 +199,14 @@ def main():
               f"(query e teste sono nuove, e' corretto che manchino)")
 
     ce, mse = nn.CrossEntropyLoss(), nn.MSELoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.01)
+    # LAMB come in tutto il resto del progetto e come nel paper ("il Perceiver e'
+    # piu' facile da ottimizzare con LAMB rispetto ad Adam"). Qui c'era AdamW
+    # hardcoded: era l'unico punto del progetto che si scostava dalla ricetta, e
+    # anche una delle due differenze fra MNLI single-task (65.80%) e MNLI dentro
+    # il multitask (35.3%, cioe' il prior). Chiamata identica a train.py:385.
+    if args.optimizer.lower() != "lamb":
+        raise SystemExit(f"Ottimizzatore non previsto: {args.optimizer}")
+    optimizer = custom_optim.Lamb(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
 
     run_dir = os.path.join(args.log_dir, args.experiment_name)
