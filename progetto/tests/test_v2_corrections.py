@@ -622,3 +622,22 @@ def test_perceiver_io_constructs_with_text_input_dims():
             num_latents=64, latent_dim=256, num_heads=4,
         )
         assert model is not None
+
+
+# --- multitask GLUE: interfaccia uniforme dei data module ------------------
+# io_glue_multitask costruisce un data module per task e poi chiede a ognuno
+# num_classes. SST-2 usava un modulo legacy che non lo dichiarava, e la run
+# moriva dopo aver caricato tutti e sette gli altri dataset.
+def test_ogni_datamodule_glue_dichiara_num_classes():
+    from multitask_glue import TASKS, SST2PerceiverDataModule
+    from src.data.glue_tasks import GLUEPerceiverDataModule
+
+    attese = {"cola": 2, "sst2": 2, "mrpc": 2, "stsb": 1,
+              "qqp": 2, "mnli": 3, "qnli": 2, "rte": 2}
+    comune = dict(data_dir="./data", batch_size=32, num_workers=0, seq_len=512,
+                  fourier_dim=64, max_frequencies=64.0)
+    for task in TASKS:
+        dm = (SST2PerceiverDataModule(**comune) if task == "sst2"
+              else GLUEPerceiverDataModule(task_name=task, **comune))
+        assert hasattr(dm, "num_classes"), f"{task}: manca num_classes"
+        assert dm.num_classes == attese[task], f"{task}: num_classes {dm.num_classes}"

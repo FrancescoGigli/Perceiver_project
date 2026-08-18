@@ -68,6 +68,16 @@ class SST2PerceiverDataModule:
             self._setup_pos_encoding()
             self.input_dim += self.pos_encoding.out_dim
 
+        # SST-2 e' binario (sentiment positivo/negativo): verificato sulle
+        # etichette di train.tsv e dev.tsv, che valgono solo 0 e 1.
+        # Serve dichiararlo come fa GLUEPerceiverDataModule: multitask_glue.py
+        # chiede num_classes a ogni data module per dimensionare le teste, e
+        # senza questo la run moriva dopo aver caricato gli altri sette task.
+        # ponytail: SST-2 e' l'unico task rimasto su questo modulo separato
+        # invece che sulla tabella di glue_tasks.py; se ne servisse un altro
+        # attributo, conviene migrarlo li' invece di rincorrere un campo per volta.
+        self.num_classes = 2
+
     def _setup_pos_encoding(self):
         self.pos_encoding = FourierPositionalEncoding(
             num_bands=self.num_frequency_bands,
