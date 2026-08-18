@@ -36,6 +36,18 @@ import experiments as exp  # noqa: E402  -> EXPERIMENTS, command_for
 # "interrotta" (qualcosa che hai fermato poco fa) ma un vecchio residuo = "da fare".
 INTERROTTA_MAX_ETA_SEC = 30 * 60
 
+# Non tutte le run passano da train.py: io_glue_multitask usa multitask_glue.py e
+# cnn_baseline usa baseline_cnn.py. Filtrando solo su train.py la dashboard non
+# vedeva girare quelle due -- e il pulsante Lancia ne avrebbe avviata una seconda
+# sopra la prima, sullo stesso log. L'insieme si ricava dal registro, cosi' uno
+# script nuovo e' coperto senza toccare questo file.
+RUN_SCRIPTS = {e.get("script", "train.py") for e in exp.EXPERIMENTS}
+
+
+def _e_uno_script_di_run(cmdline):
+    return any(str(c).replace("\\", "/").rsplit("/", 1)[-1] in RUN_SCRIPTS for c in cmdline)
+
+
 GROUP_PAPER = {
     "tab1": "Tab.1 baseline", "tab2": "Tab.2 permut./PE", "tab5": "Tab.5 no latent-T",
     "tab6": "Tab.6 n. cross-attend", "tab7": "Tab.7 weight sharing",
@@ -328,7 +340,7 @@ class App:
                 cl = pr.info["cmdline"] or []
                 if "-c" in cl or "--experiment_name" not in cl:
                     continue
-                if any(str(c).replace("\\", "/").endswith("train.py") for c in cl):
+                if _e_uno_script_di_run(cl):
                     return cl[cl.index("--experiment_name") + 1]
             except (psutil.Error, ValueError, IndexError):
                 pass
@@ -410,8 +422,7 @@ class App:
                 cl = pr.info["cmdline"] or []
                 if "-c" in cl or "--experiment_name" not in cl:
                     continue
-                if cl[cl.index("--experiment_name") + 1] == eid \
-                        and any(str(c).replace("\\", "/").endswith("train.py") for c in cl):
+                if cl[cl.index("--experiment_name") + 1] == eid and _e_uno_script_di_run(cl):
                     for ch in pr.children(recursive=True):
                         ch.terminate()
                     pr.terminate()
