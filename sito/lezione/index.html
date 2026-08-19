@@ -21,9 +21,9 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260817-sidebar">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260817-sidebar">
-<script defer src="js/interactive-labs.js?v=20260817-sidebar"></script>
+<link rel="stylesheet" href="css/style.css?v=20260818-risultati">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260818-risultati">
+<script defer src="js/interactive-labs.js?v=20260818-risultati"></script>
 </head>
 <body>
 
@@ -4638,7 +4638,7 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
 
       <div class="nota">
         <span class="nota-label">Setup sperimentale</span>
-        Framework <strong>PyTorch</strong>, mixed-precision in <strong>bfloat16</strong>. Ottimizzatore <strong>LAMB</strong> (lr 0.004), scheduler MultiStep con decay alle epoche 84 / 102 / 114. <strong>Nessun early stopping</strong>: si allena sempre per 120 epoche piene e si sceglie il checkpoint sulla <em>validation</em>. CIFAR-10: batch 64, split <strong>45.000 train / 5.000 validation / 10.000 test</strong> — il test set si tocca una volta sola, alla fine. Il registro contiene <strong>42 run</strong>, di cui <strong>27 completate</strong>: 23 su CIFAR-10, 3 su ModelNet40, 1 di pre-training MLM. Tutte su <strong>una sola RTX 3080 10GB</strong>.
+        Framework <strong>PyTorch</strong>, mixed-precision in <strong>bfloat16</strong>. Ottimizzatore <strong>LAMB</strong> (lr 0.004), scheduler MultiStep con decay alle epoche 84 / 102 / 114. <strong>Nessun early stopping</strong>: si allena sempre per 120 epoche piene e si sceglie il checkpoint sulla <em>validation</em>. CIFAR-10: batch 64, split <strong>45.000 train / 5.000 validation / 10.000 test</strong> — il test set si tocca una volta sola, alla fine. Il registro contiene <strong>42 run</strong>, di cui <strong>42 completate</strong>: 24 su CIFAR-10, 3 su ModelNet40, 2 di Perceiver IO su immagini, 1 di pre-training MLM, 10 di fine-tuning GLUE (8 task più 2 controlli da zero) 1 baseline CNN e 1 multitask GLUE. Il registro è completo. Tutte su <strong>una sola RTX 3080 10GB</strong>.
       </div>
 
       <h2>Su quali modalità si lavora</h2>
@@ -4754,7 +4754,7 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
           </div>
         </div>
           <svg class="noise-plot" viewBox="0 0 760 527" role="img" aria-label="Dot-plot delle 23 run CIFAR-10 rispetto alla banda di rumore di 2.78 punti">
-            <title>Le 23 run CIFAR-10 contro la banda di rumore</title>
+            <title>Le 24 run CIFAR-10 contro la banda di rumore</title>
             <rect class="np-band" x="578.3" y="28" width="121.0" height="449" rx="3"/>
             <line class="np-base" x1="638.9" y1="28" x2="638.9" y2="477"/>
             <line class="np-grid" x1="168.0" y1="28" x2="168.0" y2="477"/>
@@ -5044,7 +5044,7 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
     <section class="chapter" data-chapter="45">
       <div class="chap-meta"><span class="chap-badge">Esp. 2</span><span class="chap-time">~16 min</span></div>
       <h1>Perceiver originale: gli esperimenti uno per uno</h1>
-      <p class="intro">Questa sezione riguarda solo il <strong>Perceiver originale</strong>: le sette run di ablation su CIFAR-10 (immagini) e le tre su ModelNet40 (point cloud 3D). Ogni esperimento è descritto per quello che cambia rispetto agli altri, cosa dovrebbe dimostrare, cosa ha dimostrato davvero. Perceiver IO è nel capitolo dopo.</p>
+      <p class="intro">Questa sezione riguarda solo il <strong>Perceiver originale</strong>: le run di ablation su CIFAR-10 (immagini) e le tre su ModelNet40 (point cloud 3D). Ogni esperimento è descritto per quello che cambia rispetto agli altri, cosa dovrebbe dimostrare, cosa ha dimostrato davvero. Perceiver IO è nel capitolo dopo.</p>
 
       <h2>Architettura: nostra config vs paper</h2>
       <div class="dataset-cards">
@@ -5060,7 +5060,7 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
         </div>
       </div>
 
-      <h2>Le 23 run CIFAR-10, una per una</h2>
+      <h2>Le 24 run CIFAR-10, una per una</h2>
       <p>Ogni run cambia <strong>una cosa sola</strong> rispetto a <code>e01_baseline</code> — tranne dove è detto esplicitamente. Il numero riportato è il <code>test_accuracy</code> all'epoca scelta sulla validation. Il verdetto confronta la differenza con la banda di rumore di <strong>2,78 punti</strong>: sotto quella soglia non si conclude niente, e dirlo è parte del lavoro.</p>
 
       <h3>Tab. 1 — il riferimento</h3>
@@ -5341,6 +5341,22 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
         </div>
       </div>
 
+      <h3>Fuori dal paper &mdash; la baseline CNN, cio&egrave; il confronto scomodo</h3>
+      <p>Il paper mette il Perceiver accanto a ResNet-50 e ViT nella Tab. 1, e su ImageNet <strong>vince</strong>: 78.0% contro 73.5% della ResNet-50. Senza una CNN allenata sugli stessi dati, un progetto che replica il Perceiver non pu&ograve; dire niente su quel confronto &mdash; ed &egrave; la prima cosa che verrebbe chiesta.</p>
+      <div class="dataset-cards">
+        <div class="dataset-card dataset-card--wide">
+          <div class="dataset-name"><code>cnn_baseline</code> <span class="dataset-tag">non &egrave; un Perceiver</span></div>
+          <p><strong>Cos'&egrave;:</strong> ResNet-18 adattata a 32&times;32 (stem 3&times;3, niente maxpool iniziale), stessi dati e stesso split di <code>e01</code>: 45.000 train / 5.000 validation / 10.000 test, 120 epoche, batch 64. Ottimizzatore SGD con momentum 0,9 e weight decay 5e-4 &mdash; la ricetta standard delle ResNet, non LAMB: sarebbe stato scostarsi dal paper, non avvicinarcisi, perch&eacute; nemmeno la ResNet-50 della Tab. 1 usa LAMB.</p>
+          <p><strong>Cosa isola:</strong> quanto vale il prior 2D della convoluzione, a parit&agrave; di dati e di budget.</p>
+          <p><strong>Risultato:</strong> <strong>93,61%</strong> (test), epoca migliore 117 su 120, 11.173.962 parametri &mdash; praticamente gli stessi 10.175.362 del Perceiver.</p>
+        </div>
+      </div>
+      <div class="idea">
+        <div class="idea-label">L'ordine del paper qui si ribalta, e di molto</div>
+        <p>Su ImageNet il Perceiver batte la ResNet-50 di <strong>+4,5</strong> punti. Su CIFAR-10, a parit&agrave; di dati, split, epoche e quasi di parametri, la ResNet-18 batte il Perceiver di <strong>+21,98</strong> punti: 93,61% contro 71,63%. Non &egrave; un dettaglio da nascondere in fondo, &egrave; il risultato che d&agrave; il senso a tutti gli altri.</p>
+        <p>La lettura non &egrave; &laquo;il paper sbaglia&raquo;: &egrave; che il vantaggio del Perceiver non sta nell'accuratezza, sta nel <em>non avere prior sul dominio</em>. Quel prior &mdash; localit&agrave; e invarianza per traslazione &mdash; su immagini 32&times;32 con 45.000 esempi vale circa 22 punti. Il paper mostra che a scala ImageNet, con 1,28 milioni di immagini e augmentation pesante, il prior smette di essere necessario e la generalit&agrave; diventa gratis. A questa scala non lo &egrave;: la si paga, e questo numero dice quanto.</p>
+      </div>
+
       <h2>Le research question, con il verdetto</h2>
       <p>Ogni domanda che il paper pone, letta sui nostri numeri. La colonna «verdetto» applica sempre lo stesso criterio: la differenza supera i <strong>2,78 punti</strong> della banda di rumore, oppure no?</p>
 
@@ -5565,8 +5581,8 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
         </div>
         <div class="dataset-card">
           <div class="dataset-name">Nostro Perceiver IO <span class="dataset-tag">RTX 3080</span></div>
-          <p><strong>CIFAR-10:</strong> <code>N=96</code> · <code>D=384</code> · 3 teste · 4 cross-attend stages + 4 transformer blocks · weight sharing · <strong>1 output query</strong> · <strong>5.223.202</strong> parametri.<br>
-          <strong>Testo (MLM/GLUE):</strong> <code>N=128</code> · <code>D=512</code> · 8 teste · 4 transformer blocks · <strong>10.110.082</strong> parametri (MLM, 1.024 query) → <strong>~9.52M</strong> (GLUE, 2 query).</p>
+          <p><strong>CIFAR-10:</strong> <code>N=96</code> · <code>D=384</code> · 8 teste · 4 cross-attend stages + 4 transformer blocks · weight sharing · <strong>1 output query</strong> · <strong>12.049.922</strong> parametri.<br>
+          <strong>Testo (MLM/GLUE):</strong> <code>N=128</code> · <code>D=512</code> · 8 teste · 4 transformer blocks · <strong>18.872.740</strong> parametri (MLM, una query per posizione) → <strong>18.480.806</strong> (GLUE, 1 query).</p>
           <p class="dataset-use">Stessa idea encode-process-decode, ma ~20× più piccolo e pre-training solo su WikiText-103.</p>
         </div>
       </div>
@@ -5614,30 +5630,64 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
 
       <div class="exp-table-wrap">
       <table>
-        <thead><tr><th>Run</th><th>Task</th><th>Epoche</th><th>Metrica</th><th>Livello banale</th><th>Stato</th></tr></thead>
+        <thead><tr><th>Run</th><th>Task</th><th>Ep.</th><th>Metrica</th><th>Livello banale</th><th>Risultato</th><th>Lettura</th></tr></thead>
         <tbody>
-          <tr class="exp-pending-row"><td><code>io_glue_cola</code></td><td>La frase è grammaticale?</td><td>30</td><td>accuratezza</td><td>≈69%</td><td>⏳ da eseguire</td></tr>
-          <tr class="exp-pending-row"><td><code>io_glue_sst2</code></td><td>Il sentiment è positivo?</td><td>10</td><td>accuratezza</td><td>≈50%</td><td>⏳ da eseguire</td></tr>
-          <tr class="exp-pending-row"><td><code>io_glue_mrpc</code></td><td>Due frasi sono parafrasi?</td><td>30</td><td>accuratezza</td><td>≈68%</td><td>⏳ da eseguire</td></tr>
-          <tr class="exp-pending-row"><td><code>io_glue_stsb</code></td><td>Quanto sono simili? (regressione)</td><td>30</td><td>Pearson</td><td>—</td><td>⏳ da eseguire</td></tr>
-          <tr class="exp-pending-row"><td><code>io_glue_qqp</code></td><td>Due domande sono duplicate?</td><td>3</td><td>accuratezza</td><td>≈63%</td><td>⏳ da eseguire</td></tr>
-          <tr class="exp-pending-row"><td><code>io_glue_mnli</code></td><td>Implica / contraddice / neutro?</td><td>3</td><td>accuratezza</td><td>≈33%</td><td>⏳ da eseguire</td></tr>
-          <tr class="exp-pending-row"><td><code>io_glue_qnli</code></td><td>La frase risponde alla domanda?</td><td>10</td><td>accuratezza</td><td>≈50%</td><td>⏳ da eseguire</td></tr>
-          <tr class="exp-pending-row"><td><code>io_glue_rte</code></td><td>La prima frase implica la seconda?</td><td>30</td><td>accuratezza</td><td>≈50%</td><td>⏳ da eseguire</td></tr>
-          <tr class="exp-pending-row"><td><code>io_glue_sst2_scratch</code><br><code>io_glue_rte_scratch</code></td><td><strong>controlli</strong>: gli stessi due task <em>senza</em> pre-training</td><td>10 / 30</td><td>accuratezza</td><td>—</td><td>⏳ da eseguire</td></tr>
-          <tr class="exp-pending-row"><td><code>io_glue_multitask</code></td><td>tutti e 8 insieme, una query per task (Tab. 2 del paper)</td><td>—</td><td>media</td><td>—</td><td>⏳ da eseguire</td></tr>
+          <tr><td><code>io_glue_cola</code></td><td>La frase &egrave; grammaticale?</td><td>1</td><td>accuratezza</td><td>69,1%</td><td>69,13%</td><td><strong>degenere</strong>: 721 corrette su 1043, cio&egrave; esattamente il conteggio della classe maggioritaria</td></tr>
+          <tr><td><code>io_glue_sst2</code></td><td>Il sentiment &egrave; positivo?</td><td>7</td><td>accuratezza</td><td>50,9%</td><td><strong>80,73%</strong></td><td>+29,8 &mdash; 704 corrette contro 444 della costante</td></tr>
+          <tr><td><code>io_glue_mrpc</code></td><td>Due frasi sono parafrasi?</td><td>1</td><td>accuratezza</td><td>68,4%</td><td>70,59%</td><td><strong>quasi banale</strong>: 288 contro 279, cio&egrave; 9 esempi su 408</td></tr>
+          <tr><td><code>io_glue_stsb</code></td><td>Quanto sono simili? (regressione)</td><td>17</td><td>Pearson</td><td>0</td><td><strong>60,82</strong></td><td>correlazione reale, non rumore</td></tr>
+          <tr><td><code>io_glue_qqp</code></td><td>Due domande sono duplicate?</td><td>3</td><td>accuratezza</td><td>63,2%</td><td><strong>84,66%</strong></td><td>+21,5 &mdash; 34.229 contro 25.545</td></tr>
+          <tr><td><code>io_glue_mnli</code></td><td>Implica / contraddice / neutro?</td><td>3</td><td>accuratezza</td><td>35,4%</td><td><strong>65,80%</strong></td><td>+30,4 su tre classi &mdash; il pi&ugrave; netto</td></tr>
+          <tr><td><code>io_glue_qnli</code></td><td>La frase risponde alla domanda?</td><td>4</td><td>accuratezza</td><td>50,5%</td><td><strong>80,65%</strong></td><td>+30,2</td></tr>
+          <tr><td><code>io_glue_rte</code></td><td>La prima frase implica la seconda?</td><td>23</td><td>accuratezza</td><td>52,7%</td><td>56,68%</td><td><strong>debole</strong>: 157 contro 146, cio&egrave; 11 esempi su 277</td></tr>
+          <tr><td><code>io_glue_sst2_scratch</code></td><td><strong>controllo</strong>: SST-2 <em>senza</em> pre-training</td><td>2</td><td>accuratezza</td><td>50,9%</td><td>59,75%</td><td>il pre-training vale <strong>+20,99</strong></td></tr>
+          <tr><td><code>io_glue_rte_scratch</code></td><td><strong>controllo</strong>: RTE <em>senza</em> pre-training</td><td>1</td><td>accuratezza</td><td>52,7%</td><td>52,71%</td><td>costante; il pre-training vale <strong>+3,97</strong></td></tr>
+          <tr><td><code>io_glue_multitask</code></td><td>tutti e 8 insieme, una query per task (Tab. 2 del paper)</td><td>10</td><td>media</td><td>&mdash;</td><td><strong>74,05</strong></td><td>+2,92 sopra gli otto fine-tuning separati</td></tr>
         </tbody>
       </table>
       </div>
 
       <div class="idea">
         <div class="idea-label">Perché i due controlli «scratch» valgono quanto gli otto task</div>
-        <p>Un fine-tuning che arriva al 61% non dice niente da solo: forse il pre-training è servito, forse quel task si risolve al 61% anche partendo da pesi casuali. <strong>Gli unici due esperimenti che misurano il valore del pre-training sono quelli che lo tolgono.</strong> Sono scelti apposta agli estremi: SST-2 ha 67.000 esempi di training, RTE ne ha 2.500. L'aspettativa è che il transfer conti pochissimo dove i dati abbondano e moltissimo dove scarseggiano — ed è esattamente la domanda che un esaminatore fa dopo aver visto una tabella GLUE.</p>
+        <p>Un fine-tuning che arriva al 61% non dice niente da solo: forse il pre-training è servito, forse quel task si risolve al 61% anche partendo da pesi casuali. <strong>Gli unici due esperimenti che misurano il valore del pre-training sono quelli che lo tolgono.</strong> Sono scelti apposta agli estremi: SST-2 ha 67.000 esempi di training, RTE ne ha 2.500.</p>
+        <p><strong>L'aspettativa era il contrario di quello che è successo.</strong> Ci si aspettava che il transfer contasse pochissimo dove i dati abbondano e moltissimo dove scarseggiano. Misurato: su SST-2, il task ricco, il pre-training vale <strong>+20,99</strong> (59,75% → 80,73%); su RTE, il task povero, vale <strong>+3,97</strong> (52,71% → 56,68%). Esattamente al rovescio.</p>
+        <p>La spiegazione sta nei numeri assoluti, non nel transfer: RTE <em>senza</em> pre-training fa 52,71%, che è la classe maggioritaria esatta, e <em>con</em> il pre-training fa 56,68%, cioè 11 esempi su 277 sopra la costante. Su RTE questo modello non impara in nessuno dei due casi, quindi la differenza è piccola perché sono piccoli entrambi i termini &mdash; non perché il pre-training sia inutile sui dati scarsi.</p>
       </div>
 
       <div class="nota">
-        <span class="nota-label">Cosa NON è disponibile, e va detto così</span>
-        La <strong>media GLUE confrontabile con la Tab. 1 del paper IO</strong> (81,0 byte-level, 81,1 BERT) oggi <strong>non esiste</strong>: 0 task su 8 completati. Una versione precedente di questa pagina mostrava otto valori (QQP 75,65%, CoLA 69,13%, …, MNLI 46,47%) e una media di ~63%: erano risultati della prima generazione, prodotti da un codice in cui il rappresentazione dell'input per GLUE <em>non coincideva</em> con quella del pre-training — il primo cross-attention del checkpoint non si trasferiva, e il «fine-tuning» ripartiva da pesi casuali proprio nel modulo che legge il testo. Sono stati rimossi. Quando le run gireranno, il confronto con il paper andrà fatto ricordando una differenza di scala che non si colma: il nostro modello ha 18.872.740 parametri pre-addestrati su WikiText-103, quello del paper ne ha <strong>201 milioni</strong> pre-addestrati su Wikipedia + C4 per 500.000 step.
+        <span class="nota-label">La media GLUE, e come va letta</span>
+        Con 8 task su 8 la media è <strong>71,13</strong>, contro <strong>81,0</strong> del Perceiver IO byte-level e <strong>81,1</strong> di BERT nella Tab. 1 del paper. Prima di confrontarla servono tre avvertenze. <strong>Primo</strong>: due degli otto valori non sono apprendimento &mdash; CoLA è esattamente la classe maggioritaria e MRPC la supera di 9 esempi su 408 &mdash; quindi la media è sostenuta da sei task, non da otto. <strong>Secondo</strong>: qui CoLA è misurata in accuratezza, mentre GLUE e il paper usano il coefficiente di Matthews, che per un predittore costante vale esattamente 0; è proprio la metrica pensata per smascherare questo caso. <strong>Terzo</strong>, la differenza di scala che non si colma: il nostro modello ha 18.872.740 parametri pre-addestrati su WikiText-103 per 10 epoche, quello del paper ne ha <strong>201 milioni</strong> pre-addestrati su Wikipedia + C4 per 500.000 step. Una versione precedente di questa pagina mostrava otto valori di prima generazione (QQP 75,65%, MNLI 46,47%, …) prodotti da un codice in cui la rappresentazione dell'input per GLUE <em>non coincideva</em> con quella del pre-training: il primo cross-attention del checkpoint non si trasferiva e il fine-tuning ripartiva da pesi casuali proprio nel modulo che legge il testo. Quelli sono stati rimossi; questi vengono dal codice corretto.
+      </div>
+
+      <h2>Esperimento 4 &mdash; un modello per otto task (Tab. 2 del paper)</h2>
+      <p><strong>Cosa cambia:</strong> invece di otto fine-tuning separati, <em>un solo</em> Perceiver IO con encoder condiviso e <strong>una query di output per task</strong>, addestrato su tutti gli 8 dataset GLUE mescolati. 18.492.085 parametri, 949.058 esempi nella miscela, 4.000 step campionati per epoca, 10 epoche. &Egrave; il confronto della Tab. 2, ed &egrave; l'unico in cui la nostra scala non ci penalizza: <strong>entrambi i termini sono nostri</strong>.</p>
+
+      <div class="exp-table-wrap">
+      <table>
+        <thead><tr><th>Task</th><th>Otto modelli separati</th><th>Un modello, 8 query</th><th>&Delta;</th></tr></thead>
+        <tbody>
+          <tr><td>CoLA</td><td>69,13%</td><td>69,13%</td><td>0,00</td></tr>
+          <tr><td>SST-2</td><td>80,73%</td><td>77,18%</td><td>&minus;3,56</td></tr>
+          <tr><td>MRPC</td><td>70,59%</td><td>76,72%</td><td>+6,13</td></tr>
+          <tr><td>STS-B</td><td>60,82</td><td>77,73</td><td><strong>+16,91</strong></td></tr>
+          <tr><td>QQP</td><td>84,66%</td><td>82,65%</td><td>&minus;2,01</td></tr>
+          <tr><td>MNLI</td><td>65,80%</td><td>63,91%</td><td>&minus;1,88</td></tr>
+          <tr><td>QNLI</td><td>80,65%</td><td>80,85%</td><td>+0,20</td></tr>
+          <tr><td>RTE</td><td>56,68%</td><td>64,26%</td><td><strong>+7,58</strong></td></tr>
+          <tr><td><strong>media</strong></td><td><strong>71,13</strong></td><td><strong>74,05</strong></td><td><strong>+2,92</strong></td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="idea">
+        <div class="idea-label">L'unico confronto che replica davvero</div>
+        <p>Il paper misura <strong>81,8 in multitask contro 81,0 single-task</strong>, cio&egrave; <strong>+0,80</strong>. Noi misuriamo <strong>74,05 contro 71,13</strong>, cio&egrave; <strong>+2,92</strong>. Il valore assoluto &egrave; ~8 punti sotto e non c'&egrave; modo di colmarlo &mdash; 18,9M parametri pre-addestrati su WikiText-103 per 10 epoche contro 201M su Wikipedia + C4 per 500.000 step. Ma il <em>segno</em> e l'<em>ordine di grandezza</em> dell'effetto si replicano: un decoder generico con una query per task non perde niente rispetto a otto modelli dedicati, e qui guadagna.</p>
+        <p>C'&egrave; un'asimmetria che rende il risultato pi&ugrave; forte, non pi&ugrave; debole: negli otto fine-tuning separati <strong>ogni task sceglie la sua epoca migliore sul proprio dev set</strong> &mdash; otto selezioni indipendenti, otto occasioni di pescare un picco. Il multitask ne ha <strong>una sola</strong>, sulla media. Vince nonostante lo svantaggio.</p>
+      </div>
+
+      <div class="nota">
+        <span class="nota-label">Dove il guadagno &egrave; vero e dove no</span>
+        Il +2,92 di media nasce quasi tutto da <strong>STS-B (+16,91)</strong> e <strong>RTE (+7,58)</strong>, cio&egrave; i due task pi&ugrave; piccoli: 5.749 e 2.490 esempi di training. Da soli non hanno abbastanza dati, e nel multitask ereditano rappresentazioni costruite anche sugli altri sei &mdash; &egrave; il transfer fra task che il paper vuole mostrare. Sui task grandi succede il contrario, in piccolo: SST-2 &minus;3,56, QQP &minus;2,01, MNLI &minus;1,88 pagano il fatto di condividere la capacit&agrave;. <strong>CoLA fa 69,13% in entrambi i regimi</strong>, cifra per cifra: sono 721 corrette su 1043, la classe maggioritaria esatta. Lo stesso identico numero con due addestramenti completamente diversi non &egrave; una coincidenza &mdash; quel task, a questa scala, non viene imparato in nessuno dei due modi.
       </div>
 
       <h2>Cosa fa Perceiver IO nel paper, per modalità</h2>
@@ -5865,7 +5915,7 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
         <li><strong>Applicare il metodo a dati/setting diversi → fatto:</strong> tre modalità con un'unica rete sono esattamente il "setting diverso", coerente con l'idea generale del Perceiver.</li>
         <li><strong>Versione coerente con risorse limitate → fatto:</strong> tutto su <strong>1 sola GPU RTX 3080</strong> (il paper usa 64 TPU); numeri assoluti più bassi ma proprietà architetturali confermate.</li>
         <li><strong>Risultati concreti da mostrare → pronti:</strong> <strong>ModelNet40 87,36%</strong>, che <em>supera</em> il paper (85,7%); CIFAR-10 baseline 71,63%, migliore <strong>72,91%</strong> con un solo cross-attend; permutation invariance confermata (71,63% → 68,95%, calo dentro il rumore); il weight sharing è gratis (31,5M parametri non comprano nulla); l'inizializzazione dei latenti a 1.0 fa <strong>collassare</strong> il modello a 52,08%; pre-training MLM byte-level <strong>86,68%</strong> contro lo 0,39% del caso.</li>
-        <li><strong>Lavoro sperimentale serio:</strong> registro dichiarativo di <strong>42 run</strong>, 27 completate; 120 epoche piene senza early stopping, checkpoint scelto sulla <em>validation</em> e test set toccato una volta sola; optimizer <strong>LAMB</strong>, mixed-precision bfloat16; <strong>banda di rumore misurata su tre repliche a seed diverso: 2,78 punti</strong> — ogni confronto è dichiarato concludente o no rispetto a quella soglia.</li>
+        <li><strong>Lavoro sperimentale serio:</strong> registro dichiarativo di <strong>42 run</strong>, tutte completate; 120 epoche piene senza early stopping, checkpoint scelto sulla <em>validation</em> e test set toccato una volta sola; optimizer <strong>LAMB</strong>, mixed-precision bfloat16; <strong>banda di rumore misurata su tre repliche a seed diverso: 2,78 punti</strong> — ogni confronto è dichiarato concludente o no rispetto a quella soglia.</li>
         <li><strong>Derivazione tecnica → padroneggiata:</strong> latent bottleneck (costo lineare), cross-attention O(M·N), self-attention sui latenti O(N²), Fourier PE → permutation invariance, weight sharing (Perceiver come RNN), Perceiver IO con decoder e output queries.</li>
         <li><strong>Consegna conforme → pronta:</strong> codice + brevi istruzioni e link ai dati (non i dataset), via repo privato Codeberg con invito a <code>dl.unifi</code> oppure email/0x0.st.</li>
       </ul>
@@ -7567,6 +7617,6 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
   </div>
 </div>
 
-<script defer src="js/app.js?v=20260817-sidebar"></script>
+<script defer src="js/app.js?v=20260818-risultati"></script>
 </body>
 </html>

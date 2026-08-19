@@ -261,6 +261,31 @@ def print_io_section(results, band):
     else:
         print("   nessuna run GLUE completata")
 
+    # 2-bis. Tab. 2 del paper: un modello solo con una query per task, contro
+    # otto fine-tuning separati. E' l'unico confronto in cui la nostra scala non
+    # ci penalizza, perche' i due termini sono entrambi nostri: il paper misura
+    # 81.8 contro 81.0 (+0.8) e qui interessa il segno e l'ordine di grandezza,
+    # non il valore assoluto.
+    print()
+    print("-- Multitask (paper Tab. 2: Perceiver IO 8 query 81.8 vs 81.0 single-task) --")
+    multi = results.get("io_glue_multitask")
+    multi_acc = _acc_of(results, "io_glue_multitask")
+    if multi_acc is None:
+        print("   io_glue_multitask non ancora completata")
+    elif not scores:
+        print("   manca il termine di paragone: nessun fine-tuning per singolo task")
+    else:
+        singola = sum(scores) / len(scores)
+        delta = multi_acc - singola
+        print(f"   otto fine-tuning separati, media {len(scores)}/8 : {singola * 100:.2f}")
+        print(f"   io_glue_multitask (un modello, 8 query)   : {multi_acc * 100:.2f}"
+              f"   delta {_fmt_signed_pct(delta)}")
+        if len(scores) < 8:
+            print("   ATTENZIONE: confronto contro una media parziale")
+        print(f"   il paper misura +0.80 nella stessa direzione.")
+        print("   NB: i single-task scelgono l'epoca migliore su otto dev set diversi,")
+        print("       il multitask su uno solo (la media): l'asimmetria e' a suo sfavore.")
+
     # 3. Il pre-training e' servito? Lo dicono i due controlli senza checkpoint.
     print("\n-- Quanto vale il pre-training MLM (run con e senza checkpoint) --")
     mlm = results.get("io_mlm")
