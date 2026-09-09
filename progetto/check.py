@@ -3,8 +3,9 @@
 # divergite (nan) e quali mancano ancora. Legge logs/<id>/results.json e scansiona
 # lo stdout salvato per il marcatore "nan". Sola lettura, non lancia nulla.
 #
-#   python check.py            # tabella di stato di tutte le 23 run
+#   python check.py            # tabella di stato di tutte le 42 run
 #   python check.py --watch e01_baseline   # segue una run finche' non finisce o diverge
+#   python check.py --csv results_reference.csv   # esporta i numeri di ogni results.json
 
 import argparse
 import glob
@@ -70,6 +71,33 @@ def dashboard():
     return diverged
 
 
+def export_csv(path):
+    """Scrive una riga per run con i campi di results.json: e' la tabella dei
+    risultati di riferimento che accompagna il codice, senza dover rilanciare nulla."""
+    import csv
+    fields = ["run", "group", "status", "test_accuracy", "val_accuracy",
+              "final_val_accuracy", "selected_epoch", "params", "seed"]
+    n = 0
+    with open(path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for eid in ORDER:
+            stato, _, _ = _status_of(eid)
+            row = {"run": eid, "group": GROUP_OF[eid], "status": stato}
+            json_path = os.path.join("logs", eid, "results.json")
+            if os.path.exists(json_path):
+                with open(json_path, encoding="utf-8") as handle_json:
+                    data = json.load(handle_json)
+                for key in fields[3:]:
+                    value = data.get(key)
+                    if isinstance(value, float) and key.endswith("accuracy"):
+                        value = round(value, 4)
+                    row[key] = value
+                n += 1
+            writer.writerow(row)
+    print(f"{path}: {n} run con risultati su {len(ORDER)}")
+
+
 def watch(experiment_id, poll_seconds=30):
     """Segue una run: stampa l'ultima epoca dallo stdout del processo, esce quando
     compare results.json (fine) oppure 'nan' (divergenza)."""
@@ -90,8 +118,13 @@ def main():
     parser = argparse.ArgumentParser(description="Stato delle run Perceiver v2")
     parser.add_argument("--watch", type=str, help="segue una singola run finche' finisce/diverge")
     parser.add_argument("--poll", type=int, default=30, help="secondi fra un check e l'altro in --watch")
+    parser.add_argument("--csv", type=str, metavar="FILE",
+                        help="esporta i risultati di tutte le run in un CSV (una riga per run)")
     args = parser.parse_args()
 
+    if args.csv:
+        export_csv(args.csv)
+        return
     if args.watch:
         raise SystemExit(watch(args.watch, args.poll))
     raise SystemExit(1 if dashboard() else 0)

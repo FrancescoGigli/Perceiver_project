@@ -1,0 +1,13 @@
+# Dataset (~24 GB) e risultati delle run: si riscaricano / rigenerano, vedi README
+data/
+logs/
+
+# Output rigenerabili degli strumenti di analisi
+perceiver_visualizations_v2/
+analysis_results_v2/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+venv/
+.venv/

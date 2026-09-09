@@ -127,6 +127,24 @@ python experiments.py --next                  # riassunto di stato + lancia la p
 > quindi il pre-training va completato prima. Lanciarle in anticipo si ferma con
 > un errore esplicito invece di addestrare da zero fingendo un transfer.
 
+### Quanto costa rilanciare
+
+Tempi misurati sulle run originali (una RTX 3080, 10 GB; dal `Training start
+time` in `logs/<id>/config.txt` alla scrittura di `results.json`):
+
+| gruppo | run | ore per run | note |
+|---|---|---|---|
+| `tab1`, `tab2`, `tab5`, `tab6`, `tab7`, `fig6`, `noise` | 24 | 1.4 – 5.1 (mediana 3.1) | 120 epoche; cresce con il numero di cross-attend e senza weight sharing |
+| `modelnet` | 3 | ~2.0 | più il preprocessing di ModelNet40 la prima volta |
+| `io_image` | 2 | ~3.6 | |
+| `io_mlm` | 1 | ~9.7 | 10 epoche su WikiText-103 |
+| `io_glue` | 10 | 0.4 – 1.0 | budget di epoche per taglia del task |
+| multitask, `baseline` | 2 | ~1.2 ciascuna | |
+
+In totale circa **105 ore di GPU** per le 42 run. Per una verifica rapida
+conviene una singola run corta, ad esempio `--group noise` o
+`--run io_glue_rte` (25 minuti).
+
 ## Risultati
 
 I risultati si leggono dai file generati da ogni run in `logs/<id>/results.json`
@@ -137,7 +155,13 @@ alle run effettivamente eseguite.
 ```bash
 python check.py            # tabella di stato: fatte / da fare / divergite + test acc
 python analyze_v2.py       # analisi comparativa di ogni run rispetto al baseline
+python check.py --csv results_reference.csv   # esporta tutti i numeri in un CSV
 ```
+
+[results_reference.csv](results_reference.csv) è l'export delle 42 run
+originali (test/val accuracy, epoca selezionata, parametri, seed): è la fonte dei
+numeri citati nella presentazione e serve a confrontare una run rilanciata con
+quella originale senza dover rifare tutto.
 
 ## Mappe d'attenzione
 
