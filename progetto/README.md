@@ -28,7 +28,7 @@ tabella/figura del paper che replica.
 ## Struttura
 
 ```text
-perceiver_project/
+progetto/
 ├── train.py                    # training loop (CIFAR-10, ModelNet40, WikiText MLM, GLUE)
 ├── experiments.py              # registro delle run + runner (--list/--run/--next/--all/--group)
 ├── multitask_glue.py           # Perceiver IO multitask sugli 8 task GLUE (paper IO Tab. 2)
@@ -42,7 +42,7 @@ perceiver_project/
 └── src/
     ├── perceiver/              # perceiver.py, encoder.py, attention.py, blocks.py, input_pe.py
     ├── perceiver_io/           # perceiver_io.py  (decoder con output queries)
-    ├── data/                   # cifar10.py, modelnet40.py, transforms.py
+    ├── data/                   # cifar10.py, modelnet40.py, transforms.py, wikitext103.py, glue_tasks.py, glue_sst2.py
     ├── config/base_cfg.py      # configurazione centralizzata (argparse)
     └── utils/                  # positional_encoding, learned_pe, scheduler, logger, seed
 ```
@@ -75,12 +75,20 @@ pip install -r requirements.txt
 
 ## Dati
 
-Entrambi i dataset si scaricano **automaticamente** alla prima esecuzione dentro `./data`:
+Nessun dato è incluso nel repo. Tutti i dataset si scaricano **automaticamente**
+alla prima esecuzione dentro `./data` (serve solo la connessione):
 
-| Dataset | Dimensione | Come |
-|---|---|---|
-| **CIFAR-10** | ~170 MB | `torchvision` lo scarica in `data/` |
-| **ModelNet40** | ~2 GB | `torch_geometric.datasets.ModelNet` lo scarica in `data/modelnet40/` |
+| Dataset | Usato da | Dimensione | Sorgente |
+|---|---|---|---|
+| **CIFAR-10** | `tab*`, `fig6`, `noise`, `io_image`, `baseline` | ~170 MB | `torchvision.datasets.CIFAR10` → `data/` |
+| **ModelNet40** | `modelnet` | ~2 GB scaricati, ~17 GB dopo il preprocessing | `torch_geometric.datasets.ModelNet` → `data/modelnet40/` |
+| **WikiText-103** | `io_mlm` | ~700 MB estratti | [`fast-ai-nlp/wikitext-103.tgz`](https://s3.amazonaws.com/fast-ai-nlp/wikitext-103.tgz) (mirror: [HuggingFace](https://huggingface.co/datasets/wikitext)) → `data/wikitext-103/` |
+| **GLUE** (CoLA, SST-2, STS-B, QQP, MNLI, QNLI, RTE) | `io_glue` | ~1.6 GB in totale (MNLI ~1.4 GB) | [`dl.fbaipublicfiles.com/glue/data/`](https://dl.fbaipublicfiles.com/glue/data/) → `data/<TASK>/` |
+| **GLUE MRPC** | `io_glue` | ~1 MB | HuggingFace `datasets` (`load_dataset("glue", "mrpc")`): il mirror diretto risponde 403 |
+
+Le URL esatte sono in [src/data/glue_tasks.py](src/data/glue_tasks.py) e
+[src/data/wikitext103.py](src/data/wikitext103.py). Se un download fallisce,
+lo script stampa l'URL da scaricare a mano e la cartella in cui estrarlo.
 
 ## Riprodurre gli esperimenti
 
@@ -88,7 +96,7 @@ Tutto passa dal registro [experiments.py](experiments.py), che è l'unica fonte
 autorevole dei comandi (costruisce l'invocazione esatta di `train.py`):
 
 ```bash
-python experiments.py --list                 # elenca le 26 run e i loro override
+python experiments.py --list                 # elenca le 42 run e i loro override
 python experiments.py --run e01_baseline      # esegue una singola run
 python experiments.py --group tab6            # esegue tutte le run di un gruppo
 python experiments.py --all                   # esegue tutte le run in sequenza

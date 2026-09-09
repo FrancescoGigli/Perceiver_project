@@ -10,6 +10,7 @@ numpy
 pandas
 scikit-learn
 requests                  # download dei dataset GLUE
+datasets                  # HuggingFace: serve solo per MRPC (il mirror diretto risponde 403)
 
 # Visualization
 matplotlib
