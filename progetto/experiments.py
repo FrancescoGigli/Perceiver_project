@@ -386,7 +386,7 @@ def main():
     parser.add_argument("--list", action="store_true", help="elenca gli esperimenti")
     parser.add_argument("--group", type=str, help="esegue tutti gli esperimenti di un gruppo")
     parser.add_argument("--run", type=str, help="esegue un singolo esperimento")
-    parser.add_argument("--all", action="store_true", help="esegue tutte le 23 run in sequenza")
+    parser.add_argument("--all", action="store_true", help="esegue tutte le 42 run in sequenza")
     parser.add_argument("--next", action="store_true",
                         help="mostra il riassunto e lancia il primo esperimento mancante/divergente")
     args = parser.parse_args()
