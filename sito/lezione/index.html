@@ -21,9 +21,10 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260818-risultati">
-<link rel="stylesheet" href="css/interactive-labs.css?v=20260818-risultati">
-<script defer src="js/interactive-labs.js?v=20260818-risultati"></script>
+<link rel="stylesheet" href="css/style.css?v=20260925-studio">
+<link rel="stylesheet" href="css/interactive-labs.css?v=20260925-studio">
+<link rel="stylesheet" href="css/studio.css?v=20260925-studio">
+<script defer src="js/interactive-labs.js?v=20260925-studio"></script>
 </head>
 <body>
 
@@ -57,6 +58,14 @@ window.MathJax = {
       <div class="chap-meta"><span class="chap-badge">Cap. 1</span><span class="chap-time">~6 min</span></div>
       <h1>Il problema della complessità quadratica</h1>
       <p class="intro">Il <strong>Perceiver</strong> (Jaegle et al., 2021) è un'architettura basata su Transformer progettata per elaborare <strong>modalità di input molto diverse</strong> — immagini, audio, video, point cloud — con <strong>un'unica architettura</strong>, senza componenti domain-specific.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Un Transformer confronta ogni elemento con tutti gli altri: con M elementi servono M × M punteggi.</li>
+          <li>Un'immagine 224×224 ha M = 50.176 pixel: M × M fa 2,5 miliardi di punteggi per ogni strato, circa 10 GB.</li>
+          <li>Il Perceiver fa leggere l'input a N = 512 latenti: 512 × 50.176 = 25,7 milioni di punteggi, 98 volte meno.</li>
+        </ul>
+      </div>
       <p>L'idea centrale è proiettare un input di dimensione arbitraria <code>M</code> in un <strong>latent array</strong> <code>L</code> di dimensione fissa <code>N ≪ M</code> tramite cross-attention. In questo modo il costo diventa lineare in <code>M</code> invece che quadratico e, soprattutto, si ottiene una cosa fondamentale: <strong>disaccoppiando la profondità della rete dalla dimensione dell'input</strong>, possiamo impilare molti layer di self-attention nello spazio latente senza pagare ogni volta il costo dell'input enorme. <em>In concreto</em>: aggiungere layer di ragionamento costa <code>O(N²)</code> sui 512 latenti, non <code>O(M²)</code> sui 50.176 pixel — la profondità diventa quasi "gratis" rispetto alla dimensione dell'input (lo vedremo al Cap. 8).</p>
       <p>Prima di capire <em>cos'è</em> il Perceiver, conviene quindi capire <em>perché esiste</em>. Il punto di partenza è un trade-off: <strong><button class="inline-summary-link" type="button" data-go-to="31" aria-label="Apri il riepilogo CNN">CNN</button> efficienti ma legate alla griglia</strong>, <strong>Transformer flessibili ma quadratici</strong>. Il Perceiver nasce per uscire da questo blocco quando il costo esplode proprio quando l'input diventa ricco: immagini ad alta risoluzione, audio lungo, video, point cloud.</p>
 
@@ -86,6 +95,20 @@ window.MathJax = {
         <div class="widget-note">Sposta lo slider e vedi quanto cresce la differenza. Con M=50.176 e N=512 è ~100× di riduzione.</div>
       </div>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Quanto costa «guardare» un'immagine?</p>
+        <ol class="passi">
+          <li>Un'immagine ImageNet ha 224 × 224 = <strong>50.176</strong> pixel. Ogni pixel è un elemento: M = 50.176.</li>
+          <li>Self-attention: ogni pixel dà un punteggio a ogni pixel. Sono M × M = 50.176 × 50.176 = <strong>2.517.630.976</strong> punteggi, circa 2,5 miliardi.</li>
+          <li>In float32 (4 byte per numero) sono circa <strong>10 GB</strong>. E vale per un solo strato, una sola testa, una sola immagine.</li>
+          <li>Il Perceiver usa N = 512 latenti come domande. La matrice diventa N × M = 512 × 50.176 = <strong>25.690.112</strong> punteggi, circa 103 MB.</li>
+          <li>Rapporto: (M × M) ÷ (N × M) = M ÷ N = 50.176 ÷ 512 = <strong>98</strong>. La cross-attention costa 98 volte meno.</li>
+          <li>Nel paper il Transformer «vero» sui pixel si poteva usare solo a 64×64 (M = 4.096): ottiene 57,0% su ImageNet, contro il 78,0% del Perceiver (Tab. 1).</li>
+          <li>Nel nostro CIFAR-10: M = 32 × 32 = 1.024 e N = 96. Self-attention 1.048.576 punteggi, cross-attention 98.304: circa 11 volte meno.</li>
+        </ol>
+      </div>
       <h2>La via d'uscita: latent bottleneck</h2>
       <p>Il <strong>Perceiver</strong> prende il meglio di entrambi: la <em>generalità</em> del Transformer e la <em>scalabilità</em> delle CNN. Come? Introduce un <strong>latent bottleneck</strong>: un collo di bottiglia di dimensione fissa <code>N ≪ M</code> attraverso cui far passare l'input.</p>
       <div class="display-eq">O(M^2)  ⟶  O(MN) + O(N^2)</div>
@@ -101,6 +124,23 @@ window.MathJax = {
         <p>Un solo modello per tutte le modalità, a costo <strong>lineare</strong> nell'input. Il prezzo: l'input va prima <em>compresso</em> in N ≪ M latenti. Tutto il resto dell'architettura discende da questa scelta.</p>
       </div>
 
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>«Lineare in M» non vuol dire «economico». La cross-attention costa ancora N × M: con M = 50.176 sono 25,7 milioni di numeri.</li>
+          <li>O(M²) riguarda la matrice di attenzione. Anche una CNN è lineare in M: il suo limite non è il costo, è la griglia.</li>
+          <li>N non dipende dall'input. Resta 512 anche se l'immagine raddoppia: è una scelta di progetto.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Quanti numeri contiene la matrice di una self-attention su un'immagine 224×224?</summary><p class="qa-a">M = 50.176 pixel, quindi M² ≈ 2,52 miliardi di numeri: circa 10 GB in float32, per un solo strato e una sola testa.</p></details>
+        <details class="qa-item"><summary>E con la cross-attention del Perceiver, con N = 512?</summary><p class="qa-a">N × M = 512 × 50.176 ≈ 25,7 milioni di numeri. Il risparmio è M ÷ N = 98 volte.</p></details>
+        <details class="qa-item"><summary>Perché nel paper il Transformer di confronto lavora su immagini 64×64?</summary><p class="qa-a">Perché a 224×224 la matrice M × M non entra in memoria. A 64×64 M = 4.096 e M² ≈ 16,8 milioni. Il risultato è 57,0%, contro il 78,0% del Perceiver (Tab. 1).</p></details>
+        <details class="qa-item"><summary>Cosa vuol dire «disaccoppiare la profondità dalla dimensione dell'input»?</summary><p class="qa-a">Dopo la cross-attention si lavora solo sugli N latenti. Ogni blocco in più costa O(N²), qualunque sia M: aggiungere strati non fa ripagare l'input.</p></details>
+        <details class="qa-item"><summary>Da quale compromesso fra CNN e Transformer nasce il Perceiver?</summary><p class="qa-a">Le CNN costano poco ma presuppongono una griglia: servono conv 1D, 2D o 3D a seconda del dato. Il Transformer è generale ma quadratico. Il Perceiver è generale e lineare in M, grazie al collo di bottiglia dei latenti.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-1" disabled>← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="1"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -113,6 +153,14 @@ window.MathJax = {
       <div class="chap-meta"><span class="chap-badge">Cap. 2</span><span class="chap-time">~5 min</span></div>
       <h1>Dalla self- alla cross-attention</h1>
       <p class="intro">Capito il problema (O(M²)), vediamo concretamente <em>come</em> il Perceiver lo aggira. La chiave è una piccola modifica all'attention.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Self-attention: Q, K e V vengono dallo stesso input. La matrice è M × M.</li>
+          <li>Cross-attention: Q viene dai latenti (N), K e V dall'input (M). La matrice è N × M, rettangolare.</li>
+          <li>L'uscita ha tante righe quante le query: N. È così che l'input viene compresso.</li>
+        </ul>
+      </div>
 
       <h2>Self-attention: la versione classica</h2>
       <p>Nel Transformer standard, Query, Key e Value sono <strong>tutti calcolati dallo stesso input X</strong>. Ogni token "guarda" tutti gli altri token, e il risultato è una matrice di attenzione <code>M×M</code> (quadrata).</p>
@@ -156,6 +204,19 @@ window.MathJax = {
         <strong>Q</strong> = una <em>domanda</em> ("cosa sto cercando?"). <strong>K</strong> = un'<em>etichetta</em> ("io rappresento questo"). <strong>V</strong> = il <em>contenuto</em> informativo. L'attenzione confronta ogni domanda con tutte le etichette e restituisce una media pesata dei contenuti più pertinenti.
       </div>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Le forme, una moltiplicazione alla volta (ImageNet)</p>
+        <ol class="passi">
+          <li>Input X: <strong>50.176 righe</strong> (pixel) × 261 colonne (3 colori + 258 numeri di posizione, cap. 5).</li>
+          <li>Latenti L: <strong>512 righe</strong> × 1.024 colonne.</li>
+          <li>Q = LN(L)·W_Q ha forma 512 × 261. K = LN(X)·W_K e V = LN(X)·W_V hanno forma 50.176 × 261.</li>
+          <li>Q·Kᵀ: (512 × 261) · (261 × 50.176) = <strong>512 × 50.176</strong>. Una riga per latente, una colonna per pixel.</li>
+          <li>Softmax su ogni riga, poi A·V: (512 × 50.176) · (50.176 × 261) = <strong>512 × 261</strong>. Il numero di pixel è sparito.</li>
+          <li>Nel nostro CIFAR-10 (e01): Q 96 × 261, K e V 1.024 × 261, matrice 96 × 1.024 = 98.304 numeri, uscita 96 × 261.</li>
+        </ol>
+      </div>
       <h2>I latenti non sono input, sono parametri</h2>
       <p>Punto cruciale: i latenti <code>L ∈ ℝ^(N×D)</code> sono <strong>parametri appresi del modello</strong>, NON derivano dall'input. Sono "unità di memoria" — una base compatta che il modello usa per riassumere qualsiasi cosa gli si dia in pasto. Sono uguali per ogni esempio del batch e cambiano solo durante il training, mai durante l'inferenza.</p>
 
@@ -174,6 +235,23 @@ window.MathJax = {
         <p>La cross-attention è un piccolo gruppo di N latenti che "<strong>interroga</strong>" gli M elementi dell'input. L'asimmetria <code>N ≪ M</code> è ciò che rompe la quadraticità del Transformer.</p>
       </div>
 
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>«Cross» non vuol dire «fra due modalità». Vuol dire che le query vengono da un array e chiavi e valori da un altro.</li>
+          <li>Il latent array iniziale non dipende dall'immagine: è uguale per tutte. I latenti diventano diversi solo dopo aver letto l'input.</li>
+          <li>La forma dell'uscita la decide chi fa le domande. È la stessa idea del decoder di Perceiver IO (cap. 15).</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Da dove vengono Q, K e V nella cross-attention del Perceiver?</summary><p class="qa-a">Q dai latenti (N × D). K e V dall'input (M × C_tot).</p></details>
+        <details class="qa-item"><summary>Che forma ha la matrice di attenzione e cosa rappresenta una riga?</summary><p class="qa-a">N × M. Una riga dice come un latente distribuisce la sua attenzione sugli M elementi: i numeri sono fra 0 e 1 e sommano a 1.</p></details>
+        <details class="qa-item"><summary>Quante righe ha l'uscita della cross-attention? Perché conta?</summary><p class="qa-a">N, quante le query. Con 50.176 pixel in ingresso escono comunque 512 righe: è il collo di bottiglia.</p></details>
+        <details class="qa-item"><summary>I latenti dipendono dall'immagine?</summary><p class="qa-a">Il latent array iniziale no: è un parametro appreso, uguale per ogni esempio. Dopo la cross-attention i latenti contengono l'informazione letta da quell'immagine.</p></details>
+        <details class="qa-item"><summary>Perché la stessa idea serve anche al decoder di Perceiver IO?</summary><p class="qa-a">Perché la forma dell'uscita la decidono le query. Nel decoder le O query di output interrogano i latenti: l'uscita ha O righe, una per ogni risposta richiesta.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-2">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="2"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -186,6 +264,14 @@ window.MathJax = {
       <div class="chap-meta"><span class="chap-badge">Cap. 3</span><span class="chap-time">~5 min</span></div>
       <h1>L'architettura in tre stadi</h1>
       <p class="intro">Hai capito il principio (cross-attention con latenti). Adesso vediamo come è organizzata <em>l'intera</em> rete.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Tre stadi: la cross-attention legge l'input, il latent transformer ragiona sui latenti, la testa fa la media e classifica.</li>
+          <li>ImageNet: M = 50.176, C_tot = 261, N = 512, D = 1.024. Otto letture, ognuna seguita da 6 blocchi latenti: 48 blocchi in tutto.</li>
+          <li>Il modello ha 44,9 milioni di parametri e costa 707 miliardi di FLOPs per immagine (Tab. 7).</li>
+        </ul>
+      </div>
 
       <figure>
         <img src="../figure_corso/fig1_architecture.png" alt="Architettura del Perceiver">
@@ -238,15 +324,55 @@ window.MathJax = {
           <tr><td><code>D</code></td><td><strong>1024</strong></td><td>dimensione di ogni latente</td></tr>
           <tr><td><code>d_QKV</code></td><td>261</td><td>dim. interna cross-attention = min(D, C_tot)</td></tr>
           <tr><td><code>T</code></td><td><strong>8</strong></td><td>iterazioni con weight sharing</td></tr>
-          <tr><td><code>ℓ</code></td><td>6</td><td>self-attention per blocco del latent transformer</td></tr>
-          <tr><td><code>H</code></td><td>8</td><td>teste self-attention (d_head = 128)</td></tr>
+          <tr><td><code>ℓ</code></td><td>6</td><td>self-attention per blocco del latent transformer (48 in tutto)</td></tr>
+          <tr><td><code>H</code></td><td>8 (?)</td><td>teste della self-attention: il paper non lo dice per il modello principale; 8 è il valore del modello piccolo delle ablazioni (App. B) e del nostro codice</td></tr>
+          <tr><td><code>r</code></td><td><strong>1</strong></td><td>fattore dell'MLP: hidden = D, nessun allargamento (p. 6 e 17). Il nostro codice usa 4</td></tr>
           <tr><td><code>K</code></td><td>64</td><td>bande di frequenza Fourier per asse</td></tr>
         </tbody>
       </table>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Da dove vengono i 44,9 milioni di parametri</p>
+        <ol class="passi">
+          <li>Latent array: 512 × 1.024 = <strong>524.288</strong> numeri appresi.</li>
+          <li>Una cross-attention (d_QKV = 261, MLP con fattore 1) ha <strong>2.775.612</strong> parametri. Le distinte sono 2: la prima e quella condivisa dalle letture 2–8. Totale 5.551.224.</li>
+          <li>Un blocco di self-attention (D = 1.024, MLP con fattore 1) ha <strong>6.298.624</strong> parametri. I blocchi distinti sono 6, riusati a ogni lettura: 37.791.744.</li>
+          <li>Classificatore: 1.024 × 1.000 pesi + 1.000 bias = <strong>1.025.000</strong>.</li>
+          <li>Somma: 524.288 + 5.551.224 + 37.791.744 + 1.025.000 = <strong>44.892.256</strong>, cioè 44,9 M: il numero della Tab. 7. L'84% sta nei 6 blocchi latenti.</li>
+          <li>Senza weight sharing servirebbero 8 cross-attention e 48 blocchi: 326,1 M (il paper scrive 326,2 M). I FLOPs sono gli stessi: 707 miliardi.</li>
+        </ol>
+      </div>
+
+      <div class="concept-lab" data-lab="calc-perceiver" data-preset="paper">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">calcolatrice · stesse formule del codice del progetto</span>
+            <h3>Parametri e costi di qualunque Perceiver</h3>
+            <p>Scegli una configurazione o cambia i numeri. I parametri delle run coincidono all'unità con quelli contati da PyTorch.</p>
+          </div>
+        </div>
+      </div>
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>Tre stadi: <em>encoder</em> (cross-att comprime) → <em>latent transformer</em> (self-att raffina nei latenti) → <em>pooling + classificatore</em>. Il blocco encoder+transformer si ripete T=8 volte con weight sharing.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>«T = 8» non vuol dire 8 blocchi. Sono 8 letture dell'input, ognuna seguita da 6 blocchi: 48 blocchi eseguiti.</li>
+          <li>Il paper non dice quante teste ha la self-attention del modello principale. 8 è il valore del modello piccolo delle ablazioni.</li>
+          <li>L'MLP del paper non allarga (fattore 1). Il nostro codice usa 4, come GPT-2: è una differenza da dichiarare.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Quali sono i tre stadi del Perceiver e che forma ha il dato dopo ciascuno?</summary><p class="qa-a">Cross-attention: da 50.176 × 261 a 512 × 1.024. Latent transformer: resta 512 × 1.024. Testa: media sui latenti (un vettore da 1.024), poi Linear verso 1.000 logit.</p></details>
+        <details class="qa-item"><summary>Quanti blocchi di self-attention esegue il modello ImageNet, e quanti sono distinti?</summary><p class="qa-a">8 letture × 6 blocchi = 48 esecuzioni. Con il weight sharing i blocchi distinti sono solo 6.</p></details>
+        <details class="qa-item"><summary>Quanti parametri ha il modello del paper, e dove stanno?</summary><p class="qa-a">44,9 M. Circa 37,8 M, l'84%, stanno nei 6 blocchi latenti. Le due cross-attention ne hanno 5,6 M, il classificatore 1 M, i latenti 0,5 M.</p></details>
+        <details class="qa-item"><summary>Come cambia la configurazione nel tuo e01?</summary><p class="qa-a">M = 1.024 (CIFAR-10, 32×32), N = 96, D = 384, 4 letture, 4 blocchi per lettura, MLP con fattore 4. Totale 10.175.362 parametri.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -261,6 +387,14 @@ window.MathJax = {
       <div class="chap-meta"><span class="chap-badge">Cap. 4</span><span class="chap-time">~4 min</span></div>
       <h1>Input: il byte array</h1>
       <p class="intro">Iniziamo il forward pass. Il primo passo è trasformare un input grezzo (un'immagine, un waveform, un point cloud) in un formato che il Perceiver possa digerire <em>uniformemente</em>.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Ogni input diventa una tabella M × C: M elementi, C numeri per ciascuno.</li>
+          <li>ImageNet: 50.176 × 3. CIFAR-10: 1.024 × 3. Il nostro ModelNet40: 2.048 × 3. Il nostro testo: 512 × 257.</li>
+          <li>Nella tabella la posizione si perde. La rimette il capitolo 5.</li>
+        </ul>
+      </div>
 
       <div class="pipe">
         <span class="pipe-chip on">Input</span><span class="pipe-arr">→</span>
@@ -331,9 +465,38 @@ window.MathJax = {
         <p>È solo il contenuto "cromatico" dei pixel. <strong>Manca l'informazione posizionale</strong>: questo byte array da solo, dato al Perceiver, non distinguerebbe due immagini che differiscono solo per una permutazione dei pixel. La prossima sezione aggiunge la posizione tramite Fourier features.</p>
       </div>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Cinque input, una sola forma</p>
+        <ol class="passi">
+          <li>Immagine CIFAR-10: 32 × 32 = <strong>1.024</strong> pixel con 3 colori. Tabella 1.024 × 3 = 3.072 numeri.</li>
+          <li>Immagine ImageNet: 224 × 224 = <strong>50.176</strong> pixel. Tabella 50.176 × 3 = 150.528 numeri.</li>
+          <li>Nuvola di punti del nostro ModelNet40: <strong>2.048</strong> punti con x, y, z. Tabella 2.048 × 3.</li>
+          <li>Testo del nostro MLM: <strong>512</strong> byte. Ogni byte è un vettore one-hot (tutti zeri tranne un 1) lungo 257: 256 valori possibili più il simbolo [MASK]. Tabella 512 × 257.</li>
+          <li>Video di AudioSet nel paper: 32 fotogrammi 224×224 tagliati in pezzi 2×8×8. Sono 16 × 28 × 28 = <strong>12.544</strong> elementi.</li>
+          <li>In tutti i casi il modello vede solo righe di numeri. Se mescoli le righe, la tabella contiene le stesse informazioni: per questo serve la posizione.</li>
+        </ol>
+      </div>
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>Il byte array <code>M × C</code> è la <strong>lingua franca</strong> del Perceiver: qualunque sia la modalità di input (immagine, audio, video, point cloud), tutto finisce qui. Da questo formato uniforme nasce la generalità del modello.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>«Byte array» è un nome storico. Le righe contengono numeri reali, non byte da 8 bit.</li>
+          <li>M conta gli elementi, non i valori: 224 × 224 × 3 = 150.528 valori, ma M = 50.176.</li>
+          <li>Il reshape da griglia a tabella non aggiunge niente: toglie l'informazione su chi è vicino a chi.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Che forma ha il byte array di un'immagine ImageNet? E di una CIFAR-10?</summary><p class="qa-a">50.176 × 3 e 1.024 × 3.</p></details>
+        <details class="qa-item"><summary>Cosa si perde passando dalla griglia alla tabella?</summary><p class="qa-a">La vicinanza: il modello non sa più quali pixel stanno accanto. Va rimessa con la codifica di posizione.</p></details>
+        <details class="qa-item"><summary>Come diventa un byte array il testo nel tuo progetto?</summary><p class="qa-a">512 byte, ognuno one-hot lungo 257 (256 byte + [MASK]), più 13 canali di Fourier per la posizione: tabella 512 × 270.</p></details>
+        <details class="qa-item"><summary>Perché avere un solo formato è così importante?</summary><p class="qa-a">Perché la stessa rete, senza modifiche, legge immagini, audio, nuvole di punti e testo. Cambia solo come si costruisce la tabella.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -348,6 +511,14 @@ window.MathJax = {
       <div class="chap-meta"><span class="chap-badge">Cap. 5</span><span class="chap-time">~7 min</span></div>
       <h1>Positional encoding: le Fourier features</h1>
       <p class="intro">Il byte array dice <em>cosa</em> contiene ogni elemento, ma non <em>dove</em> si trova. È un problema, perché l'attention è cieca alla posizione. Le Fourier features risolvono il problema in modo elegante.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Ogni coordinata, portata in [−1, 1], diventa: se stessa + K seni + K coseni, con frequenze da 1 a f_max.</li>
+          <li>Con 2 assi e K = 64 bande: 2 · (2·64 + 1) = 258 numeri di posizione. Con i 3 colori: 261 canali per pixel.</li>
+          <li>Si concatenano all'input, non si sommano. f_max è Nyquist: 112 su ImageNet, 16 su CIFAR-10.</li>
+        </ul>
+      </div>
 
       <div class="pipe">
         <span class="pipe-chip">Input</span><span class="pipe-arr">→</span>
@@ -410,7 +581,7 @@ window.MathJax = {
           <span class="val" id="fCVal">3</span>
         </div>
         <div class="display-eq" id="fResult">C_tot = 3 + 2·(2·64 + 1) = 3 + 258 = 261</div>
-        <div class="widget-note">Per ImageNet (immagine 2D RGB con K=64): C_tot=261. Per audio 1D mono con K=64: 130. Per point cloud 3D con K=64: 387.</div>
+        <div class="widget-note">Per ImageNet (immagine 2D RGB con K=64): C_tot=261. Per audio 1D mono con K=64: 130. Per point cloud 3D (x, y, z) con K=64: 3 + 387 = 390. Nel nostro ModelNet40, con K=6: 3 + 39 = 42.</div>
       </div>
 
       <div class="esempio">
@@ -420,13 +591,36 @@ window.MathJax = {
           <li>Posizione normalizzata: <code>(x, y) = (0.3, 0.7)</code>.</li>
           <li>Fourier per x=0.3 con 3 frequenze illustrative (f₁=1, f₂=2, f₃=4):
             <div class="display-eq" style="background:white;font-size:12px;">[0.3, sin(0.3π), cos(0.3π), sin(0.6π), cos(0.6π), sin(1.2π), cos(1.2π)]
-= [0.3, 0.809, 0.588, 0.951, -0.309, -0.588, 0.809]</div>
+= [0.3, 0.809, 0.588, 0.951, -0.309, -0.588, -0.809]</div>
           </li>
           <li>Analogamente per y=0.7.</li>
           <li>Vettore finale: <code>[1.0, 0, 0, 0.3, 0.809, …, 0.7, …] ∈ ℝ²⁶¹</code></li>
         </ul>
       </div>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Un pixel vero di CIFAR-10: riga 0, colonna 16</p>
+        <ol class="passi">
+          <li>Le coordinate vanno da −1 a +1 in 32 passi. Riga 0 → y = −1. Colonna 16 → x = −1 + 2·16/31 = <strong>0,032</strong>.</li>
+          <li>Le 64 frequenze sono equispaziate da 1 a 16: f₁ = 1, f₂ ≈ 1,238, …, f₆₄ = 16.</li>
+          <li>Banda 1 per x: sin(π · 1 · 0,032) = 0,101 e cos = 0,995. Onda lenta: descrive la posizione globale.</li>
+          <li>Banda 64 per x: sin(π · 16 · 0,032) = 0,999 e cos = −0,051. Onda veloce: cambia molto da un pixel all'altro.</li>
+          <li>Il vicino a destra (colonna 17, x = 0,097): banda 1 dà 0,299, quasi uguale. Banda 64 dà −0,988, opposto. Le bande alte distinguono i vicini, quelle basse danno la zona.</li>
+          <li>Totale per il pixel: 2 coordinate + 64 bande × 2 funzioni × 2 assi = 2 + 256 = <strong>258</strong> numeri. Con R, G, B: <strong>261</strong>.</li>
+        </ol>
+      </div>
+
+      <div class="concept-lab" data-lab="calc-fourier">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">calcolatrice · stesso ordine di FourierPositionalEncoding</span>
+            <h3>Le Fourier features di un pixel, numero per numero</h3>
+            <p>Scegli un pixel, il numero di bande e la frequenza massima. Guarda l'onda della banda scelta e tutti i 258 valori del pixel.</p>
+          </div>
+        </div>
+      </div>
       <div class="esempio">
         <div class="esempio-label">Checkpoint dimensioni — fine §1.4.2</div>
         <p>Dopo l'aggiunta delle Fourier features, ogni pixel è descritto da C_tot=261 numeri invece di C=3:</p>
@@ -444,6 +638,25 @@ window.MathJax = {
         <p>Le Fourier features danno al modello la <strong>posizione</strong>. È questa scelta — non l'architettura in sé — a rendere il Perceiver <strong>invariante alle permutazioni</strong> dei pixel. <em>Perché?</em> L'attention tratta l'input come un <strong>insieme</strong>: non ha alcuna nozione dell'ordine delle righe. Se la posizione è codificata <em>dentro</em> ogni riga (Fourier), permutare le righe non distrugge nulla — riga e posizione restano accoppiate. Una CNN invece <em>deduce</em> la posizione dall'indice nella griglia: permutare gli indici la acceca. Lo vedremo concretamente al capitolo 12.</p>
       </div>
 
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Le frequenze del Perceiver sono equispaziate (1, …, μ/2), non potenze di 2 come in NeRF.</li>
+          <li>K = 64 non vuol dire 64 canali: sono 2K + 1 = 129 canali per asse, 258 per due assi.</li>
+          <li>Oltre Nyquist una banda fa più di mezza oscillazione fra due pixel vicini: non porta informazione nuova (aliasing).</li>
+          <li>Nel paper le coordinate sono quelle del ritaglio 224×224. Usare quelle dell'immagine intera dava overfitting (p. 6).</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Quanti canali ha un pixel ImageNet dopo le Fourier features? Fai il conto.</summary><p class="qa-a">3 + 2 · (2·64 + 1) = 3 + 258 = 261.</p></details>
+        <details class="qa-item"><summary>Perché la frequenza massima su ImageNet è 112?</summary><p class="qa-a">È la frequenza di Nyquist: con 224 campioni per asse non si può rappresentare un'onda più veloce di 112 oscillazioni.</p></details>
+        <details class="qa-item"><summary>Perché si aggiunge anche la coordinata grezza?</summary><p class="qa-a">Seni e coseni sono periodici: posizioni diverse possono dare lo stesso valore. La coordinata grezza è unica per ogni posizione.</p></details>
+        <details class="qa-item"><summary>Perché concatenare e non sommare?</summary><p class="qa-a">Concatenando, colore e posizione restano in canali separati e il modello li legge senza confonderli. Il paper concatena (p. 5); i modelli di linguaggio di solito sommano.</p></details>
+        <details class="qa-item"><summary>Cosa hanno misurato i tuoi e23–e26?</summary><p class="qa-a">K = 4 → 66,39% e K = 16 → 62,58%: fuori banda, con training instabile (all'ultima epoca 22,5% e 55,5% in validation). f_max = 8 → 69,50% e 64 → 72,41%: dentro la banda. Nel paper (Fig. 6) più bande e f_max fino a Nyquist aiutano, ma di poco.</p></details>
+        <details class="qa-item"><summary>Quanti canali ha un punto 3D nel tuo ModelNet40?</summary><p class="qa-a">3 + 3 · (2·6 + 1) = 42. Il codice usa 6 bande invece delle 64 del paper: è una differenza dichiarata.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-5">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="5"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -456,6 +669,14 @@ window.MathJax = {
       <div class="chap-meta"><span class="chap-badge">Cap. 6</span><span class="chap-time">~4 min</span></div>
       <h1>Il latent array</h1>
       <p class="intro">Adesso abbiamo l'input pronto (byte array + Fourier). Manca l'altro protagonista: il latent array, che la cross-attention metterà in comunicazione con l'input.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Il latent array è una matrice di parametri: 512 × 1.024 nel paper, 96 × 384 nel nostro e01.</li>
+          <li>Parte da valori piccoli: normale troncata con media 0 e deviazione standard 0,02.</li>
+          <li>È uguale per ogni immagine. Diventa diverso solo dopo aver letto l'input.</li>
+        </ul>
+      </div>
 
       <div class="pipe">
         <span class="pipe-chip">Input</span><span class="pipe-arr">→</span>
@@ -535,9 +756,38 @@ window.MathJax = {
         <li>Il vincolo fondamentale: <code>N ≪ M</code>. Qui N/M = 512/50.176 ≈ 1%.</li>
       </ul>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Quanto pesa, quanto è piccolo, cosa succede se lo inizializzi male</p>
+        <ol class="passi">
+          <li>Paper: 512 × 1.024 = <strong>524.288</strong> numeri, l'1,2% dei 44,9 M parametri.</li>
+          <li>Nostro e01: 96 × 384 = <strong>36.864</strong> numeri, lo 0,36% dei 10.175.362 parametri.</li>
+          <li>Rapporto N ÷ M: nel paper 512 ÷ 50.176 = 1,02%; nel nostro CIFAR-10 96 ÷ 1.024 = 9,4%.</li>
+          <li>Con σ = 0,02 il 95% dei valori sta fra −0,04 e +0,04 (due deviazioni standard).</li>
+          <li>Nostri esperimenti: σ = 0,1 → <strong>65,69%</strong> (−5,94, fuori banda); σ = 1,0 → <strong>52,08%</strong> (−19,55).</li>
+          <li>Nel paper (Fig. 6): σ = 0,02 → 72,6%, σ = 1,0 → 71,4%, e con σ = 0,1 il training diverge. Valori piccoli sono la scelta sicura in entrambi i casi.</li>
+        </ol>
+      </div>
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>I latenti sono <strong>parametri</strong>, non dati. Il loro numero N è fisso e piccolo (512). Il loro contenuto è imparato dal training. È questa asimmetria <code>N ≪ M</code> a dare al Perceiver tutta la sua efficienza.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>I latenti non sono le query. Le query sono LN(L)·W_Q: il latent array è il punto di partenza.</li>
+          <li>N non dipende da M. È un iperparametro: cambiare immagine non cambia N.</li>
+          <li>Piccolo non vuol dire zero. Con tutti zeri i latenti sarebbero identici: farebbero la stessa domanda e riceverebbero lo stesso gradiente, per sempre.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Che forma ha il latent array nel paper e nel tuo e01?</summary><p class="qa-a">512 × 1.024 e 96 × 384.</p></details>
+        <details class="qa-item"><summary>Il latent array cambia da un'immagine all'altra?</summary><p class="qa-a">No. È un parametro: cambia solo durante il training. Cambiano i latenti dopo la cross-attention.</p></details>
+        <details class="qa-item"><summary>Come è inizializzato e perché con valori piccoli?</summary><p class="qa-a">Normale troncata, media 0, deviazione standard 0,02, taglio a ±2 (p. 17). Valori piccoli tengono moderati i punteggi di attenzione all'inizio e rendono il training stabile.</p></details>
+        <details class="qa-item"><summary>Cosa è successo nei tuoi esperimenti cambiando la scala d'inizializzazione?</summary><p class="qa-a">σ = 0,1: 65,69%. σ = 1,0: 52,08%. Entrambi fuori banda rispetto al 71,63% di e01. Nel paper σ = 1,0 costa poco (71,4 contro 72,6) e σ = 0,1 fa divergere il training.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -552,6 +802,14 @@ window.MathJax = {
       <div class="chap-meta"><span class="chap-badge">Cap. 7</span><span class="chap-time">~9 min</span></div>
       <h1>Il blocco di cross-attention</h1>
       <p class="intro">Il cuore del Perceiver. Vediamo passo per passo come gli N latenti "leggono" gli M elementi dell'input. È il capitolo più tecnico della lezione.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>LayerNorm, poi Q dai latenti e K, V dall'input, tutti con d_QKV = min(C_tot, D) = 261 canali.</li>
+          <li>Punteggi Q·Kᵀ divisi per √261 ≈ 16, softmax su ogni riga, media pesata dei V. Poi proiezione a D, residual e MLP.</li>
+          <li>L'uscita ha la stessa forma dei latenti (512 × 1.024): il blocco si può ripetere.</li>
+        </ul>
+      </div>
 
       <div class="pipe">
         <span class="pipe-chip">Input</span><span class="pipe-arr">→</span>
@@ -596,11 +854,11 @@ window.MathJax = {
       <p><strong>Perché il minimo?</strong> L'input ha già solo 261 canali: una proiezione lineare <code>261→1024</code> ha <strong>rango ≤ 261</strong>, quindi produrrebbe sì 1024 feature ma solo 261 <em>linearmente indipendenti</em> — le altre sono ridondanti. Espandere non può <em>creare</em> informazione che non c'è: sarebbe solo spreco di parametri e FLOPs. Scegliere il minimo tiene Q, K, V in dimensione compatta e usa 1024 solo dove serve davvero (lo spazio dei latenti).</p>
 
       <h2>Passo 3 — proiezioni Q, K, V</h2>
-      <p>Tre matrici di pesi apprese, <strong>senza bias</strong> (paper App. C: "linear layers" senza bias):</p>
+      <p>Tre matrici di pesi apprese, <strong>senza bias</strong> (così nel nostro codice; il paper non entra nel dettaglio):</p>
       <div class="display-eq">Q = L̃ · W_Q,    W_Q ∈ ℝ^(D × d_QKV)   = ℝ^(1024 × 261)    ⇒  Q ∈ ℝ^(512 × 261)      (dai latenti)
 K = X̃ · W_K,    W_K ∈ ℝ^(C_tot × d_QKV) = ℝ^(261 × 261)    ⇒  K ∈ ℝ^(50.176 × 261)   (dall'input)
 V = X̃ · W_V,    W_V ∈ ℝ^(C_tot × d_QKV) = ℝ^(261 × 261)    ⇒  V ∈ ℝ^(50.176 × 261)   (dall'input)</div>
-      <p>Le matrici W sono <strong>apprese</strong>: imparano a produrre query, key e value "ottimali" per il matching (riduzione di feature rumorose, ecc.). Inizializzate con <strong>Xavier Uniform</strong>. <em>Da non confondere</em>: questi sono i <em>pesi delle proiezioni</em>; i <em>latenti</em> <code>L</code> (Cap. 6) usano invece la gaussiana stretta <code>𝒩(0, 0.02²)</code> — oggetti diversi: matrici di proiezione vs parametri-memoria.</p>
+      <p>Le matrici W sono <strong>apprese</strong>: imparano a produrre query, key e value "ottimali" per il matching (riduzione di feature rumorose, ecc.). Il paper non dice come sono inizializzate; il nostro codice usa l'inizializzazione di default di PyTorch (uniforme, con scala 1/√fan_in). <em>Da non confondere</em>: questi sono i <em>pesi delle proiezioni</em>; i <em>latenti</em> <code>L</code> (Cap. 6) usano invece la gaussiana stretta <code>𝒩(0, 0.02²)</code> — oggetti diversi: matrici di proiezione vs parametri-memoria.</p>
       <p><strong>L'asimmetria chiave</strong>: Q ha poche righe (N=512), K e V ne hanno tante (M=50.176). Stessa dimensione-feature (261), ma forma molto diversa. È da qui che nascerà la matrice rettangolare N×M.</p>
 
       <h2>Passo 4 — scaled dot-product attention</h2>
@@ -627,21 +885,57 @@ V = X̃ · W_V,    W_V ∈ ℝ^(C_tot × d_QKV) = ℝ^(261 × 261)    ⇒  V ∈
         <figcaption>Pipeline della scaled dot-product attention: prodotto QKᵀ, scaling per √d_QKV, softmax per riga, prodotto finale con V. (Il passo "Mask" non è usato: il Perceiver è non-causale.)</figcaption>
       </figure>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">L'attenzione con numeri veri: 2 latenti, 4 pixel</p>
+        <ol class="passi">
+          <li>Quattro pixel descritti da due numeri (quanto è rosso, dove sta). Chiavi: x₁ = (1, −1) e x₂ = (1, −0,8) rossi a sinistra; x₃ = (−1, 0,9) e x₄ = (−1, 1) blu a destra.</li>
+          <li>Due latenti fanno una domanda: q₁ = (2, 0) «cerco il rosso»; q₂ = (0, 2) «cerco ciò che sta a destra».</li>
+          <li>Punteggi del latente 1: q₁·k = 2, 2, −2, −2. Divisi per √d = √2: 1,41, 1,41, −1,41, −1,41.</li>
+          <li>Softmax: e^1,41 = 4,11 ed e^−1,41 = 0,24. Somma 8,71. Pesi: <strong>0,47, 0,47, 0,03, 0,03</strong>. Sommano a 1.</li>
+          <li>Uscita = media pesata dei valori (rosso, blu): 0,47·(1, 0) + 0,47·(0,9, 0,1) + 0,03·(0, 1) + 0,03·(0,1, 0,9) = <strong>(0,90, 0,10)</strong>. Il latente 1 ha raccolto il rosso.</li>
+          <li>Latente 2: punteggi −1,41, −1,13, 1,27, 1,41 → pesi 0,03, 0,04, 0,43, 0,50 → uscita <strong>(0,11, 0,89)</strong>: ha raccolto il blu. Stesso input, due riassunti diversi.</li>
+        </ol>
+      </div>
+
+      <div class="concept-lab" data-lab="calc-attenzione">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">calcolatrice · Q, K, V, S, A e A·V con numeri veri</span>
+            <h3>Muovi la domanda, guarda cambiare la softmax</h3>
+            <p>Gira la query del latente 1, allungala o togli la divisione per √d. Tutte le matrici si aggiornano.</p>
+          </div>
+        </div>
+      </div>
       <h2>Passo 5 — output projection + residual</h2>
       <p>F vive in dimensione 261 (la dim di d_QKV). Va riportato a D=1024 per poterlo sommare ai latenti:</p>
       <div class="display-eq">Z' = F · W_o + b_o,    W_o ∈ ℝ^(261 × 1024)  ⇒  Z' ∈ ℝ^(512 × 1024)
 L' = L + Z'                     (residual connection)</div>
 
       <h2>Passo 6 — MLP (feed-forward)</h2>
-      <p>Pre-norm, espansione a 4D, attivazione GELU, compressione, residual:</p>
+      <p>Pre-norm, primo Linear, attivazione GELU, secondo Linear, residual. Nel paper l'MLP <strong>non allarga</strong>: hidden = D = 1.024 (fattore 1, p. 6 e 17).</p>
       <div class="display-eq">L̃' = LN(L')
-H  = L̃' · W₁ + b₁,    W₁ ∈ ℝ^(1024 × 4096),  H ∈ ℝ^(512 × 4096)
+H  = L̃' · W₁ + b₁,    W₁ ∈ ℝ^(1024 × 1024),  H ∈ ℝ^(512 × 1024)
 H' = GELU(H)
-φ  = H' · W₂ + b₂,    W₂ ∈ ℝ^(4096 × 1024)
+φ  = H' · W₂ + b₂,    W₂ ∈ ℝ^(1024 × 1024)
 L̂  = L' + φ                    (residual finale)</div>
-      <p>L'espansione a 4D=4096 e il pattern hidden=4× sono standard GPT-2. Output finale del blocco:</p>
+      <p>GPT-2, BERT e il <strong>nostro codice</strong> usano invece hidden = 4D. Con fattore 4 il solo MLP di un blocco da 1.024 avrebbe 8,4 M di parametri invece di 2,1 M. È una differenza dal paper da dichiarare. Output finale del blocco:</p>
       <div class="display-eq">L̂ ∈ ℝ^(512 × 1024)    — stessa forma di L</div>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">I parametri di una cross-attention del nostro e01</p>
+        <ol class="passi">
+          <li>d_QKV = min(C_tot, D) = min(261, 384) = <strong>261</strong>.</li>
+          <li>W_Q: 384 × 261 = 100.224. W_K e W_V: 261 × 261 = 68.121 ciascuna. Nessun bias.</li>
+          <li>W_o, da 261 a 384, con bias: 261 × 384 + 384 = 100.608.</li>
+          <li>Tre LayerNorm (latenti, input, prima dell'MLP), ognuna con γ e β: 2·384 + 2·261 + 2·384 = 2.058.</li>
+          <li>MLP con fattore 4: 384 × 1.536 + 1.536 + 1.536 × 384 + 384 = 1.181.568. È il 78% del blocco.</li>
+          <li>Totale <strong>1.520.700</strong>. È esattamente la differenza fra e01 (10.175.362) ed e08 (8.654.662): e08 ha una cross-attention in meno.</li>
+        </ol>
+      </div>
       <h2>Riepilogo: il blocco completo</h2>
       <table>
         <thead><tr><th>#</th><th>Operazione</th><th>Formula</th><th>Dimensione</th></tr></thead>
@@ -656,10 +950,10 @@ L̂  = L' + φ                    (residual finale)</div>
           <tr><td>5</td><td>Aggregazione</td><td>F = A·V</td><td>512×261</td></tr>
           <tr><td>6</td><td>Output projection</td><td>Z' = F·W_o + b_o</td><td>512×1024</td></tr>
           <tr><td>7</td><td>Residual</td><td>L' = L + Z'</td><td>512×1024</td></tr>
-          <tr><td colspan="4"><strong>MLP (pre-norm, GELU, hidden 4D)</strong></td></tr>
+          <tr><td colspan="4"><strong>MLP (pre-norm, GELU, hidden = D nel paper, 4D nel nostro codice)</strong></td></tr>
           <tr><td>8</td><td>LN pre-MLP</td><td>L̃' = LN(L')</td><td>512×1024</td></tr>
-          <tr><td>9</td><td>Espansione + GELU</td><td>H' = GELU(L̃'·W₁ + b₁)</td><td>512×4096</td></tr>
-          <tr><td>9</td><td>Compressione</td><td>φ = H'·W₂ + b₂</td><td>512×1024</td></tr>
+          <tr><td>9</td><td>Primo Linear + GELU</td><td>H' = GELU(L̃'·W₁ + b₁)</td><td>512×1024</td></tr>
+          <tr><td>9</td><td>Secondo Linear</td><td>φ = H'·W₂ + b₂</td><td>512×1024</td></tr>
           <tr><td>10</td><td>Residual post-MLP</td><td>L̂ = L' + φ</td><td>512×1024</td></tr>
         </tbody>
       </table>
@@ -667,6 +961,25 @@ L̂  = L' + φ                    (residual finale)</div>
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>Output del blocco: <strong>stessa forma di L</strong> (<code>512×1024</code>). Il blocco non cambia la dimensione del latent array, solo il suo <em>contenuto</em> — ora arricchito dell'informazione letta dall'input. È questa invarianza dimensionale che permette di ripetere il blocco T volte (cap. 9).</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Si divide per √d, non per d: così la deviazione standard dei punteggi torna circa 1.</li>
+          <li>La softmax è su ogni riga, cioè su ogni latente. Un pixel può essere ignorato da tutti i latenti.</li>
+          <li>d_QKV = 261 non è una scelta libera: è min(C_tot, D). Portare 261 canali a 1.024 non crea informazione.</li>
+          <li>La cross-attention del paper ha una sola testa (p. 6). Le teste multiple stanno nel latent transformer.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Scrivi le forme di Q, K, V e della matrice di attenzione nel modello ImageNet.</summary><p class="qa-a">Q 512 × 261; K e V 50.176 × 261; A 512 × 50.176; A·V 512 × 261; dopo W_o 512 × 1.024.</p></details>
+        <details class="qa-item"><summary>Perché d_QKV = 261?</summary><p class="qa-a">Perché è min(C_tot, D) = min(261, 1.024) (p. 16). Più canali di quelli dell'input sarebbero ridondanti.</p></details>
+        <details class="qa-item"><summary>Perché si divide per √d_QKV?</summary><p class="qa-a">Il prodotto scalare somma d termini con varianza circa 1: la sua varianza è circa d. Dividere per √d riporta la deviazione standard a circa 1 e la softmax non si satura.</p></details>
+        <details class="qa-item"><summary>Quanti parametri ha una cross-attention del tuo e01? Come lo verifichi?</summary><p class="qa-a">1.520.700. È la differenza esatta fra e01 ed e08, che ha una cross-attention in meno.</p></details>
+        <details class="qa-item"><summary>A cosa serve il residual L' = L + Z'?</summary><p class="qa-a">I latenti tengono quello che avevano e aggiungono quello che hanno letto. Il gradiente ha una strada diretta all'indietro.</p></details>
+        <details class="qa-item"><summary>L'MLP del paper e il tuo sono uguali?</summary><p class="qa-a">No. Nel paper hidden = D (fattore 1); nel tuo codice 4D. Per un blocco da 1.024 sarebbero 2,1 M contro 8,4 M di parametri solo nell'MLP.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -681,6 +994,14 @@ L̂  = L' + φ                    (residual finale)</div>
       <div class="chap-meta"><span class="chap-badge">Cap. 8</span><span class="chap-time">~5 min</span></div>
       <h1>Il latent transformer</h1>
       <p class="intro">Dopo la cross-attention, i latenti contengono l'informazione dell'input. Adesso viene la parte "di pensiero" della rete: il latent transformer raffina i latenti facendoli comunicare tra loro.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Dopo ogni lettura, 6 blocchi di self-attention fanno parlare i latenti fra loro. Nel nostro e01 sono 4.</li>
+          <li>La matrice è N × N = 512 × 512 = 262.144 numeri: 98 volte meno di quella della cross-attention.</li>
+          <li>Qui sta quasi tutto: 37,8 dei 44,9 M di parametri e metà dei calcoli.</li>
+        </ul>
+      </div>
 
       <div class="pipe">
         <span class="pipe-chip">Input</span><span class="pipe-arr">→</span>
@@ -723,7 +1044,7 @@ L̂  = L' + φ                    (residual finale)</div>
       <p>Qui <strong>Q, K, V vengono tutti dai latenti</strong> (non dall'input):</p>
       <div class="display-eq">Q = L̃ · W_q,   K = L̃ · W_k,   V = L̃ · W_v    (W ∈ ℝ^(1024 × 128) per testa)
 A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
-      <p>La matrice di attenzione è <strong>quadrata</strong> N×N = 512×512, ma piccola: costo <code>O(N²)</code> trascurabile grazie al bottleneck. Il modello usa <strong>H=8 teste</strong> in parallelo, ciascuna in dimensione <code>d_head = D/H = 128</code>.</p>
+      <p>La matrice di attenzione è <strong>quadrata</strong> N×N = 512×512, ma piccola: costo <code>O(N²)</code> trascurabile grazie al bottleneck. Il paper non dice quante teste usa il modello principale; il modello piccolo delle ablazioni ne ha 8, e 8 ne usa il nostro codice. Con <strong>H = 8</strong> ogni testa lavora in dimensione <code>d_head = D/H = 128</code>.</p>
 
       <div class="nota">
         <span class="nota-label">Perché multi-head</span>
@@ -776,7 +1097,7 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
           <table class="mh-table">
             <thead><tr><th>Dove</th><th><code>d</code></th><th>teste</th><th><code>d_head</code></th></tr></thead>
             <tbody>
-              <tr><td>Paper, latent transformer (ImageNet)</td><td>1024</td><td>8</td><td>128</td></tr>
+              <tr><td>Paper, latent transformer (ImageNet) — teste non dichiarate, 8 nel modello delle ablazioni</td><td>1024</td><td>8?</td><td>128</td></tr>
               <tr class="mh-ours"><td><strong>Nostro</strong>, latent transformer (CIFAR-10)</td><td>384</td><td>8</td><td><strong>48</strong></td></tr>
               <tr class="mh-ours"><td><strong>Nostro</strong>, cross-attention</td><td>384</td><td>1</td><td>384</td></tr>
             </tbody>
@@ -795,11 +1116,24 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
         <li>Multi-head self-attention</li>
         <li>Residual connection</li>
         <li>LayerNorm</li>
-        <li>MLP (hidden 4D, GELU)</li>
+        <li>MLP con GELU (hidden = D nel paper; 4D in GPT-2 e nel nostro codice)</li>
         <li>Residual connection</li>
       </ol>
       <p>Non causale (niente maschere): ogni latente può vedere tutti gli altri liberamente. Il blocco è ripetuto ℓ=6 volte all'interno del latent transformer.</p>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Un blocco latente del paper, contato</p>
+        <ol class="passi">
+          <li>Q, K e V: tre matrici 1.024 × 1.024 = <strong>3.145.728</strong> parametri.</li>
+          <li>Uscita W_o: 1.024 × 1.024 + 1.024 di bias = 1.049.600.</li>
+          <li>MLP con fattore 1: 2 × 1.024² + 2.048 di bias = 2.099.200. Due LayerNorm: 4.096.</li>
+          <li>Totale: <strong>6.298.624</strong> parametri per blocco. Nel nostro e01 (D = 384, MLP ×4) un blocco ne ha 1.773.312.</li>
+          <li>Punteggi: 512 × 512 = <strong>262.144</strong>. Con 8 teste da 128 canali il calcolo è lo stesso di una testa da 1.024.</li>
+          <li>Calcolo di un blocco: circa 3,76 miliardi di MAC (moltiplicazione + somma). Per 48 blocchi: 180 miliardi, il <strong>51%</strong> del modello. Le 8 cross-attention fanno l'altro 49%.</li>
+        </ol>
+      </div>
       <h2>Cross-attention vs latent transformer: il confronto</h2>
       <table>
         <thead><tr><th>Aspetto</th><th>Cross-Attention</th><th>Latent Transformer</th></tr></thead>
@@ -807,7 +1141,7 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
           <tr><td>Sorgente Q</td><td>latenti</td><td>latenti</td></tr>
           <tr><td>Sorgente K, V</td><td><strong>input X</strong></td><td><strong>latenti</strong></td></tr>
           <tr><td>Tipo</td><td>cross-attention</td><td>self-attention</td></tr>
-          <tr><td>Dim. interna</td><td>d_QKV = 261</td><td>D = 1024 (8 teste × 128)</td></tr>
+          <tr><td>Dim. interna</td><td>d_QKV = 261</td><td>D = 1024 (con 8 teste: 8 × 128)</td></tr>
           <tr><td>Matrice attenzione</td><td>512×50.176 (rettangolare)</td><td>512×512 (quadrata)</td></tr>
           <tr><td>Costo</td><td>O(MN)</td><td>O(N²) — piccolo</td></tr>
         </tbody>
@@ -816,6 +1150,23 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>La <strong>profondità</strong> del modello vive qui, nello spazio latente compresso. Impilare molti layer costa <code>O(N²)</code>, <em>non</em> <code>O(M²)</code>. Ecco perché la profondità della rete è <strong>disaccoppiata</strong> dalla dimensione dell'input — uno dei punti chiave del paper.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Le teste non moltiplicano il costo: tagliano D in 8 fette da 128 e le rimettono insieme.</li>
+          <li>Il latent transformer non vede l'input. L'input rientra solo alla lettura successiva.</li>
+          <li>«6 blocchi» è per lettura. Con 8 letture sono 48 esecuzioni, ma con lo sharing i pesi distinti restano 6.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Che forma ha la matrice di attenzione del latent transformer?</summary><p class="qa-a">N × N: 512 × 512 nel paper, 96 × 96 nel tuo e01.</p></details>
+        <details class="qa-item"><summary>Perché aggiungere blocchi latenti non costa in funzione di M?</summary><p class="qa-a">Perché lavorano solo sugli N latenti: ogni blocco costa O(N²·D). M non compare.</p></details>
+        <details class="qa-item"><summary>Quante teste usa il latent transformer?</summary><p class="qa-a">Il tuo codice ne usa 8 (d_head = 384 ÷ 8 = 48). Il paper non lo dice per il modello principale; il modello delle ablazioni ne usa 8.</p></details>
+        <details class="qa-item"><summary>Quanti parametri ha un blocco latente del tuo e01? Come lo verifichi?</summary><p class="qa-a">1.773.312. e16 ha 12 blocchi in più di e01: 12 × 1.773.312 = 21.279.744, esattamente la differenza fra i due.</p></details>
+        <details class="qa-item"><summary>Cosa succede se togli il latent transformer?</summary><p class="qa-a">Nei tuoi e05–e07: 68,98%, 67,24% e 67,05% con 4, 8 e 12 letture. Più letture e più parametri non compensano. Nel paper (Tab. 5): 39,4% con 4 letture e 45,3% con 8.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -830,6 +1181,14 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       <div class="chap-meta"><span class="chap-badge">Cap. 9</span><span class="chap-time">~6 min</span></div>
       <h1>Weight sharing e iterazioni</h1>
       <p class="intro">Una delle idee più importanti del Perceiver: il blocco cross-attention + latent transformer non viene applicato una volta sola, ma <strong>ripetuto T volte</strong> condividendo i pesi. Questo trasforma il modello in qualcosa di sorprendente.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Il blocco lettura + 6 blocchi latenti si ripete 8 volte con gli stessi pesi. Solo la prima cross-attention ha pesi propri.</li>
+          <li>Con sharing: 44,9 M parametri. Senza: 326,2 M. I calcoli sono identici: 707 miliardi di FLOPs in entrambi i casi.</li>
+          <li>Nel paper lo sharing regolarizza: senza, 87,7% sul train ma 72,9% in validation; con, 79,5% e 78,0%.</li>
+        </ul>
+      </div>
 
       <div class="pipe">
         <span class="pipe-chip">Input</span><span class="pipe-arr">→</span>
@@ -842,22 +1201,22 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       </div>
 
       <h2>T iterazioni con pesi condivisi</h2>
-      <p>Il blocco (cross-att + latent transf) viene riapplicato <strong>T = 8 volte</strong> agli stessi latenti, condividendo i pesi tra le iterazioni — con un'eccezione importante: <strong>il primo blocco ha pesi propri</strong>.</p>
+      <p>Il blocco (cross-att + latent transf) viene riapplicato <strong>T = 8 volte</strong> agli stessi latenti, condividendo i pesi tra le iterazioni — con un'eccezione importante: <strong>la prima cross-attention ha pesi propri</strong>. I blocchi latenti invece sono gli stessi a ogni lettura, anche alla prima.</p>
 
       <div class="concept-lab loop-lab" data-lab="weight-sharing-loop">
         <div class="lab-head">
           <div>
             <span class="lab-source">Rif. 1.4.12 · Weight Sharing e Iterazioni</span>
             <h3>stesso modulo, stato aggiornato</h3>
-            <p>I latenti cambiano a ogni giro; i pesi del modulo condiviso restano gli stessi da <code>t=2</code> a <code>t=8</code>.</p>
+            <p>I latenti cambiano a ogni giro. La cross-attention condivisa è la stessa da <code>t=2</code> a <code>t=8</code>; i blocchi latenti sono gli stessi da <code>t=1</code>.</p>
           </div>
           <button class="lab-icon-button" type="button" id="weightLoopPlay" aria-pressed="true">Ⅱ</button>
         </div>
         <div class="loop-track" id="weightLoopTrack"></div>
         <div class="loop-state-grid">
-          <div><span>Modulo attivo</span><strong id="weightLoopModule">CA₁ + LT₁</strong></div>
+          <div><span>Modulo attivo</span><strong id="weightLoopModule">CA₁ + LT</strong></div>
           <div><span>Stato latente</span><strong id="weightLoopState">L⁽¹⁾</strong></div>
-          <div><span>Parametri</span><strong id="weightLoopParams">pesi propri</strong></div>
+          <div><span>Parametri</span><strong id="weightLoopParams">cross-attention propria, blocchi latenti condivisi</strong></div>
         </div>
       </div>
 
@@ -867,8 +1226,8 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       </figure>
 
       <div class="nota">
-        <span class="nota-label">Perché il primo blocco è escluso</span>
-        Alla prima iterazione i latenti sono "neutri" (init <code>𝒩(0, 0.02²)</code>); dalla seconda in poi sono già "popolati" di informazione. Due regimi così diversi non possono condividere gli stessi pesi senza causare <strong>instabilità di training</strong>. Quindi CA₁ e LT₁ hanno pesi unici; CA₂...CA_T e LT₂...LT_T condividono ciascuno un set di pesi.
+        <span class="nota-label">Perché la prima cross-attention è esclusa</span>
+        Il paper riporta che condividere anche la prima cross-attention rendeva il training <strong>instabile</strong> (p. 6). Un'intuizione: alla prima lettura i latenti sono "neutri" (init <code>𝒩(0, 0.02²)</code>), dalla seconda sono già pieni di informazione. Quindi CA₁ ha pesi propri e CA₂…CA₈ ne condividono uno. I 6 blocchi latenti sono condivisi da <strong>tutte</strong> le letture, anche dalla prima (didascalia della Tab. 7). Lo confermano i numeri: con blocchi latenti propri alla prima lettura il modello avrebbe 82,7 M di parametri, non 44,9 M.
       </div>
 
       <h2>Formalmente è un RNN</h2>
@@ -886,7 +1245,7 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
 
       <div class="nota">
         <span class="nota-label">Precisazione sull'RNN</span>
-        La ricorrenza "pura" a pesi condivisi vale <strong>da t=2 in poi</strong>: la prima iterazione (cross-att + latent transformer) usa pesi <em>propri</em> — è un passo di inizializzazione. Da t=2 a t=8 si ripete la <em>stessa</em> cella. Quindi è un RNN <em>srotolato</em> preceduto da un primo layer distinto, non un RNN puro fin dall'inizio.
+        La ricorrenza "pura" a pesi condivisi vale <strong>da t=2 in poi</strong>: alla prima iterazione la cross-attention ha pesi <em>propri</em>, mentre i blocchi latenti sono già quelli condivisi. Da t=2 a t=8 si ripete la <em>stessa</em> cella. Quindi è un RNN <em>srotolato</em> con un primo passo di lettura diverso, non un RNN puro fin dall'inizio.
       </div>
 
       <h2>L'effetto: meno parametri, più accuratezza</h2>
@@ -898,8 +1257,31 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
           <tr><td><strong>Con weight sharing</strong></td><td><strong>~45M</strong></td><td>79.5%</td><td><strong>78.0%</strong></td><td>−1.5% (no overfitting)</td></tr>
         </tbody>
       </table>
-      <p>⇒ <strong>~7× meno parametri E +5.1% di accuracy</strong>. Senza sharing il modello memorizza troppo (gap train/val di 14.8%); con sharing il gap si riduce a 1.5%. Costringendo il modello a usare lo stesso "modulo di raffinamento" in tutte le iterazioni, si forza una generalizzazione migliore.</p>
+      <p>⇒ <strong>~7× meno parametri E +5.1% di accuracy</strong> (il testo del paper dice «circa 10×», ma dalla tabella 326,2 ÷ 44,9 = 7,3×). Senza sharing il modello memorizza troppo (gap train/val di 14.8%); con sharing il gap si riduce a 1.5%. Costringendo il modello a usare lo stesso "modulo di raffinamento" in tutte le iterazioni, si forza una generalizzazione migliore.</p>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Contiamo i pezzi condivisi</p>
+        <ol class="passi">
+          <li>Letture: 8. Cross-attention distinte: <strong>2</strong>, la prima e quella condivisa dalle letture 2–8.</li>
+          <li>Blocchi latenti eseguiti: 8 × 6 = 48. Blocchi distinti: <strong>6</strong>.</li>
+          <li>Parametri: <strong>44,9 M</strong>. Se la prima lettura avesse blocchi latenti propri sarebbero 82,7 M: il paper li condivide.</li>
+          <li>Senza sharing: 8 cross-attention e 48 blocchi distinti, <strong>326,1 M</strong> (il paper scrive 326,2 M). Rapporto 7,3×.</li>
+          <li>FLOPs: 707,2 miliardi in entrambi i casi (Tab. 7). Lo sharing risparmia memoria per i pesi, non calcoli.</li>
+          <li>Nel nostro e16: 4 letture × 4 blocchi = 16 blocchi distinti invece di 4. Sono 12 × 1.773.312 = 21.279.744 parametri in più (31,5 M in tutto). Risultato: 69,46% contro 71,63%, cioè −2,17, dentro la banda di rumore.</li>
+        </ol>
+      </div>
+
+      <div class="concept-lab" data-lab="calc-perceiver" data-preset="e16_no_weight_sharing">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">calcolatrice · togli e rimetti lo sharing</span>
+            <h3>Sharing: cosa cambia e cosa no</h3>
+            <p>Parti da e16 o dal paper. Togli o rimetti le due spunte di sharing: i parametri cambiano, i MAC restano uguali.</p>
+          </div>
+        </div>
+      </div>
       <h2>Cosa succede nel backward pass</h2>
       <div class="esempio">
         <div class="esempio-label">Esempio numerico — gradienti di un peso condiviso</div>
@@ -917,6 +1299,23 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
         <p>Il weight sharing trasforma il Perceiver in un <strong>RNN</strong> che raffina <em>progressivamente</em> i latenti, rileggendo l'input T volte con lo stesso "modulo di raffinamento". Agisce da <strong>regolarizzatore</strong>: meno parametri, niente overfitting, più accuratezza.</p>
       </div>
 
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>La prima iterazione non ha tutto proprio: solo la sua cross-attention. I blocchi latenti sono gli stessi a ogni lettura.</li>
+          <li>Lo sharing non riduce i FLOPs. Riduce i parametri, e con loro la memoria dei pesi e il rischio di overfitting.</li>
+          <li>«È un RNN» vuol dire: stessi pesi applicati più volte a uno stato. L'input non scorre nel tempo, viene riletto intero a ogni passo.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Quali pesi sono condivisi nel Perceiver?</summary><p class="qa-a">Le cross-attention dalla 2ª all'8ª lettura (una sola copia) e i 6 blocchi latenti, riusati a ogni lettura. La prima cross-attention ha pesi propri: condividerla rendeva il training instabile (p. 6).</p></details>
+        <details class="qa-item"><summary>Quanti parametri e quanti FLOPs con e senza sharing?</summary><p class="qa-a">44,9 M contro 326,2 M. I FLOPs sono 707,2 miliardi in entrambi i casi (Tab. 7).</p></details>
+        <details class="qa-item"><summary>Perché lo sharing regolarizza? Con quali numeri lo mostra il paper?</summary><p class="qa-a">Meno parametri liberi vuol dire meno capacità di memorizzare. Senza sharing: 87,7% sul train e 72,9% in validation, 14,8 punti di distacco. Con sharing: 79,5% e 78,0%.</p></details>
+        <details class="qa-item"><summary>Cosa hai misurato tu togliendo lo sharing?</summary><p class="qa-a">e16: 31,5 M parametri, 69,46% contro il 71,63% di e01. La differenza, −2,17, è dentro la banda di rumore: triplicare i parametri non ha comprato niente.</p></details>
+        <details class="qa-item"><summary>Cosa succede al gradiente di un peso condiviso?</summary><p class="qa-a">Si sommano i contributi di tutte le volte in cui il peso è usato, come nella backpropagation through time delle RNN.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-9">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="9"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -929,6 +1328,14 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       <div class="chap-meta"><span class="chap-badge">Cap. 10</span><span class="chap-time">~3 min</span></div>
       <h1>Output: pooling e classificatore</h1>
       <p class="intro">Dopo T iterazioni di raffinamento, dai latenti finali bisogna arrivare a una predizione. Tre passi semplici.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Media dei 512 latenti finali: un vettore da 1.024 numeri.</li>
+          <li>Un solo layer lineare: 1.024 × 1.000 + 1.000 = 1.025.000 parametri, 1.000 logit (punteggi grezzi).</li>
+          <li>Softmax e cross-entropy: la loss è −log della probabilità data alla classe giusta.</li>
+        </ul>
+      </div>
 
       <div class="pipe">
         <span class="pipe-chip">Input</span><span class="pipe-arr">→</span>
@@ -975,15 +1382,44 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       <p><strong>3. Softmax + argmax</strong> — logit → probabilità → classe:</p>
       <div class="display-eq">p_i = \frac{e^(z_i)}{Σⱼ e^(z_j)},     ŷ = argmax_i p_i</div>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Dalla media alla loss, con il nostro e01</p>
+        <ol class="passi">
+          <li>Dopo 4 letture restano 96 latenti da 384 numeri. La media sui 96 dà un vettore h da <strong>384</strong>.</li>
+          <li>Linear da 384 a 10 classi: 3.840 pesi + 10 bias = <strong>3.850</strong> parametri.</li>
+          <li>Esempio con 3 classi: logit z = (2,0, 1,0, 0,1). Esponenziali: 7,389, 2,718, 1,105. Somma 11,212.</li>
+          <li>Probabilità: <strong>0,659, 0,242, 0,099</strong>. Se la classe giusta è la prima, la loss è −ln 0,659 = 0,417. Se è la terza, −ln 0,099 = 2,317.</li>
+          <li>All'inizio del training, con 10 classi equiprobabili, p = 0,1 e la loss vale ln 10 = <strong>2,303</strong>. È il valore di partenza atteso.</li>
+          <li>Media e Linear sono operazioni lineari e commutano: fare prima la media dà lo stesso risultato, ma proietta un vettore invece di 96.</li>
+        </ol>
+      </div>
       <h2>Due dettagli che il paper sottolinea</h2>
       <ul>
         <li><strong>Niente token [CLS]</strong>: a differenza di BERT/GPT, il Perceiver non usa un token speciale per il pooling. La media è la soluzione più diretta e <em>non introduce nuovi parametri</em>.</li>
-        <li><strong>Pooling prima della proiezione</strong> (fix del paper, App. F). Le due operazioni (pooling e proiezione lineare) commutano matematicamente, ma fare il pooling prima riduce il costo computazionale (proietti UN vettore invece di N) e stabilizza il training.</li>
+        <li><strong>Pooling prima della proiezione</strong> (fix del paper, App. F). Le due operazioni (pooling e proiezione lineare) commutano matematicamente, ma fare il pooling prima riduce il costo computazionale (proietti UN vettore invece di N). È una delle correzioni della versione v2 del paper (p. 18).</li>
       </ul>
 
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>Il pooling medio comprime gli N latenti in un <strong>solo</strong> vettore <code>h ∈ ℝ^D</code>, di dimensione fissa — qualunque sia N. Questo permette di collegare un classificatore lineare standard, identico per qualsiasi modalità di input. Massima generalità con minimo sforzo.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Il Perceiver non usa un token [CLS]: fa la media dei latenti. Nel nostro codice il [CLS] esiste solo come alternativa (<code>--output_pooling cls</code>).</li>
+          <li>La testa è un solo Linear, non un MLP (p. 17).</li>
+          <li>Media e proiezione commutano: l'ordine non cambia il risultato, cambia il costo.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Cosa fa la testa di classificazione del Perceiver?</summary><p class="qa-a">Media sugli N latenti, così ottiene h ∈ ℝ^D. Poi un Linear da D al numero di classi e una softmax.</p></details>
+        <details class="qa-item"><summary>Quanti parametri ha la testa nel paper e nel tuo e01?</summary><p class="qa-a">1.025.000 (1.024 × 1.000 + 1.000) e 3.850 (384 × 10 + 10).</p></details>
+        <details class="qa-item"><summary>Che loss ti aspetti all'inizio del training su CIFAR-10?</summary><p class="qa-a">Circa ln 10 ≈ 2,30: il modello non sa niente e dà probabilità 0,1 a ogni classe.</p></details>
+        <details class="qa-item"><summary>Perché fare la media prima della proiezione?</summary><p class="qa-a">Media e Linear sono lineari e commutano: il risultato è lo stesso, ma si proietta un vettore invece di N. È una correzione della v2 del paper (p. 18).</p></details>
       </div>
 
       <div class="nav-bar">
@@ -1310,7 +1746,7 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
           <div>
             <span class="lab-source">weight sharing · BPTT · l'errore classico all'orale</span>
             <h3>Un solo peso, T−1 frecce che arrivano</h3>
-            <p>Premi «Passo backward» e guarda dove finiscono i contributi. Il punto non è la formula: è che convergono tutti nello <em>stesso</em> accumulatore, e che il primo blocco ha il suo.</p>
+            <p>Premi «Passo backward» e guarda dove finiscono i contributi a un peso W della cross-attention condivisa. Il punto non è la formula: è che convergono tutti nello <em>stesso</em> accumulatore, e che la prima cross-attention ha il suo.</p>
           </div>
           <div class="lab-toggle">
             <button type="button" class="ga-step">Passo backward ↩</button>
@@ -1319,28 +1755,28 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
         </div>
 
         <svg class="ga-diagram" viewBox="0 0 720 290" role="img"
-             aria-label="Il forward srotolato a sinistra, i due accumulatori di gradiente a destra: il primo blocco ha il suo, i blocchi condivisi convergono in uno solo">
+             aria-label="Il forward srotolato a sinistra, i due accumulatori di gradiente a destra: la prima cross-attention ha il suo, quelle condivise convergono in uno solo">
           <title>Accumulo del gradiente sui pesi condivisi</title>
 
           <text class="ga-head" x="150" y="20">forward srotolato (T = 3)</text>
           <text class="ga-head" x="560" y="20">accumulatori dei gradienti</text>
 
-          <!-- blocco 1: pesi propri -->
+          <!-- lettura 1: cross-attention con pesi propri -->
           <g data-blk="1">
             <rect class="ga-blk ga-blk--own" x="40" y="38" width="200" height="42" rx="6"/>
-            <text class="ga-blkt" x="140" y="58">CA₁ · LT₁</text>
+            <text class="ga-blkt" x="140" y="58">CA₁</text>
             <text class="ga-blks" x="140" y="72">pesi propri, t = 1</text>
           </g>
 
           <!-- blocchi 2 e 3: pesi condivisi -->
           <g data-blk="2">
             <rect class="ga-blk ga-blk--sh" x="40" y="98" width="200" height="42" rx="6"/>
-            <text class="ga-blkt" x="140" y="118">CA₂ · LT₂</text>
+            <text class="ga-blkt" x="140" y="118">CA₂</text>
             <text class="ga-blks" x="140" y="132">stesso W, t = 2</text>
           </g>
           <g data-blk="3">
             <rect class="ga-blk ga-blk--sh" x="40" y="158" width="200" height="42" rx="6"/>
-            <text class="ga-blkt" x="140" y="178">CA₃ · LT₃</text>
+            <text class="ga-blkt" x="140" y="178">CA₃</text>
             <text class="ga-blks" x="140" y="192">stesso W, t = 3</text>
           </g>
 
@@ -1351,7 +1787,7 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
 
           <!-- accumulatore del primo blocco: riceve una sola freccia -->
           <rect class="ga-acc ga-acc--own" x="440" y="38" width="240" height="52" rx="7"/>
-          <text class="ga-acct" x="460" y="58">grad_own &nbsp;<tspan class="ga-dim">(CA₁·LT₁)</tspan></text>
+          <text class="ga-acct" x="460" y="58">grad_own &nbsp;<tspan class="ga-dim">(CA₁)</tspan></text>
           <text class="ga-accv" id="ga-own" x="660" y="76">0.0</text>
           <text class="ga-accn" x="460" y="78">1 contributo, non si somma con gli altri</text>
 
@@ -1396,8 +1832,8 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
         <p class="ga-caption"><strong>Perché qui il risultato coincide, e perché in generale no.</strong> Con lo SGD puro i due percorsi danno lo stesso numero, perché sommare i gradienti e sommare gli aggiornamenti sono la stessa operazione. Smettono di coincidere appena l'ottimizzatore ha uno <em>stato</em>: Adam e LAMB normalizzano per la magnitudine del gradiente, quindi due passi da <code>−0.3</code> e <code>+0.1</code> non equivalgono a un passo da <code>−0.2</code>. Il Perceiver usa LAMB — l'accumulazione prima dell'aggiornamento non è un dettaglio di stile.</p>
       </div>
 
-      <h3>Pesi del primo blocco: non partecipano alla somma</h3>
-      <p>I pesi di <code>CA₁</code> e <code>LT₁</code> sono parametri separati (cap. 9): i loro gradienti stanno in un accumulatore diverso, non si sommano con quelli dei blocchi shared, e vengono aggiornati in modo indipendente.</p>
+      <h3>Pesi della prima cross-attention: non partecipano alla somma</h3>
+      <p>I pesi di <code>CA₁</code> sono parametri separati (cap. 9): i loro gradienti stanno in un accumulatore diverso, non si sommano con quelli delle cross-attention condivise, e vengono aggiornati in modo indipendente. I <strong>blocchi latenti</strong> invece sono condivisi da tutte le letture, anche dalla prima: per i loro pesi i contributi che si sommano sono T, non T−1.</p>
 
       <h2>Risultato 3: residual connection = "gradient highway"</h2>
       <p>Una residual connection è <code>L' = L + f(L)</code>. Nel backward:</p>
@@ -7626,6 +8062,8 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
   </div>
 </div>
 
-<script defer src="js/app.js?v=20260818-risultati"></script>
+<script defer src="js/app.js?v=20260925-studio"></script>
+<script defer src="js/perceiver-conti.js?v=20260925-studio"></script>
+<script defer src="js/studio.js?v=20260925-studio"></script>
 </body>
 </html>

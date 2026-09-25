@@ -494,7 +494,7 @@ const GLOSSARY_TERMS = {
     short: "Due layer lineari con una non linearità in mezzo, applicati a ogni vettore separatamente.",
     definition: "Un MLP (multi-layer perceptron) è una pila di trasformazioni lineari intervallate da funzioni di attivazione. Dentro un blocco Transformer è la parte che segue l'attention: espande la dimensione, applica la non linearità, e la riporta giù.",
     why: "L'attention mescola informazione fra elementi diversi ma è lineare nei value; l'MLP è ciò che aggiunge capacità non lineare dentro ciascun elemento. I due fanno lavori complementari: comunicazione fra posizioni e calcolo dentro la posizione.",
-    perceiver: "Compare dentro ogni blocco di cross-attention e dentro ogni layer del latent transformer, sempre con espansione a 4D e attivazione GELU. E una terza volta alla fine, come classificatore sui latenti mediati."
+    perceiver: "Compare dentro ogni blocco di cross-attention e dentro ogni layer del latent transformer, con attivazione GELU. Nel paper non allarga: hidden = D, fattore 1 (p. 6 e 17). Il nostro codice usa 4D, come GPT-2. La testa finale invece non è un MLP: è un solo Linear sui latenti mediati."
   },
   "encoder": {
     label: "Encoder",
@@ -590,7 +590,7 @@ const GLOSSARY_TERMS = {
     short: "La non linearità applicata elemento per elemento fra due layer lineari.",
     definition: "Senza una funzione non lineare in mezzo, due layer lineari consecutivi collassano in un unico layer lineare. L'attivazione — ReLU, GELU e simili — è ciò che rompe quella linearità e dà profondità reale alla rete.",
     why: "È il requisito minimo perché la profondità serva a qualcosa. Le differenze fra le varianti sono più sottili: GELU è liscia ovunque, quindi non ha il punto morto che ReLU ha per input negativi.",
-    perceiver: "Il Perceiver usa GELU dentro gli MLP dei blocchi, con espansione a 4D: nel latent transformer si passa da 1024 a 4096 e si torna a 1024."
+    perceiver: "Il Perceiver usa GELU dentro gli MLP dei blocchi. Nel paper l'MLP non allarga: nel latent transformer si passa da 1024 a 1024. Il nostro codice allarga a 4D, da 384 a 1536 e ritorno."
   },
   "convoluzione": {
     label: "Convoluzione",

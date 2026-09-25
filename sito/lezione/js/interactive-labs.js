@@ -613,7 +613,7 @@ const LAB_SOURCE_REFS = {
       ["softmax", "La softmax per riga trasforma gli score in un budget di attenzione."],
       ["A·V", "I value vengono aggregati: ogni latente assorbe contenuto dall'input."],
       ["residual", "L'output torna in dimensione D e viene sommato ai latenti originali."],
-      ["MLP", "Pre-norm, espansione 4D, GELU, compressione e residual finale."]
+      ["MLP", "Pre-norm, Linear, GELU, Linear e residual finale. Nel paper hidden = D (fattore 1); il nostro codice usa 4D."]
     ];
     const rail = document.getElementById("crossBlockSteps");
     const stage = document.getElementById("crossBlockStage");
@@ -668,9 +668,9 @@ const LAB_SOURCE_REFS = {
     function render(nextIndex) {
       index = (nextIndex + nodes.length) % nodes.length;
       nodes.forEach((node, i) => node.classList.toggle("active", i === index));
-      module.textContent = index === 0 ? "CA1 + LT1" : "CA_shared + LT_shared";
+      module.textContent = index === 0 ? "CA1 + LT" : "CA_shared + LT";
       state.textContent = `L^(${index + 1})`;
-      params.textContent = index === 0 ? "pesi propri" : "pesi condivisi";
+      params.textContent = index === 0 ? "cross-attention propria, blocchi latenti condivisi" : "tutto condiviso";
     }
 
     function setPlaying(playing) {
