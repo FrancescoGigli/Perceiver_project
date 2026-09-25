@@ -8024,6 +8024,14 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
       <div class="chap-meta"><span class="chap-badge chap-badge--extra">Approfondimento · corso</span><span class="chap-time">~9 min</span></div>
       <h1>Self-supervised learning, BERT e rappresentazioni</h1>
       <p class="intro">L'<strong>apprendimento self-supervised (SSL)</strong> pre-addestra grandi modelli su enormi quantità di dati <em>non etichettati</em>, costruendo le etichette dai dati stessi. È il cuore dei modelli di rappresentazione moderni: prima si impara una rappresentazione generale con un compito "pretesto", poi la si trasferisce (fine-tuning) al compito reale con poche etichette. Qui: SSL in generale, il suo esempio nel linguaggio (BERT/MLM), due metodi per immagini/embedding (contrastive learning e triplet loss) e il domain adaptation.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Self-supervised: le etichette si ricavano dai dati stessi, per esempio nascondendo una parte dell'input e facendola ricostruire.</li>
+          <li>BERT maschera il 15% dei token e li fa indovinare (MLM), poi si adatta a ogni compito con un fine-tuning.</li>
+          <li>Il tuo io_mlm fa lo stesso sui byte: 86,68% dei byte mascherati indovinati; il pre-training vale +20,98 su SST-2.</li>
+        </ul>
+      </div>
 
       <div class="concept-lab step-anim-lab" data-lab="mlm">
         <div class="lab-head">
@@ -8127,6 +8135,27 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
       <h2>Domain adaptation</h2>
       <p>Affronta il <em>domain shift</em>: il modello è addestrato su un dominio <strong>source</strong> (etichettato) ma deve funzionare su un <strong>target</strong> con distribuzione diversa (spesso poco/non etichettato). L'idea è <strong>allineare le distribuzioni</strong> delle feature: (1) <strong>feature alignment</strong> — minimizzare una discrepanza (MMD, o allineare le covarianze come CORAL); (2) <strong>adversariale</strong> — un <em>domain discriminator</em> prova a distinguere source da target, l'encoder è addestrato (gradient reversal, DANN) a ingannarlo → feature domain-invariant.</p>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">BERT, Perceiver IO e il tuo MLM, numero per numero</p>
+        <ol class="passi">
+          <li>BERT maschera il 15% dei token; di questi l'80% diventa [MASK], il 10% un token a caso, il 10% resta uguale.</li>
+          <li>Il tuo io_mlm maschera il 15% dei byte in modo indipendente e li sostituisce sempre con [MASK] (il simbolo 256).</li>
+          <li>Paper Perceiver IO: 500.000 passi con batch 2.048, cioè circa <strong>un miliardo</strong> di sequenze da 2.048 byte, su C4 + Wikipedia.</li>
+          <li>Il tuo: 10 epoche su WikiText-103, 540 MB di testo, circa 1,06 milioni di finestre da 512 byte per epoca. Circa <strong>400 volte</strong> meno byte visti.</li>
+          <li>Il fine-tuning riusa l'encoder: su SST-2 da 59,75% (senza pre-training) a <strong>80,73%</strong>.</li>
+        </ol>
+      </div>
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Self-supervised non vuol dire non supervisionato: c'è una loss supervisionata, ma le etichette vengono dai dati.</li>
+          <li>L'MLM di BERT lavora su token; quello del paper Perceiver IO su parole intere; il tuo su byte singoli. I numeri non si confrontano fra loro.</li>
+          <li>Il contrastive learning non ricostruisce l'input: avvicina due viste dello stesso esempio e allontana gli altri.</li>
+        </ul>
+      </div>
+
       <h2>Domande d'orale</h2>
       <div class="qa-group">
         <details class="qa-item"><summary>Cos'è un pretext task e perché si usa?</summary><p class="qa-a">È un compito "finto" le cui etichette si ricavano dai dati stessi (es. predire token mascherati); serve a forzare la rete a imparare rappresentazioni trasferibili sfruttando dati non etichettati abbondanti.</p></details>
@@ -8171,6 +8200,14 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
         <div class="step-anim-progress"><span></span></div>
         <div class="step-anim-caption"></div>
       </div>
+      <h2>Col tuo progetto</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Che differenza c'è fra il tuo MLM e quello di BERT?</summary><p class="qa-a">BERT maschera token (con la regola 80/10/10); il tuo maschera byte singoli, sempre con [MASK], il 15% in modo indipendente. Il paper Perceiver IO maschera parole intere.</p></details>
+        <details class="qa-item"><summary>Come misuri che il pre-training è servito?</summary><p class="qa-a">Con i controlli senza pre-training: SST-2 passa da 59,75% a 80,73% (+20,98); RTE da 52,71% a 56,68%.</p></details>
+        <details class="qa-item"><summary>Perché Perceiver IO può fare MLM sui byte?</summary><p class="qa-a">Perché il costo della cross-attention è lineare nella lunghezza: 2.048 byte → 256 latenti, invece di una matrice 2.048 × 2.048 per strato.</p></details>
+        <details class="qa-item"><summary>Quanto pre-training hai fatto rispetto al paper?</summary><p class="qa-a">10 epoche su WikiText-103 (circa 1,06 milioni di finestre da 512 byte) contro circa un miliardo di sequenze da 2.048 byte: circa 400 volte meno byte.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-48">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="48"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -8183,6 +8220,14 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
       <div class="chap-meta"><span class="chap-badge chap-badge--extra">Approfondimento · corso</span><span class="chap-time">~9 min</span></div>
       <h1>Ottimizzazione degli iperparametri (HPO)</h1>
       <p class="intro">Gli <strong>iperparametri</strong> (learning rate, weight decay, dropout, n. di latent, dimensione del modello, batch size) non si apprendono col gradiente: vanno scelti prima. Cercare la configurazione che minimizza l'errore di validazione è un problema <em>black-box</em>, <em>costoso</em> (ogni valutazione = un training intero) e <em>non differenziabile</em>. Dalle baseline (grid/random) ai metodi model-based (GP + Bayesian optimization), ai multi-fidelity (successive halving/Hyperband/ASHA), fino a meta-learning e mixup.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>HPO: cercare gli iperparametri migliori quando ogni prova costa un training intero.</li>
+          <li>Random search batte la griglia quando pochi iperparametri contano davvero; Successive Halving scarta presto i candidati scarsi.</li>
+          <li>Nel tuo progetto la ricerca è stata manuale, una variabile alla volta, e la banda di rumore dice quali differenze sono reali.</li>
+        </ul>
+      </div>
 
       <div class="concept-lab step-anim-lab" data-lab="sha">
         <div class="lab-head">
@@ -8273,6 +8318,27 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
       <p>Il <strong>mixup</strong> è una regolarizzazione sui <em>dati</em>: crea esempi virtuali come combinazioni convesse <code>x̃ = λ·x_i + (1−λ)·x_j</code>, <code>ỹ = λ·y_i + (1−λ)·y_j</code>, con <code>λ ~ Beta(α,α)</code>. Forza il modello a comportarsi <strong>linearmente tra gli esempi</strong>: predizioni più lisce, meno overfitting e meno overconfidence (etichette soft).</p>
       <div class="comparison-note"><strong>Legame col progetto:</strong> la tua ricerca di iperparametri è stata <strong>manuale</strong> (24 run CIFAR-10 in un registro dichiarativo, una modifica alla volta): un grid artigianale a budget minimo, obbligato da 1 sola RTX 3080 — proprio lo scenario "valutazioni costose" che motiva i metodi automatici. La BO avrebbe scelto la prossima configurazione in modo informato (learning rate di LAMB, numero di latenti, scala di inizializzazione, bande di Fourier). Il <strong>successive halving</strong> è parente dell'<strong>early stopping</strong>: entrambi tagliano presto i run poco promettenti (l'early stopping ferma <em>un</em> training, SHA confronta e scarta <em>tra più</em> configurazioni). Nel progetto l'early stopping non c'è di proposito: ogni run fa 120 epoche piene, così tutte ricevono il decadimento del learning rate alle epoche 84/102/114. Il <strong>mixup</strong> era applicabile direttamente a CIFAR-10.</div>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Griglia, random e Successive Halving con i numeri</p>
+        <ol class="passi">
+          <li>Budget: 9 training, 2 iperparametri, ma ne conta solo uno.</li>
+          <li>Griglia 3 × 3: dell'iperparametro che conta prova solo <strong>3</strong> valori diversi.</li>
+          <li>Random search: prova <strong>9</strong> valori diversi dell'iperparametro che conta.</li>
+          <li>Successive Halving: 27 configurazioni per 1 epoca, le migliori 9 per 3, le migliori 3 per 9, la migliore per 27. Costo 27 + 27 + 27 + 27 = <strong>108</strong> epoche, contro 27 × 27 = 729 per allenarle tutte fino in fondo.</li>
+          <li>Il rischio: con il rumore da seed (2,78 punti nel tuo CIFAR-10) un HPO senza repliche premia il seed fortunato, non la configurazione migliore.</li>
+        </ol>
+      </div>
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Scegliere gli iperparametri sul test set gonfia il risultato: si sceglie sulla validation.</li>
+          <li>Successive Halving presuppone che chi va male presto vada male anche dopo: con learning rate schedule diversi non è sempre vero.</li>
+          <li>Una differenza fra due configurazioni vale solo se supera il rumore fra seed.</li>
+        </ul>
+      </div>
+
       <h2>Domande d'orale</h2>
       <div class="qa-group">
         <details class="qa-item"><summary>Perché non si usa la discesa del gradiente per gli iperparametri?</summary><p class="qa-a">Perché l'errore di validazione in funzione degli iperparametri è black-box e non differenziabile (alcuni sono discreti/categorici); si può solo valutarlo per punti, e ogni valutazione è un training costoso.</p></details>
@@ -8305,6 +8371,14 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
         <div class="step-anim-progress"><span></span></div>
         <div class="step-anim-caption"></div>
       </div>
+      <h2>Col tuo progetto</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Come hai scelto gli iperparametri nel tuo progetto?</summary><p class="qa-a">A mano: le configurazioni del paper, ridotte per una GPU, e ablation una variabile alla volta nel registro delle 42 run.</p></details>
+        <details class="qa-item"><summary>Perché la banda di rumore conta anche per l'HPO?</summary><p class="qa-a">Perché senza repliche si confondono effetti e fortuna: da e01 a e31 cambia solo il seed e l'accuratezza perde 2,78 punti.</p></details>
+        <details class="qa-item"><summary>Perché random search batte la griglia?</summary><p class="qa-a">Con lo stesso budget prova più valori diversi degli iperparametri che contano: 9 contro 3 nell'esempio.</p></details>
+        <details class="qa-item"><summary>Dove hai scelto l'epoca migliore?</summary><p class="qa-a">Sulla validation (5.000 immagini tolte dal train) su CIFAR-10; sul test su ModelNet40, dove non c'è validation, come nel paper.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-49">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="49"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -8317,6 +8391,14 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
       <div class="chap-meta"><span class="chap-badge chap-badge--extra">Approfondimento · corso</span><span class="chap-time">~9 min</span></div>
       <h1>Fondamenti statistici dell'apprendimento</h1>
       <p class="intro">Le basi dell'apprendimento supervisionato: <em>cosa</em> minimizziamo (il rischio), <em>quale</em> classificatore è ottimo (Bayes), <em>come</em> modellare i dati (generativo vs discriminativo) e <em>con quale</em> loss. È la cornice che giustifica l'addestramento di qualsiasi rete — Perceiver incluso, che è un classificatore discriminativo addestrato per ERM con cross-entropy.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>ERM: si sceglie il modello che minimizza la loss media sui dati di training.</li>
+          <li>Minimizzare la cross-entropy equivale a massimizzare la verosimiglianza dei dati.</li>
+          <li>Il classificatore di Bayes sceglie la classe più probabile: il suo errore è il minimo possibile.</li>
+        </ul>
+      </div>
 
       <div class="concept-lab step-anim-lab" data-lab="erm">
         <div class="lab-head">
@@ -8373,6 +8455,27 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
       </ul>
       <div class="comparison-note"><strong>Legame col progetto:</strong> il Perceiver/Perceiver IO è un classificatore <strong>discriminativo</strong> (stima <code>p(y|x)</code> con softmax) addestrato per <strong>ERM</strong> minimizzando la <strong>cross-entropy</strong>. Lo schema è identico sulle 3 modalità: CIFAR-10 (10 classi), ModelNet40 (40 classi) con cross-entropy multiclasse, e MLM su WikiText-103 (cross-entropy sul token mascherato). La ricerca manuale degli iperparametri e la scelta del checkpoint sulla validation (niente early stopping: 120 epoche piene) servono a tenere sotto controllo il <em>generalization gap</em> tra rischio empirico (train) e rischio vero (validation).</div>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Cross-entropy e verosimiglianza sono lo stesso conto</p>
+        <ol class="passi">
+          <li>Tre esempi, il modello dà alla classe giusta 0,9, 0,6 e 0,3.</li>
+          <li>Verosimiglianza: 0,9 · 0,6 · 0,3 = <strong>0,162</strong>.</li>
+          <li>−ln 0,162 = <strong>1,820</strong>.</li>
+          <li>Somma delle cross-entropy: −ln 0,9 − ln 0,6 − ln 0,3 = 0,105 + 0,511 + 1,204 = <strong>1,820</strong>. Stesso numero.</li>
+          <li>Classificatore di Bayes: se p(y = 1 | x) = 0,7, si risponde 1 e si sbaglia il 30% delle volte. Nessun modello può fare meglio su quell'x.</li>
+        </ol>
+      </div>
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>ERM minimizza il rischio empirico, non quello vero: la differenza è l'overfitting.</li>
+          <li>Generativo e discriminativo non è una questione di rete: il primo modella p(x, y), il secondo solo p(y | x).</li>
+          <li>L'errore di Bayes non è zero se le classi si sovrappongono.</li>
+        </ul>
+      </div>
+
       <h2>Domande d'orale</h2>
       <div class="qa-group">
         <details class="qa-item"><summary>Differenza tra rischio vero ed empirico, e perché minimizziamo il secondo?</summary><p class="qa-a">Il rischio vero è la loss attesa sulla distribuzione reale (non calcolabile, p è ignota); minimizziamo il rischio empirico (media sul training set) come stima. La loro differenza è il generalization gap.</p></details>
@@ -8384,6 +8487,14 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
       </div>
 
       <div class="idea"><div class="idea-label">In una frase</div><p>Addestrare = minimizzare il rischio empirico (ERM) con una loss adatta al task per approssimare la regola di Bayes <code>argmax p(y|x)</code>; i discriminativi (reti, logistica) stimano <code>p(y|x)</code> direttamente, i generativi (LDA) lo derivano da <code>p(x|y)</code>.</p></div>
+
+      <h2>Col tuo progetto</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Perché si usa la cross-entropy per classificare?</summary><p class="qa-a">Perché minimizzarla equivale a massimizzare la verosimiglianza dei dati sotto il modello.</p></details>
+        <details class="qa-item"><summary>Il Perceiver è generativo o discriminativo?</summary><p class="qa-a">Nella classificazione è discriminativo: modella p(classe | input). Il tuo MLM modella p(byte mascherato | contesto).</p></details>
+        <details class="qa-item"><summary>Cos'è il rischio empirico, nel tuo e01?</summary><p class="qa-a">La cross-entropy media sulle 45.000 immagini di training. La si minimizza con LAMB.</p></details>
+        <details class="qa-item"><summary>Cosa misura il distacco fra train e validation?</summary><p class="qa-a">Quanto il rischio empirico sottostima quello vero: nel paper senza sharing 87,7% contro 72,9%.</p></details>
+      </div>
 
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-50">← Precedente</button>
@@ -8397,6 +8508,14 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
       <div class="chap-meta"><span class="chap-badge chap-badge--extra">Approfondimento · corso</span><span class="chap-time">~9 min</span></div>
       <h1>Sequenze e visione: argomenti avanzati</h1>
       <p class="intro">Strumenti "classici ma fondamentali": come si genera una sequenza in uscita (seq2seq e decoding), come si fa segmentazione densa pixel-per-pixel (U-Net, FCN, Dice loss) e come si scala un modello a basso costo (Mixture of Experts). Concetti che illuminano scelte ricorrenti — encoder-decoder, skip connection, computazione condizionale — che ritrovi nel Perceiver IO.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Seq2seq: un encoder riassume l'input, un decoder genera l'uscita un pezzo alla volta.</li>
+          <li>Beam search tiene le k sequenze più probabili invece della sola migliore a ogni passo.</li>
+          <li>Perceiver IO decodifica tutte le uscite insieme, una per query: niente generazione passo passo.</li>
+        </ul>
+      </div>
 
       <div class="concept-lab step-anim-lab" data-lab="beam">
         <div class="lab-head">
@@ -8494,6 +8613,27 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
       </ul>
       <div class="comparison-note"><strong>Legame col progetto:</strong> il <strong>Perceiver IO</strong> è un encoder-decoder generalizzato: l'encoder fa cross-attention dall'input ai latenti (come l'encoder seq2seq comprime in un contesto), e il <strong>decoder con output query</strong> ricostruisce output di forma arbitraria interrogando i latenti via cross-attention — come un decoder seq2seq «interroga» la sorgente. Le <strong>skip/residual</strong> dei tuoi blocchi rispecchiano la logica di U-Net. Le strategie di decoding sono per la generazione testuale; nel tuo task testo, però, MLM e GLUE sono <em>classificazione</em>, quindi il decoding sequenziale non entra nel training (buon contrasto da far notare).</div>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Beam search, Dice e MoE con i numeri</p>
+        <ol class="passi">
+          <li>Passo 1: A 0,5, B 0,4, C 0,1. La ricerca greedy prende A.</li>
+          <li>Passo 2: dopo A il meglio è 0,4 → 0,5 · 0,4 = <strong>0,20</strong>. Dopo B il meglio è 0,9 → 0,4 · 0,9 = <strong>0,36</strong>.</li>
+          <li>Beam search con k = 2 tiene A e B e trova la sequenza da 0,36: la greedy l'avrebbe persa.</li>
+          <li>Dice: predizione 50 pixel, verità 40, sovrapposti 30. Dice = 2 · 30 ÷ (50 + 40) = <strong>0,667</strong>; Dice loss 0,333.</li>
+          <li>Mixture of Experts con 8 esperti e routing top-2: ogni token usa 2 esperti su 8, il <strong>25%</strong> dei loro parametri.</li>
+        </ol>
+      </div>
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Beam search non garantisce la sequenza migliore: è una ricerca approssimata.</li>
+          <li>Il decoder di Perceiver IO non è autoregressivo: le 512 uscite del tuo MLM escono tutte insieme.</li>
+          <li>La Dice loss guarda la sovrapposizione, non i singoli pixel: aiuta quando la classe di interesse è piccola.</li>
+        </ul>
+      </div>
+
       <h2>Domande d'orale</h2>
       <div class="qa-group">
         <details class="qa-item"><summary>Perché il vettore di contesto è un collo di bottiglia nel seq2seq?</summary><p class="qa-a">Comprime tutta la sorgente in un vettore fisso: su frasi lunghe perde informazione. Si risolve con l'attention, che lascia il decoder guardare tutti gli stati dell'encoder con pesi appresi.</p></details>
@@ -8509,6 +8649,14 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
       <div class="paper-fig-label">📄 Dal paper originale</div>
       <figure class="paper-fig"><img src="../immagini/papers/moe_perplexity.png" alt="MoE vs LSTM" loading="lazy"><figcaption>A parità di budget computazionale, i Mixture-of-Experts sparsi (verde) ottengono perplessità molto più bassa degli LSTM densi (blu): più capacità senza più calcolo. — «Sparsely-Gated MoE» (Shazeer et al., 2017, arXiv:1701.06538)</figcaption></figure>
       <figure class="paper-fig"><img src="../immagini/papers/unet_segmentation.png" alt="U-Net: segmentazione" loading="lazy"><figcaption>Segmentazione di cellule con maschere a istanze colorate, output della U-Net su microscopia. — «U-Net» (Ronneberger et al., 2015, arXiv:1505.04597)</figcaption></figure>
+      <h2>Col tuo progetto</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Il decoder di Perceiver IO genera una parola alla volta?</summary><p class="qa-a">No: ogni query legge i latenti in parallelo. Il tuo MLM produce le 512 previsioni in un solo passaggio.</p></details>
+        <details class="qa-item"><summary>Perché la greedy può sbagliare?</summary><p class="qa-a">Prende il meglio a ogni passo: può scartare un prefisso meno probabile che porta a una sequenza migliore (0,36 contro 0,20 nell'esempio).</p></details>
+        <details class="qa-item"><summary>Cosa hanno in comune U-Net e Perceiver IO?</summary><p class="qa-a">Una struttura encoder-decoder: si comprime e poi si riespande alla forma dell'uscita. U-Net con skip connection sulla griglia, Perceiver IO con query.</p></details>
+        <details class="qa-item"><summary>Cosa hanno in comune MoE e Perceiver?</summary><p class="qa-a">Entrambi evitano di pagare tutto su tutto: MoE attiva pochi esperti per token, il Perceiver fa passare l'input da pochi latenti.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-51">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="51"><span class="check"></span><span class="check-label">Ho capito</span></label>
