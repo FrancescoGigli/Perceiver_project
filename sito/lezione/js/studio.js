@@ -676,6 +676,87 @@
     calcola();
   }
 
+  // ── MLM: brani veri con i byte mascherati ───────────────────────────────────
+  // Dati da strumenti/mlm_esempi_lezione.py (window.MLM_ESEMPI): per ogni byte
+  // mascherato [posizione, vero, modello, probabilità del modello, tabella dei vicini].
+  function initCalcMlm() {
+    var box = document.querySelector('[data-lab="calc-mlm"]');
+    var dati = window.MLM_ESEMPI;
+    if (!box || !dati || !dati.esempi || !dati.esempi.length) return;
+    var MODI = [["buchi", "Con i buchi"], ["modello", "Perceiver IO"], ["vicini", "Tabella dei vicini"], ["spazio", "Sempre lo spazio"], ["vero", "Testo vero"]];
+    var spazio = dati.byte_piu_frequente;
+    box.insertAdjacentHTML("beforeend",
+      '<div class="calc-presets" data-r="brani"></div>' +
+      '<div class="calc-presets" data-r="modi">' + MODI.map(function (m) {
+        return '<button type="button" data-m="' + m[0] + '">' + m[1] + "</button>";
+      }).join("") + "</div>" +
+      '<div class="mlm-legenda"><span><span class="mlm-testo-inline m giusto">a</span> risposta giusta</span>' +
+      '<span><span class="mlm-testo-inline m sbagliato">a</span> risposta sbagliata</span>' +
+      "<span>␣ = spazio · tocca un byte colorato per i dettagli</span></div>" +
+      '<div class="mlm-testo" aria-live="polite"></div>' +
+      '<div class="lab-readout" data-out="nota"></div>' +
+      '<div class="calc-out"></div>');
+    var brani = box.querySelector('[data-r="brani"]'), testoEl = box.querySelector(".mlm-testo");
+    var nota = box.querySelector('[data-out="nota"]'), out = box.querySelector(".calc-out");
+    var attuale = 0, modo = "buchi";
+
+    function giusti(e, j) {
+      return e.maschere.filter(function (m) { return j === "spazio" ? m[1] === spazio : m[1] === m[j]; }).length;
+    }
+    function car(b) { return b === 32 ? "␣" : String.fromCharCode(b); }
+    dati.esempi.forEach(function (e, k) {
+      var b = el("button", { type: "button", "data-k": String(k) }, "Brano " + (k + 1));
+      b.addEventListener("click", function () { attuale = k; disegna(); });
+      brani.appendChild(b);
+    });
+    box.querySelectorAll('[data-r="modi"] button').forEach(function (b) {
+      b.addEventListener("click", function () { modo = b.dataset.m; disegna(); });
+    });
+    testoEl.addEventListener("click", function (ev) {
+      var t = ev.target.closest(".m");
+      if (!t) return;
+      var m = dati.esempi[attuale].maschere[Number(t.dataset.i)];
+      nota.innerHTML = "Posizione " + m[0] + ": il byte vero è <strong>«" + car(m[1]) + "»</strong>. " +
+        "Perceiver IO risponde «" + car(m[2]) + "» con probabilità " + fmt(m[3] * 100, 0) + "%" + (m[2] === m[1] ? " ✓" : " ✗") + ". " +
+        "La tabella dei vicini risponde «" + car(m[4]) + "»" + (m[4] === m[1] ? " ✓" : " ✗") + ".";
+    });
+    function disegna() {
+      var e = dati.esempi[attuale];
+      var perPos = {};
+      e.maschere.forEach(function (m, i) { perPos[m[0]] = i; });
+      var html = "";
+      for (var p = 0; p < e.testo.length; p++) {
+        var c = e.testo.charAt(p);
+        var safe = c === "<" ? "&lt;" : c === ">" ? "&gt;" : c === "&" ? "&amp;" : c;
+        if (!(p in perPos)) { html += safe; continue; }
+        var m = e.maschere[perPos[p]];
+        var mostra, cls;
+        if (modo === "buchi") { mostra = "□"; cls = "nascosto"; }
+        else if (modo === "vero") { mostra = car(m[1]); cls = "nascosto"; }
+        else {
+          var r = modo === "modello" ? m[2] : modo === "vicini" ? m[4] : spazio;
+          mostra = car(r); cls = r === m[1] ? "giusto" : "sbagliato";
+        }
+        mostra = mostra === "<" ? "&lt;" : mostra === ">" ? "&gt;" : mostra === "&" ? "&amp;" : mostra;
+        html += '<span class="m ' + cls + '" data-i="' + perPos[p] + '" title="vero: ' + car(m[1]).replace(/"/g, "&quot;") + '">' + mostra + "</span>";
+      }
+      testoEl.innerHTML = html;
+      box.querySelectorAll('[data-r="brani"] button').forEach(function (b) { b.classList.toggle("active", Number(b.dataset.k) === attuale); });
+      box.querySelectorAll('[data-r="modi"] button').forEach(function (b) { b.classList.toggle("active", b.dataset.m === modo); });
+      var n = e.maschere.length, gm = giusti(e, 2), gv = giusti(e, 4), gs = giusti(e, "spazio");
+      nota.innerHTML = "Brano " + (attuale + 1) + ": " + n + " byte mascherati su 512. Perceiver IO ne indovina <strong>" + gm + "</strong>, " +
+        "la tabella dei vicini " + gv + ", «sempre spazio» " + gs + ". Tocca un byte colorato per vedere le risposte.";
+      var tot = { n: 0, m: 0, v: 0, s: 0 };
+      dati.esempi.forEach(function (x) { tot.n += x.maschere.length; tot.m += giusti(x, 2); tot.v += giusti(x, 4); tot.s += giusti(x, "spazio"); });
+      out.innerHTML = '<table><thead><tr><th>Regola</th><th class="num">Questo brano</th><th class="num">I 5 brani</th><th class="num">Tutta la validation</th></tr></thead><tbody>' +
+        '<tr><td>Perceiver IO (io_mlm)</td><td class="num">' + gm + "/" + n + '</td><td class="num">' + fmt(tot.m / tot.n * 100, 1) + '%</td><td class="num">86,68%</td></tr>' +
+        '<tr><td>Tabella dei vicini</td><td class="num">' + gv + "/" + n + '</td><td class="num">' + fmt(tot.v / tot.n * 100, 1) + '%</td><td class="num">42,96%</td></tr>' +
+        '<tr><td>Sempre lo spazio</td><td class="num">' + gs + "/" + n + '</td><td class="num">' + fmt(tot.s / tot.n * 100, 1) + '%</td><td class="num">19,07%</td></tr>' +
+        '<tr><td>A caso</td><td class="num">—</td><td class="num">—</td><td class="num">0,39%</td></tr></tbody></table>';
+    }
+    disegna();
+  }
+
   function init() {
     initPassi();
     initAutoverifica();
@@ -684,6 +765,7 @@
     initCalcFourier();
     initCalcAttenzione();
     initCalcBanda();
+    initCalcMlm();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();

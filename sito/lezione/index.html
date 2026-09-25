@@ -5442,6 +5442,14 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
       <div class="chap-meta"><span class="chap-badge">Esp. 1</span><span class="chap-time">~12 min</span></div>
       <h1>I miei esperimenti — panoramica</h1>
       <p class="intro">Il progetto d'esame: implementazione <strong>from-scratch in PyTorch</strong> di Perceiver e Perceiver IO (corso B031278, Prof. Frasconi, UniFi), riprodotta su tre modalità — immagini (CIFAR-10), point cloud 3D (ModelNet40), testo a byte (MLM WikiText-103 → GLUE). Qui i risultati <strong>reali</strong>, letti accanto a quelli del paper.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>42 run: 24 Perceiver su CIFAR-10, 3 su ModelNet40, 2 Perceiver IO su CIFAR-10, pre-training MLM, 8 task GLUE, 2 controlli senza pre-training, 1 multitask e una ResNet-18.</li>
+          <li>Tre run identiche tranne il seed (71,63 · 68,85 · 70,97) danno la banda di rumore: 2,78 punti.</li>
+          <li>Conta solo ciò che supera 2,78: su CIFAR-10 sono 12 run su 21.</li>
+        </ul>
+      </div>
 
       <div class="nota">
         <span class="nota-label">Setup sperimentale</span>
@@ -5524,7 +5532,7 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
 
       <div class="nota">
         <span class="nota-label">Attenzione a un numero</span>
-        Su AudioSet il paper del 2021 riporta <strong>43.5 mAP</strong> per la fusione audio+video, mentre il paper IO (Tab. 10) ri-misura lo stesso Perceiver originale a <strong>42.4 mAP</strong>. Non è un errore di nessuno dei due: sono run diverse, con setup di training leggermente diversi. Se all'orale citi uno dei due, dì da quale tabella viene.
+        Su AudioSet il paper del 2021 riporta <strong>43.5 mAP</strong> per la fusione audio+video, mentre il paper IO (Tab. 10) dà <strong>42.4 mAP</strong> al «Perceiver». Non è lo stesso modello: nel paper IO il Perceiver ha 12 moduli di processing e una sola lettura dell'input, per confrontarlo alla pari con Perceiver IO. Se all'orale citi uno dei due, dì da quale tabella viene.
       </div>
 
       <div class="concept-lab step-anim-lab" data-lab="pipeline3">
@@ -5749,6 +5757,29 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
 
       <p>Il grafico dice in un colpo solo la cosa che conta. Delle 24 run CIFAR-10, <strong>solo 12 escono dalla banda</strong>: le 11 del grafico più <code>e29_no_pe</code>, che senza positional encoding crolla a 32,36% ed è fuori scala. Sono le uniche su cui si può affermare qualcosa. Altre 9 — permutazione dei pixel, learned PE, assenza di weight sharing, frequenza massima — cadono <em>dentro</em> il rumore, e le 3 repliche la definiscono. Non vuol dire che l'effetto non esista: vuol dire che con questo budget sperimentale <strong>non l'abbiamo misurato</strong>, ed è più onesto dirlo che difendere mezzo punto di differenza.</p>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">La banda di rumore, calcolata</p>
+        <ol class="passi">
+          <li>Tre run identiche tranne il seed: e01 (seed 42) <strong>71,63</strong>, e31 (seed 1) <strong>68,85</strong>, e32 (seed 2) <strong>70,97</strong>.</li>
+          <li>Media: (71,63 + 68,85 + 70,97) ÷ 3 = <strong>70,48</strong>.</li>
+          <li>Banda = massimo − minimo = 71,63 − 68,85 = <strong>2,78</strong> punti.</li>
+          <li>Deviazione standard: scarti +1,15, −1,63, +0,49; varianza (1,31 + 2,67 + 0,24) ÷ 2 = 2,11; σ = <strong>1,45</strong>.</li>
+          <li>e01 è il seed più fortunato: sta 1,15 sopra la media. Le differenze negative misurate da e01 sembrano quindi un po' più grandi.</li>
+          <li>Regola del progetto: |Δ da e01| > 2,78. Escono <strong>12 run su 21</strong>. Misurando dalla media sarebbero 10: e12 (−2,03) ed e14 (−2,44) rientrano.</li>
+        </ol>
+      </div>
+
+      <div class="concept-lab" data-lab="calc-banda">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">calcolatrice · le 24 run CIFAR-10 di results_reference.csv</span>
+            <h3>Cambia riferimento e soglia, guarda cosa resta</h3>
+            <p>Scegli se misurare da e01 o dalla media dei tre seed, e quanto larga fare la banda. La tabella è ordinata dalla run migliore alla peggiore.</p>
+          </div>
+        </div>
+      </div>
       <div class="idea">
         <div class="idea-label">La domanda che ti faranno</div>
         <p>«Questa differenza è significativa?» Senza una banda misurata non c'è risposta, e ogni confronto diventa opinione. Con tre repliche a seed diverso la risposta è un numero: <strong>2,78</strong>. Il costo sono due run in più; il guadagno è che tutti gli altri confronti diventano leggibili. Nota che la banda dipende anche da <em>quale</em> metrica guardi: sul <code>val_accuracy</code> di epoca migliore è 2,94, sull'ultima epoca 3,24 — le conclusioni però non cambiano. E dipende dal riferimento: <code>e01</code> è il più fortunato dei tre seed, e misurando dalla loro media (70,48%) le run fuori banda scendono da 12 a 10. Tieni pronta questa risposta: le conclusioni reggono, ma <code>e12</code> ed <code>e14</code> sono confronti al limite.</p>
@@ -5841,6 +5872,24 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
         <p>Qui la panoramica, le modalità e la banda di rumore. I due capitoli successivi sono separati: prima <strong>Perceiver originale</strong> (le 24 run CIFAR-10 una per una, poi le 3 di ModelNet40), poi <strong>Perceiver IO</strong> (decoder, output queries, il pre-training MLM, GLUE e il multitask).</p>
       </div>
 
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Dentro la banda non vuol dire «nessun effetto»: vuol dire «non misurabile con 3 seed».</li>
+          <li>La banda è di tre run: una stima grezza. Con 5–10 seed sarebbe affidabile.</li>
+          <li>Su ModelNet40 non c'è validation: l'epoca è scelta sul test, come nel paper. Il numero è un po' ottimista (87,36 contro 86,43 all'ultima epoca).</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Quante run ha il progetto e come sono divise?</summary><p class="qa-a">42: 24 Perceiver su CIFAR-10, 3 su ModelNet40, 2 Perceiver IO su CIFAR-10, 1 pre-training MLM, 8 fine-tuning GLUE, 2 controlli senza pre-training, 1 multitask, 1 ResNet-18.</p></details>
+        <details class="qa-item"><summary>Come hai misurato la banda di rumore e quanto vale?</summary><p class="qa-a">Tre run identiche tranne il seed: 71,63, 68,85 e 70,97. Massimo meno minimo: 2,78 punti.</p></details>
+        <details class="qa-item"><summary>Quante run CIFAR-10 escono dalla banda?</summary><p class="qa-a">12 su 21 (le 3 repliche non si contano), con la regola |Δ da e01| > 2,78. Misurando dalla media dei seed sarebbero 10.</p></details>
+        <details class="qa-item"><summary>Perché e01 è un riferimento «fortunato», e cosa cambia?</summary><p class="qa-a">È il migliore dei tre seed: 71,63 contro una media di 70,48. Le differenze negative sembrano un po' più grandi; due run al limite (e12, e14) dalla media rientrano nella banda.</p></details>
+        <details class="qa-item"><summary>Perché l'epoca si sceglie sulla validation e non sul test?</summary><p class="qa-a">Il test deve restare mai visto: sceglierci l'epoca gonfia il risultato. Su CIFAR-10 la validation sono 5.000 immagini tolte dal train. Su ModelNet40 non c'è validation e si sceglie sul test, come nel paper.</p></details>
+        <details class="qa-item"><summary>Tre seed bastano?</summary><p class="qa-a">Per una stima grezza sì, ed è molto meglio di niente. Ma una deviazione standard da 3 valori (1,45) è incerta: con 5–10 seed la banda sarebbe affidabile.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-44">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="44"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -5853,12 +5902,20 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
       <div class="chap-meta"><span class="chap-badge">Esp. 2</span><span class="chap-time">~16 min</span></div>
       <h1>Perceiver originale: gli esperimenti uno per uno</h1>
       <p class="intro">Questa sezione riguarda solo il <strong>Perceiver originale</strong>: le run di ablation su CIFAR-10 (immagini) e le tre su ModelNet40 (point cloud 3D). Ogni esperimento è descritto per quello che cambia rispetto agli altri, cosa dovrebbe dimostrare, cosa ha dimostrato davvero. Perceiver IO è nel capitolo dopo.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Reggono: senza posizione si crolla (32,36%), la permutazione non fa danno misurabile (−2,68), lo sharing è gratis (−2,17 con 3 volte i parametri).</li>
+          <li>Effetti grandi: latenti inizializzati con σ = 1 (−19,55), 16 bande (−9,05, training instabile), letture in testa invece che alternate (−4,44).</li>
+          <li>Il confronto scomodo: una ResNet-18 fa 93,61%. Su ModelNet40 invece facciamo 87,36%, sopra l'85,7 del paper.</li>
+        </ul>
+      </div>
 
       <h2>Architettura: nostra config vs paper</h2>
       <div class="dataset-cards">
         <div class="dataset-card">
           <div class="dataset-name">Paper (ImageNet) <span class="dataset-tag">Jaegle 2021</span></div>
-          <p><code>N=512</code> latenti · <code>D=1024</code> · <code>T=8</code> iterazioni (weight sharing) · cross-attention <strong>single-head</strong> (d_QKV=261) · self-attention <strong>8 teste</strong> (d_head=128) · <code>L=6</code> self-attention per blocco · batch <strong>1024</strong> su 64 TPU · ~45M parametri · nessun dropout.</p>
+          <p><code>N=512</code> latenti · <code>D=1024</code> · <code>T=8</code> iterazioni (weight sharing) · cross-attention <strong>single-head</strong> (d_QKV=261) · self-attention: teste non dichiarate (8 nel modello delle ablazioni) · <code>L=6</code> self-attention per blocco, 48 in tutto · MLP con fattore <strong>1</strong> · batch non dichiarato per questo modello · ~45M parametri · nessun dropout.</p>
           <p class="dataset-use">Input: 50.176 pixel grezzi (224×224), ciascuno da 261 dim.</p>
         </div>
         <div class="dataset-card">
@@ -5878,7 +5935,7 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
           <p><strong>Cosa cambia:</strong> niente: è la configurazione base. <code>N=96</code> latenti, <code>D=384</code>, 4 cross-attend interleaved, 4 blocchi transformer, 1 testa in cross-attention e 8 in self-attention, Fourier 64 bande a frequenza massima 16, LAMB lr 0.004, 120 epoche.</p>
           <p><strong>Cosa isola:</strong> niente — è il metro. Tutti gli altri numeri si leggono come scostamento da qui.</p>
           <p><strong>Risultato:</strong> <strong>71.63%</strong> (test), epoca migliore <strong>92</strong> su 120, 10.175.362 parametri, seed 42. <strong class="v-in">dentro la banda</strong> (+0.00 punti su ±2,78): <em>non concludente</em></p>
-          <p class="dataset-use">Contro il paper (78,0% su ImageNet) il confronto non ha senso: dataset diverso, 64 TPU contro una GPU, immagini 224×224 contro 32×32. Il valore di questa run non è il numero assoluto, è essere il riferimento stabile contro cui misurare le 22 ablation.</p>
+          <p class="dataset-use">Contro il paper (78,0% su ImageNet) il confronto non ha senso: dataset diverso, le TPU di DeepMind contro una GPU, immagini 224×224 contro 32×32. Il valore di questa run non è il numero assoluto, è essere il riferimento stabile contro cui misurare le 22 ablation.</p>
         </div>
       </div>
 
@@ -5949,7 +6006,7 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
           <p><strong>Cosa cambia:</strong> <code>--num_cross_attend_stages 1</code>: l'input viene letto <strong>una volta sola</strong>.</p>
           <p><strong>Cosa isola:</strong> se rileggere l'input serva. Il baseline lo legge 4 volte.</p>
           <p><strong>Risultato:</strong> <strong>72.91%</strong> (test), epoca migliore <strong>90</strong> su 120, 8.654.662 parametri, seed 42. <strong class="v-in">dentro la banda</strong> (+1.28 punti su ±2,78): <em>non concludente</em></p>
-          <p class="dataset-use"><strong>È la run migliore di tutte le 23.</strong> Leggere l'input una volta sola non solo non peggiora: è il massimo misurato, con il 15% di parametri in meno. Resta dentro la banda, quindi non si può dire «T=1 è meglio» — ma si può dire con sicurezza che <strong>le 3 letture in più del baseline non comprano niente</strong> e costano parametri.</p>
+          <p class="dataset-use"><strong>È la run migliore di tutte le 23.</strong> Leggere l'input una volta sola non solo non peggiora: è il massimo misurato, con il 15% di parametri in meno. Resta dentro la banda, quindi non si può dire «T=1 è meglio» — ma si può dire con sicurezza che <strong>le 3 letture in più del baseline non comprano niente</strong> e costano parametri. <strong>Attenzione però:</strong> nel nostro codice ogni lettura porta i suoi 4 blocchi latenti, quindi e08 ha anche 4 blocchi invece di 16 e fa un quarto dei calcoli (1,03 contro 4,12 miliardi di MAC). Il confronto mescola «quante letture» e «quanto è profonda la rete»; nel paper (Tab. 6) la profondità resta fissa a 48 blocchi.</p>
         </div>
         <div class="dataset-card dataset-card--wide">
           <div class="dataset-name"><code>e09_T2_interleaved</code> <span class="dataset-tag">T=2</span></div>
@@ -5963,7 +6020,7 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
           <p><strong>Cosa cambia:</strong> <code>--num_cross_attend_stages 8</code>: il doppio delle letture del baseline.</p>
           <p><strong>Cosa isola:</strong> se esagerare con le riletture danneggi.</p>
           <p><strong>Risultato:</strong> <strong>65.63%</strong> (test), epoca migliore <strong>93</strong> su 120, 10.175.362 parametri, seed 42. <strong class="v-out">fuori banda</strong> (-6.00 punti, la banda è ±2,78)</p>
-          <p class="dataset-use"><strong>Il peggior risultato fra le disposizioni:</strong> 65,63%, sei punti sotto il baseline, ben fuori banda. Con il weight sharing i parametri non aumentano — quindi il danno non è di capacità, è di ottimizzazione: otto passaggi sugli stessi pesi rendono il training più difficile.</p>
+          <p class="dataset-use"><strong>Il peggior risultato fra le disposizioni:</strong> 65,63%, sei punti sotto il baseline, ben fuori banda. Con il weight sharing i parametri non aumentano — quindi il danno non è di capacità, è di ottimizzazione: otto letture sono anche <strong>32 blocchi latenti in fila</strong>, una rete due volte più profonda di e01, sempre con gli stessi pesi.</p>
         </div>
         <div class="dataset-card dataset-card--wide">
           <div class="dataset-name"><code>e11_T1_at_start</code> <span class="dataset-tag">T=1 · at_start</span></div>
@@ -5995,6 +6052,19 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
         </div>
       </div>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Le letture, con la profondità accanto</p>
+        <ol class="passi">
+          <li>e08 (T = 1): 1 lettura, <strong>4</strong> blocchi latenti eseguiti, 1,03 miliardi di MAC. <strong>72,91%</strong>.</li>
+          <li>e09 (T = 2): 8 blocchi, 2,06 miliardi di MAC. <strong>66,23%</strong>.</li>
+          <li>e01 (T = 4): 16 blocchi, 4,12 miliardi di MAC. <strong>71,63%</strong>.</li>
+          <li>e10 (T = 8): 32 blocchi, 8,25 miliardi di MAC. <strong>65,63%</strong>.</li>
+          <li>Nel paper i blocchi restano 48 e cambia solo il numero di letture. Da noi crescono insieme: il confronto fra T misura «letture + profondità».</li>
+          <li>I confronti puliti sono a pari T, quindi a pari profondità: e01 contro e13 (T = 4): −4,44; e09 contro e12 (T = 2): +2,22; e10 contro e14 (T = 8): +2,41.</li>
+        </ol>
+      </div>
       <h3>Tab. 7 — il weight sharing è gratis?</h3>
       <p>Il Perceiver riusa gli stessi pesi a ogni iterazione, come una RNN srotolata. Il paper sostiene che questo riduce i parametri <em>senza</em> costare accuratezza, e che anzi regolarizza.</p>
       <div class="dataset-cards">
@@ -6151,7 +6221,7 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
       </div>
 
       <h3>Fuori dal paper &mdash; la baseline CNN, cio&egrave; il confronto scomodo</h3>
-      <p>Il paper mette il Perceiver accanto a ResNet-50 e ViT nella Tab. 1, e su ImageNet <strong>vince</strong>: 78.0% contro 73.5% della ResNet-50. Senza una CNN allenata sugli stessi dati, un progetto che replica il Perceiver non pu&ograve; dire niente su quel confronto &mdash; ed &egrave; la prima cosa che verrebbe chiesta.</p>
+      <p>Il paper mette il Perceiver accanto a ResNet-50 e ViT nella Tab. 1, e su ImageNet <strong>vince</strong>: 78,0% contro 77,6% della ResNet-50 standard e 73,5% della ResNet-50 con Fourier features. Senza una CNN allenata sugli stessi dati, un progetto che replica il Perceiver non pu&ograve; dire niente su quel confronto &mdash; ed &egrave; la prima cosa che verrebbe chiesta.</p>
       <div class="dataset-cards">
         <div class="dataset-card dataset-card--wide">
           <div class="dataset-name"><code>cnn_baseline</code> <span class="dataset-tag">non &egrave; un Perceiver</span></div>
@@ -6162,7 +6232,7 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
       </div>
       <div class="idea">
         <div class="idea-label">L'ordine del paper qui si ribalta, e di molto</div>
-        <p>Su ImageNet il Perceiver batte la ResNet-50 di <strong>+4,5</strong> punti. Su CIFAR-10, a parit&agrave; di dati, split, epoche e quasi di parametri, la ResNet-18 batte il Perceiver di <strong>+21,98</strong> punti: 93,61% contro 71,63%. Non &egrave; un dettaglio da nascondere in fondo, &egrave; il risultato che d&agrave; il senso a tutti gli altri.</p>
+        <p>Su ImageNet il Perceiver batte la ResNet-50 di <strong>+0,4</strong> punti (+4,5 contro la versione con Fourier features). Su CIFAR-10, a parit&agrave; di dati, split, epoche e quasi di parametri, la ResNet-18 batte il Perceiver di <strong>+21,98</strong> punti: 93,61% contro 71,63%. Non &egrave; un dettaglio da nascondere in fondo, &egrave; il risultato che d&agrave; il senso a tutti gli altri.</p>
         <p>La lettura non &egrave; &laquo;il paper sbaglia&raquo;: &egrave; che il vantaggio del Perceiver non sta nell'accuratezza, sta nel <em>non avere prior sul dominio</em>. Quel prior &mdash; localit&agrave; e invarianza per traslazione &mdash; su immagini 32&times;32 con 45.000 esempi vale circa 22 punti. Il paper mostra che a scala ImageNet, con 1,28 milioni di immagini e augmentation pesante, il prior smette di essere necessario e la generalit&agrave; diventa gratis. A questa scala non lo &egrave;: la si paga, e questo numero dice quanto.</p>
       </div>
 
@@ -6360,7 +6430,9 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
         <li><strong>Latent array (CIFAR)</strong>: paper N=512, D=1024 → noi N=96, D=384 (ridotto per la GPU)</li>
         <li><strong>Iterazioni</strong>: paper T=8 con weight sharing → noi T=4 su CIFAR-10 (T=1 in <code>e03</code>/<code>e04</code> ed <code>e08</code>/<code>e11</code>), T=2 su ModelNet40</li>
         <li><strong>Teste cross-attention</strong>: paper 1 (single-head) → noi 1, come nel paper; 8 teste nella self-attention</li>
-        <li><strong>Batch</strong>: paper 1024 (64 TPU) / 512 (ModelNet) → noi 64 / 32 (1 GPU)</li>
+        <li><strong>Batch</strong>: il paper non lo dichiara per il modello ImageNet (Perceiver IO usa 1024 su 64 TPU); ModelNet40 512 → noi 64 / 32 (1 GPU)</li>
+        <li><strong>MLP</strong>: paper fattore 1 (hidden = D, p. 6 e 17) → noi fattore 4, come GPT-2. Con fattore 1 e01 avrebbe 4,9 M di parametri invece di 10,2 M</li>
+        <li><strong>Ablation sul numero di letture</strong>: nel paper (Tab. 6) i blocchi latenti restano 48 qualunque sia T → noi T·4 blocchi, quindi da e08 (4 blocchi) a e10 (32) cambia anche la profondità</li>
         <li><strong>Dropout</strong>: paper nessuno → noi nessuno</li>
         <li><strong>Fourier su ModelNet40</strong>: paper 64 bande per asse → noi 6 (42 canali per punto)</li>
         <li><strong>Augmentation su ModelNet40</strong>: paper scala e traslazione per singolo punto → noi sull'intera nuvola, annullate dalla normalizzazione</li>
@@ -6370,6 +6442,26 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
       <div class="nota">
         <span class="nota-label">Implicazione</span>
         Le accuracy non vanno lette come replica identica del paper: dataset, scala e hardware sono diversi. Il punto scientifico è che le <strong>relazioni ablative</strong> sono isolate e leggibili — e che sappiamo dire, per ciascuna, se supera o no la banda di rumore. Le due differenze su ModelNet40 (bande e augmentation) non vengono dal budget: sono emerse rileggendo il codice dopo le run. I numeri riportati sono stati prodotti così, e il registro ora lo dichiara.
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>e08 = e11 fino all'ultima cifra non è un errore: con una lettura sola le due disposizioni sono lo stesso grafo.</li>
+          <li>e23 ed e24 (4 e 16 bande) non dimostrano che servono 64 bande: il loro training è diventato instabile (ultima epoca 22,54% e 55,46%).</li>
+          <li>La ResNet-18 non smentisce il paper: su 45.000 immagini 32×32 il prior convoluzionale vale moltissimo, e il Perceiver non ne ha.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Quali risultati sul Perceiver reggono oltre la banda di rumore?</summary><p class="qa-a">Senza codifica di posizione 32,36% (−39,27); latenti inizializzati con σ = 1 52,08% (−19,55) e con σ = 0,1 65,69% (−5,94); 4 e 16 bande (−5,24, −9,05); letture in testa invece che alternate a T = 4 (−4,44); senza latent transformer con 8 e 12 letture (−4,39, −4,58).</p></details>
+        <details class="qa-item"><summary>Perché e08 ed e11 sono identici fino all'ultima cifra?</summary><p class="qa-a">Con una sola lettura «alternato» e «in testa» producono lo stesso grafo; a seed fisso il training è identico. È una prova di riproducibilità.</p></details>
+        <details class="qa-item"><summary>T = 1 è la run migliore: puoi dire che rileggere l'input non serve?</summary><p class="qa-a">No. +1,28 è dentro la banda, e in più e08 ha 4 blocchi latenti invece di 16 e fa un quarto dei calcoli: letture e profondità cambiano insieme. Il confronto pulito sulla disposizione è e01 contro e13: −4,44 per le letture in testa.</p></details>
+        <details class="qa-item"><summary>Cosa dice e16 sul weight sharing?</summary><p class="qa-a">Senza sharing 31,5 M di parametri e 69,46%: −2,17, dentro la banda. Triplicare i parametri non compra niente, come nel paper.</p></details>
+        <details class="qa-item"><summary>Cosa è successo a e23 ed e24?</summary><p class="qa-a">4 e 16 bande: 66,39% e 62,58% alla migliore epoca, ma all'ultima 22,54% e 55,46% in validation. È un problema di ottimizzazione, non una misura pulita della risoluzione.</p></details>
+        <details class="qa-item"><summary>Perché la ResNet-18 fa 93,61%?</summary><p class="qa-a">Ha il prior convoluzionale: località e invarianza per traslazione. Su 45.000 immagini 32×32 vale moltissimo. Il Perceiver non ha prior e con pochi dati ne paga il prezzo.</p></details>
+        <details class="qa-item"><summary>ModelNet40: risultati e cosa arriva davvero al modello?</summary><p class="qa-a">mn01 87,36% (86,43% all'ultima epoca), mn03 87,20%: una replica di fatto, perché scala e traslazione dell'intera nuvola sono annullate dalla normalizzazione. mn02, con la rotazione, 74,07% (−13,29).</p></details>
+        <details class="qa-item"><summary>Quali differenze dal paper devi dichiarare per il Perceiver?</summary><p class="qa-a">CIFAR-10 invece di ImageNet; N 96, D 384, 4 letture, 4 blocchi; MLP con fattore 4 invece di 1; nelle ablation su T la profondità cresce con T; ModelNet40 con 6 bande e augmentation annullata; batch 64 e 32.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -6384,6 +6476,14 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
       <div class="chap-meta"><span class="chap-badge">Esp. 3</span><span class="chap-time">~18 min</span></div>
       <h1>Perceiver IO: gli esperimenti uno per uno</h1>
       <p class="intro">Questa sezione è dedicata solo a <strong>Perceiver IO</strong>: il decoder con output queries, la classificazione CIFAR-10 (immagini), il pre-training MLM byte-level e il fine-tuning sugli 8 task GLUE (testo). I risultati del Perceiver originale sono nel capitolo precedente.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Perceiver IO su CIFAR-10: 71,79% contro 71,63% del Perceiver. Per una sola etichetta il decoder non aggiunge niente.</li>
+          <li>MLM sui byte: 86,68% dei byte mascherati. Senza rete: «sempre spazio» 19,07%, tabella dei vicini 42,96%.</li>
+          <li>GLUE: media 71,13 sugli 8 task, 74,05 con un solo modello multitask. Il paper fa 81,0 e 81,8, con 10 volte i parametri.</li>
+        </ul>
+      </div>
 
       <h2>Architettura Perceiver IO: nostra config vs paper</h2>
       <div class="dataset-cards">
@@ -6396,7 +6496,7 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
           <div class="dataset-name">Nostro Perceiver IO <span class="dataset-tag">RTX 3080</span></div>
           <p><strong>CIFAR-10:</strong> <code>N=96</code> · <code>D=384</code> · 8 teste · 4 cross-attend stages + 4 transformer blocks · weight sharing · <strong>1 output query</strong> · <strong>12.049.922</strong> parametri.<br>
           <strong>Testo (MLM/GLUE):</strong> <code>N=128</code> · <code>D=512</code> · 8 teste · 4 transformer blocks · <strong>18.872.740</strong> parametri (MLM, una query per posizione) → <strong>18.480.806</strong> (GLUE, 1 query).</p>
-          <p class="dataset-use">Stessa idea encode-process-decode, ma ~20× più piccolo e pre-training solo su WikiText-103.</p>
+          <p class="dataset-use">Stessa idea encode-process-decode, ma circa 10 volte più piccolo del modello a byte del paper (18,9 M contro 201 M di parametri) e con pre-training solo su WikiText-103.</p>
         </div>
       </div>
 
@@ -6440,6 +6540,29 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
         L'accuratezza sui byte mascherati <strong>non è confrontabile</strong> con l'accuratezza di un modello a token: indovinare un byte è un problema più facile che indovinare una parola, perché lo spazio delle possibilità è 256 invece di decine di migliaia, e perché molti byte sono determinati dal contesto ortografico (dopo «att» in italiano le opzioni sono poche). In più qui si mascherano <strong>byte singoli</strong>, mentre il paper maschera parole intere: un byte nascosto ha quasi sempre i vicini visibili, ed è per questo che la tabella dei vicini arriva al 42,96%. Serve a dire «il pre-training ha funzionato», non a confrontarsi con BERT. Il confronto con BERT si fa su GLUE, qui sotto.
       </div>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Cosa vuol dire 86,68% sui byte mascherati</p>
+        <ol class="passi">
+          <li>Ogni sequenza ha 512 byte. Il 15% viene mascherato: circa <strong>77</strong> byte per sequenza.</li>
+          <li>A caso (1 su 256): <strong>0,39%</strong>.</li>
+          <li>Sempre lo spazio, il byte più frequente: <strong>19,07%</strong>.</li>
+          <li>Tabella dei vicini (il byte più frequente fra quello prima e quello dopo): <strong>42,96%</strong>.</li>
+          <li>Il modello: <strong>86,68%</strong>, cioè 43,72 punti sopra la tabella dei vicini. Sbaglia circa 1 byte mascherato su 7,5.</li>
+          <li>Il paper maschera parole intere (il 15% delle parole) su 2.048 byte: un compito più difficile. I due numeri non si confrontano.</li>
+        </ol>
+      </div>
+
+      <div class="concept-lab" data-lab="calc-mlm">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">progetto · io_mlm su 5 brani veri della validation</span>
+            <h3>Riempi i buchi: modello, vicini, spazio</h3>
+            <p>Stesso file e stesso mascheramento del 15%. Passa da una regola all'altra e guarda cosa indovina ognuna. Il testo di WikiText-103 ha gli spazi prima della punteggiatura e &lt;unk&gt; per le parole rare.</p>
+          </div>
+        </div>
+      </div>
       <h2>Esperimento 3 — fine-tuning sugli 8 task GLUE (testo)</h2>
       <p><strong>Protocollo:</strong> si caricano dal checkpoint MLM i pesi dell'<strong>encoder</strong> (cross-attention + latent transformer), si inizializzano da zero la query del decoder e la testa di classificazione, e si fa fine-tuning task per task. Un decoder diverso, lo stesso encoder. Se il checkpoint manca, il codice <strong>si ferma con un errore</strong> invece di allenare da zero fingendo un transfer: è una scelta deliberata, perché una run partita da pesi casuali e presentata come fine-tuning è un risultato falso.</p>
 
@@ -6505,6 +6628,18 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
         Il +2,92 di media nasce quasi tutto da <strong>STS-B (+16,91)</strong> e <strong>RTE (+7,58)</strong>, cio&egrave; due dei task pi&ugrave; piccoli: 5.749 e 2.490 esempi di training. Da soli non hanno abbastanza dati, e nel multitask ereditano rappresentazioni costruite anche sugli altri sei &mdash; &egrave; il transfer fra task che il paper vuole mostrare. Lo fanno pur vedendo appena <strong>1,35 passate</strong> sui propri dati contro le 30 epoche dei modelli separati: il tetto di 4.000 step accorcia l'epoca ma non riequilibra i task, e QQP pi&ugrave; MNLI sono l'80% dei batch. Sui task grandi succede il contrario, in piccolo: SST-2 &minus;3,56, QQP &minus;2,01, MNLI &minus;1,88 pagano il fatto di condividere la capacit&agrave;. <strong>CoLA fa 69,13% in entrambi i regimi</strong>, cifra per cifra: sono 721 corrette su 1043, la classe maggioritaria esatta. Lo stesso identico numero con due addestramenti completamente diversi non &egrave; una coincidenza &mdash; quel task, a questa scala, non viene imparato in nessuno dei due modi.
       </div>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Il multitask, task per task: da dove viene il +2,92</p>
+        <ol class="passi">
+          <li>Media degli 8 modelli separati <strong>71,13</strong>; un modello con 8 query <strong>74,05</strong>.</li>
+          <li>Guadagnano i task piccoli: STS-B <strong>+16,91</strong> (5.749 esempi di training), RTE <strong>+7,58</strong> (2.490), MRPC <strong>+6,13</strong> (3.668).</li>
+          <li>Perdono un po' i task grandi: SST-2 −3,56, QQP −2,01, MNLI −1,88. CoLA resta ferma (classe maggioritaria).</li>
+          <li>QQP e MNLI sono il 79,7% dei 949.058 esempi della miscela.</li>
+          <li>Con 4.000 passi per epoca e 10 epoche, i task piccoli vedono circa 1,35 passate dei loro dati: poche, ma ereditano ciò che il modello impara sugli altri.</li>
+        </ol>
+      </div>
       <h2>Cosa fa Perceiver IO nel paper, per modalità</h2>
       <p>Il punto del paper IO non è vincere su GLUE, è mostrare che <em>un solo decoder generico</em> copre task con output di forma completamente diversa. Ecco i cinque domini.</p>
 
@@ -6531,14 +6666,14 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
           <tr><td><strong>Multimodale</strong> — Kinetics-700, Tab. 4</td><td>autoencoding video+audio+label, ~804.737 query</td><td>fino a <strong>45% top-1</strong> con loss ribilanciata</td></tr>
 
           <tr><td rowspan="2"><strong>Immagini</strong> — ImageNet, Tab. 7</td><td>Perceiver IO (Fourier 2D, no pretrain)</td><td>79.0%</td></tr>
-          <tr><td>Perceiver IO (learned pos., pretrain JFT)</td><td><strong>84.5%</strong></td></tr>
+          <tr><td>Perceiver IO (Fourier 2D, pre-training JFT)</td><td><strong>84.5%</strong></td></tr>
         </tbody>
       </table>
       </div>
 
       <div class="nota">
         <span class="nota-label">La tesi del paper in un numero solo</span>
-        È la quarta riga: <strong>71.5</strong>. Non è che Perceiver IO batta BERT — lo <em>pareggia</em>, 81.0 contro 81.0. È che <strong>quando entrambi rinunciano al tokenizer, BERT crolla di dieci punti e Perceiver IO no</strong>, perché il suo costo non esplode con la lunghezza della sequenza. Il nostro 63% su GLUE non contraddice questo risultato: non abbiamo mai avuto le risorse per testarlo. Abbiamo verificato che la pipeline encode-process-decode funziona end-to-end su testo grezzo.
+        È la quarta riga: <strong>71.5</strong>. Non è che Perceiver IO batta BERT — lo <em>pareggia</em>, 81.0 contro 81.0. È che <strong>quando entrambi rinunciano al tokenizer, BERT crolla di dieci punti e Perceiver IO no</strong>, perché il suo costo non esplode con la lunghezza della sequenza. La nostra media di 71,13 su GLUE non contraddice questo risultato: non abbiamo mai avuto le risorse per testarlo. Abbiamo verificato che la pipeline encode-process-decode funziona end-to-end su testo grezzo.
       </div>
 
       <h2>Tutti i risultati, interattivi</h2>
@@ -6572,7 +6707,7 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
       </figure>
 
       <h2>Verifiche &amp; attention maps</h2>
-      <p>Le <strong>attention maps</strong> dei latenti, salvate durante il training, sono la verifica visiva della teoria: con le Fourier features l'attenzione si <em>localizza</em> e resta strutturata anche sotto permutazione; senza positional encoding (RGB-only) resta diffusa. È l'evidenza qualitativa che affianca il −10.68 di exp3B.</p>
+      <p>Le <strong>attention maps</strong> dei latenti, salvate durante il training, sono la verifica visiva della teoria: con le Fourier features l'attenzione si <em>localizza</em> e resta strutturata anche sotto permutazione; senza positional encoding (RGB-only) resta diffusa. Attenzione: le mappe qui sotto vengono dalla <strong>prima serie di run</strong> (exp1–exp6), superata. Usale solo come immagine qualitativa di come si specializzano i latenti: nessun numero della lezione viene da lì. Il numero da citare senza posizione è quello di <code>e29_no_pe</code>: 32,36%.</p>
 
       <div class="concept-lab attn-evo-lab" data-lab="attention-evolution">
         <div class="lab-head">
@@ -6670,7 +6805,26 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
 
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
-        <p>I numeri assoluti sono più bassi del paper — è il prezzo di 1 GPU contro 64 TPU. Ma il valore del lavoro non sta nei numeri assoluti: sta nell'aver misurato <strong>la banda di rumore</strong> (2,78 punti, da tre run identiche tranne il seed) e nell'usarla per separare gli effetti reali dalle coincidenze. All'orale, il punto di forza è questo: <em>ho verificato di persona la teoria, so quali mie conclusioni reggono e quali no, e ho documentato onestamente dove i miei risultati divergono dal paper</em> — il weight sharing, il segno della permutazione, e il confronto Fourier/learned che nel mio setup non discrimina.</p>
+        <p>I numeri assoluti sono più bassi del paper — è il prezzo di una GPU contro le TPU dei paper. Ma il valore del lavoro non sta nei numeri assoluti: sta nell'aver misurato <strong>la banda di rumore</strong> (2,78 punti, da tre run identiche tranne il seed) e nell'usarla per separare gli effetti reali dalle coincidenze. All'orale, il punto di forza è questo: <em>ho verificato di persona la teoria, so quali mie conclusioni reggono e quali no, e ho documentato onestamente dove i miei risultati divergono dal paper</em> — il weight sharing, il segno della permutazione, e il confronto Fourier/learned che nel mio setup non discrimina.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>86,68% non si confronta con i numeri del paper: byte singoli contro parole intere, 512 contro 2.048 byte.</li>
+          <li>Su CoLA 69,13% è la classe maggioritaria esatta: non è apprendimento. Su MRPC il modello supera la costante di 9 esempi su 408.</li>
+          <li>Il multitask vince in media, ma solo grazie ai task piccoli: sui grandi perde 2–3,6 punti.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Il decoder di Perceiver IO aiuta su CIFAR-10?</summary><p class="qa-a">No: 71,79% e 71,69% contro 71,63%, dentro la banda. Il decoder a query serve quando l'output è strutturato, non per una sola etichetta.</p></details>
+        <details class="qa-item"><summary>Come si legge l'86,68% dell'MLM?</summary><p class="qa-a">Contro le regole senza rete: «sempre spazio» 19,07%, tabella dei vicini 42,96%. Il modello fa 43,72 punti in più dei vicini. Non si confronta con il paper: byte singoli invece di parole intere.</p></details>
+        <details class="qa-item"><summary>Il pre-training serve? Con quali numeri?</summary><p class="qa-a">Su SST-2 da 59,75% senza pre-training a 80,73% con (+20,98). Su RTE da 52,71% a 56,68% (+3,97), ma RTE non viene imparato bene in nessuno dei due casi.</p></details>
+        <details class="qa-item"><summary>Quali risultati GLUE sono degeneri?</summary><p class="qa-a">CoLA 69,13%: esattamente la classe maggioritaria (721 su 1.043). MRPC 70,59%: supera la costante di soli 9 esempi su 408.</p></details>
+        <details class="qa-item"><summary>Quanto vale il multitask, e da dove viene?</summary><p class="qa-a">74,05 contro 71,13 (+2,92), quasi tutto da STS-B (+16,91), RTE (+7,58) e MRPC (+6,13). I task grandi perdono fra 2 e 3,6 punti.</p></details>
+        <details class="qa-item"><summary>Perché la tua media GLUE è 10 punti sotto il paper?</summary><p class="qa-a">18,9 M contro 201 M di parametri, 4 strati latenti contro 26, pre-training molto più corto su meno dati (WikiText-103 contro C4 + Wikipedia per 500.000 passi), mascheramento di byte singoli.</p></details>
+        <details class="qa-item"><summary>Qual è la tesi del paper IO su GLUE, in un numero?</summary><p class="qa-a">71,5: un BERT sui byte con gli stessi FLOPs crolla, mentre Perceiver IO resta a 81,0 perché il suo costo non esplode con la lunghezza.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -6995,6 +7149,18 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
         Niente argomenti nuovi: solo ripasso passivo della scaletta e dei numeri chiave (banda <strong>2,78</strong>; CIFAR 71,63 / 72,91 / 68,95; ModelNet 87,36 / 74,07; init 52,08; MLM 86,68). Una sola prova a voce rilassata e cronometrata. Verifica che slide/figure, file e demo siano accessibili (testa il proxy UNIFI se ti serve mostrare materiale online). Tieni a portata le 5 domande probabili. Riposa: arrivare lucidi conta più di un ripasso notturno.
       </div>
 
+      <h2>Allenamento d'esame</h2>
+      <p>Tutte le domande di autoverifica della lezione in un mazzo solo. Scegli un'area, rispondi a voce, apri la risposta e segna com'è andata: il verdetto resta salvato in questo browser e lo ritrovi nei capitoli.</p>
+      <div class="concept-lab" data-lab="allenamento">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">ripasso · domande di tutti i capitoli</span>
+            <h3>Una domanda alla volta, in ordine casuale</h3>
+            <p>Parti da «mai provate». Poi ripeti solo quelle «da ripassare» finché non restano vuote.</p>
+          </div>
+        </div>
+      </div>
+
       <h2>Domande probabili all'orale</h2>
       <p>Clicca una domanda per vedere la traccia di risposta (1-2 righe, da espandere a voce).</p>
       <h3>Sul progetto</h3>
@@ -7002,13 +7168,13 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
         <details class="qa-item"><summary>Perché il bottleneck di latenti rende il costo lineare nell'input?</summary><p class="qa-a">La cross-attention iniziale usa N query latenti (N fisso e piccolo) contro M elementi di input: costo O(M·N), lineare in M. Tutta la self-attention successiva agisce solo sugli N latenti, costo O(N²) indipendente da M.</p></details>
         <details class="qa-item"><summary>Cross-attention vs self-attention: confronta i costi O(M·N), O(N²), O(M²).</summary><p class="qa-a">La self-attention diretta sull'input costa O(M²) e per M grande (es. 50k pixel) è proibitiva. Il Perceiver la sostituisce con una cross-attention O(M·N) per proiettare nel bottleneck, poi self-attention O(N²) tra i latenti. Con N≪M si passa da quadratico a lineare in M.</p></details>
         <details class="qa-item"><summary>Cosa contengono Q, K, V nella cross-attention del Perceiver?</summary><p class="qa-a">Q viene dall'array latente (appreso), K e V dall'array di input (byte array). I latenti "interrogano" l'input estraendone un riassunto compresso di dimensione fissa.</p></details>
-        <details class="qa-item"><summary>Perché le Fourier features danno permutation invariance?</summary><p class="qa-a">Senza positional encoding l'attention è già permutation-equivariant sull'insieme di input; le Fourier features iniettano la posizione nel valore di ciascun elemento, così l'ordine in cui passi gli elementi non conta — l'informazione spaziale viaggia col token, non con la sua posizione nella sequenza.</p></details>
+        <details class="qa-item"><summary>Da dove viene l'invarianza alla permutazione dei pixel?</summary><p class="qa-a">Dall'attenzione: è una somma pesata sugli elementi e non dipende dal loro ordine. Le Fourier features servono a non perdere la posizione: la posizione viaggia dentro ogni riga, quindi resta anche se le righe vengono rimescolate. Prova: con una posizione appresa il paper ottiene 70,9 → 70,9, e il tuo e04 69,87 contro 71,07 di e03.</p></details>
         <details class="qa-item"><summary>Cosa hai osservato sperimentalmente sulla permutation invariance?</summary><p class="qa-a">Su CIFAR-10, permutando i pixel con una permutazione fissa, l'accuratezza passa da <strong>71,63%</strong> a <strong>68,95%</strong>: un calo di 2,68 punti, <strong>dentro la banda di rumore di 2,78</strong> misurata su tre repliche a seed diverso. Quindi la permutazione non produce un danno misurabile — invarianza confermata. Ho ripetuto il test anche con la <em>learned</em> positional encoding (71,07% → 69,87%, −1,20): invariante anche lì. È la conferma sperimentale che l'invarianza viene dall'<strong>attention</strong> — una somma pesata non ha un ordine — e non dal tipo di positional encoding.</p></details>
-        <details class="qa-item"><summary>Cosa succede senza positional encoding?</summary><p class="qa-a">Teoricamente il modello perde ogni struttura spaziale: con solo RGB, due pixel dello stesso colore in punti diversi dell'immagine diventano <strong>indistinguibili</strong>, e l'insieme si riduce a un istogramma di colori. <strong>Questa run — <code>e29_no_pe</code> — è nel registro ma non l'ho ancora eseguita</strong>, quindi non ho un numero mio da citare: se me lo chiedono, dico l'aspettativa teorica e dichiaro che la misura manca. È l'unica run singola che chiuderebbe la domanda, circa cinque ore.</p></details>
-        <details class="qa-item"><summary>Perché il weight sharing si comporta come una RNN e regolarizza?</summary><p class="qa-a">Riusando gli stessi pesi nei blocchi ripetuti, ogni iterazione è come uno step ricorrente che raffina lo stesso stato latente (come una RNN srotolata nel tempo). Condividere i pesi riduce drasticamente i parametri, agendo da regolarizzatore e prevenendo overfitting.</p></details>
+        <details class="qa-item"><summary>Cosa succede senza positional encoding?</summary><p class="qa-a">Il modello perde ogni struttura spaziale: con solo RGB, due pixel dello stesso colore in punti diversi dell'immagine diventano <strong>indistinguibili</strong>, e l'insieme si riduce a un istogramma di colori. L'ho misurato con <code>e29_no_pe</code>: <strong>32,36%</strong> contro 71,63%, cioè <strong>−39,27 punti</strong>, l'effetto più grande del progetto. Permutare i pixel invece costa −2,68, dentro la banda: la posizione entra solo dalla codifica, mai dall'ordine.</p></details>
+        <details class="qa-item"><summary>Perché il weight sharing si comporta come una RNN e regolarizza?</summary><p class="qa-a">Riusando gli stessi pesi nei blocchi ripetuti, ogni iterazione è come uno step ricorrente che raffina lo stesso stato latente (come una RNN srotolata nel tempo). Condividere i pesi riduce drasticamente i parametri (44,9 M contro 326,2 M nel paper) e agisce da regolarizzatore: senza sharing il paper misura 87,7% sul train e 72,9% in validation. Nel mio e16, senza sharing, 31,5 M di parametri e 69,46% contro 71,63%: −2,17, dentro la banda.</p></details>
         <details class="qa-item"><summary>Differenza tra Perceiver e Perceiver IO?</summary><p class="qa-a">Il Perceiver produce un singolo output (es. classificazione) con pooling dei latenti. Il Perceiver IO aggiunge un decoder a cross-attention: le output queries definiscono la struttura dell'output, permettendo output arbitrari (per-pixel, per-token, multi-task) di dimensione disaccoppiata dai latenti.</p></details>
         <details class="qa-item"><summary>Come hai gestito 3 modalità con la stessa rete?</summary><p class="qa-a">La struttura interna (cross-attention → latenti → self-attention) è identica per tutte; cambiano solo la tokenizzazione dell'input e l'encoding posizionale (coord 2D pixel, coord 3D punti, posizione token). Il bottleneck rende la rete agnostica alla modalità.</p></details>
-        <details class="qa-item"><summary>Perché i tuoi numeri sono sotto il paper?</summary><p class="qa-a">Il paper usa 64 TPU, io una sola RTX 3080: batch, durata del training e dimensione del modello sono molto più piccoli, quindi i numeri assoluti sono più bassi. Ma le proprietà architetturali (permutation invariance, costo lineare, multimodalità) restano confermate.</p></details>
+        <details class="qa-item"><summary>I tuoi numeri sono sotto quelli del paper?</summary><p class="qa-a">Dipende dal task. CIFAR-10 non si confronta con ImageNet: dataset diverso. Su ModelNet40 sono sopra: 87,36% contro 85,7%, entrambi con l'epoca scelta sul test (86,43% all'ultima). Su GLUE sono sotto: 71,13 contro 81,0, con 18,9 M di parametri contro 201 M e molto meno pre-training, su una sola RTX 3080. Le proprietà architetturali (invarianza alla permutazione, costo lineare, stessa rete su tre modalità) sono confermate.</p></details>
       </div>
       <h3>Teoria generale</h3>
       <div class="qa-group">
@@ -8434,6 +8600,7 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
 
 <script defer src="js/app.js?v=20260925-studio"></script>
 <script defer src="js/perceiver-conti.js?v=20260925-studio"></script>
+<script defer src="js/mlm-esempi.js?v=20260925-studio"></script>
 <script defer src="js/studio.js?v=20260925-studio"></script>
 </body>
 </html>
