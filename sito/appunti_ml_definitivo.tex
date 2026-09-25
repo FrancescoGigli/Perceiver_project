@@ -1267,13 +1267,13 @@ cioè, i latenti stabilizzati e pronti a entrare nello step successivo
 \item
 
 \begin{enumerate}
-\item \textbf{Espansione (Linear 1)}: Ogni vettore latente da 1024 dimensioni viene proiettato in uno spazio più ampio (4096).
+\item \textbf{Primo Linear}: Ogni vettore latente da 1024 dimensioni viene proiettato con una matrice $1024 \times 1024$. Nel paper l'MLP \textbf{non allarga}: la dimensione nascosta resta $D = 1024$ (fattore 1, pp.~6 e 17). GPT-2 e il nostro codice allargano invece a $4D$ (qui sarebbe 4096).
 
 \[
 H = \tilde{L} W_1 + b_1
 \]
 \begin{itemize}
-\item Dimensioni: $H \in \mathbb{R}^{512 \times 4096}$
+\item Dimensioni: $H \in \mathbb{R}^{512 \times 1024}$
 \item Scopo: permettere più combinazioni lineari (più capacità rappresentativa).
 \end{itemize}
 \item \textbf{Attivazione non lineare}: Si applica \hyperref[app:activations]{GELU} (vedi Appendice~\ref{app:activations}) elemento per elemento:
@@ -1281,8 +1281,8 @@ H = \tilde{L} W_1 + b_1
 \[
 H' = \sigma(H)
 \]
-Mantiene dimensione: $512 \times 4096$.
-\item \textbf{Compressione (Linear 2)}: Si proietta di nuovo nello spazio originale di 1024 dimensioni:
+Mantiene dimensione: $512 \times 1024$.
+\item \textbf{Secondo Linear}: Si proietta di nuovo nello spazio dei latenti, di 1024 dimensioni:
 
 \[
 F = H' W_2 + b_2
@@ -1300,8 +1300,8 @@ F = \text{MLP}(\tilde{L}) = \sigma(\tilde{L} W_1 + b_1) W_2 + b_2
 \]
 \begin{itemize}
 \item $\tilde{L} \in \mathbb{R}^{N \times D}$ --- input (qui $512 \times 1024$).
-\item $W_1 \in \mathbb{R}^{1024 \times 4096}$, $b_1 \in \mathbb{R}^{4096}$
-\item $W_2 \in \mathbb{R}^{4096 \times 1024}$, $b_2 \in \mathbb{R}^{1024}$
+\item $W_1 \in \mathbb{R}^{1024 \times 1024}$, $b_1 \in \mathbb{R}^{1024}$ (con fattore 4: $1024 \times 4096$)
+\item $W_2 \in \mathbb{R}^{1024 \times 1024}$, $b_2 \in \mathbb{R}^{1024}$
 \item $\sigma$ = funzione di attivazione non lineare (GELU).
 \end{itemize}
 
@@ -1362,11 +1362,11 @@ Byte array (input $+$ Fourier PE): & $X \in \mathbb{R}^{M \times C_{\text{tot}}}
 6 & Output projection & $Z' = F\,W_o + b_o, \quad W_o \in \mathbb{R}^{261 \times 1024}$ & $\mathbb{R}^{512 \times 1024}$ \\
 7 & Residual & $L' = L + Z'$ & $\mathbb{R}^{512 \times 1024}$ \\
 \midrule
-\multicolumn{4}{@{}l@{}}{\emph{\textbf{MLP (pre-norm, GELU, hidden $4D$)}}} \\
+\multicolumn{4}{@{}l@{}}{\emph{\textbf{MLP (pre-norm, GELU, hidden $D$ nel paper; $4D$ nel nostro codice)}}} \\
 8 & LayerNorm pre-MLP & $\tilde L' = \text{LN}(L')$ & $\mathbb{R}^{512 \times 1024}$ \\
-9 & Espansione & $H = \tilde L'\,W_1 + b_1, \quad W_1 \in \mathbb{R}^{1024 \times 4096}$ & $\mathbb{R}^{512 \times 4096}$ \\
-  & GELU & $H' = \text{GELU}(H)$ & $\mathbb{R}^{512 \times 4096}$ \\
-  & Compressione & $\phi = H'\,W_2 + b_2, \quad W_2 \in \mathbb{R}^{4096 \times 1024}$ & $\mathbb{R}^{512 \times 1024}$ \\
+9 & Primo Linear & $H = \tilde L'\,W_1 + b_1, \quad W_1 \in \mathbb{R}^{1024 \times 1024}$ & $\mathbb{R}^{512 \times 1024}$ \\
+  & GELU & $H' = \text{GELU}(H)$ & $\mathbb{R}^{512 \times 1024}$ \\
+  & Secondo Linear & $\phi = H'\,W_2 + b_2, \quad W_2 \in \mathbb{R}^{1024 \times 1024}$ & $\mathbb{R}^{512 \times 1024}$ \\
 10 & Residual post-MLP & $\hat L = L' + \phi$ & $\mathbb{R}^{512 \times 1024}$ \\
 \bottomrule
 \end{tabular}
@@ -1398,7 +1398,7 @@ $\widehat{L}$ (post blocco) & $\boldsymbol{N \times D}$ & $\mathbf{512 \times 10
 \end{center}
 
 \medskip
-\textbf{Cosa è successo in $\widehat{L}$.} Ogni riga è un latente che ha ``letto'' informazione dai $50\,176$ pixel tramite cross-attention (una media pesata dei Value), è stato riportato allo spazio $D = 1024$ tramite $W_o$, sommato al latente originale per la residual connection, poi raffinato da una MLP espansiva ($1024 \to 4096 \to 1024$) con GELU e un'altra residual. Forma identica all'input del blocco; contenuto semanticamente trasformato.
+\textbf{Cosa è successo in $\widehat{L}$.} Ogni riga è un latente che ha ``letto'' informazione dai $50\,176$ pixel tramite cross-attention (una media pesata dei Value), è stato riportato allo spazio $D = 1024$ tramite $W_o$, sommato al latente originale per la residual connection, poi raffinato da una MLP ($1024 \to 1024 \to 1024$ nel paper; $1024 \to 4096 \to 1024$ con il fattore 4 del nostro codice) con GELU e un'altra residual. Forma identica all'input del blocco; contenuto semanticamente trasformato.
 
 \medskip
 \textbf{Prossimo step} (\S\ref{sec:latent-transformer}): un blocco di Latent Transformer opera \emph{solo sui latenti} ($512 \times 1024$), senza più coinvolgere l'input, con self-attention multi-head in dimensione $1024$ (non $261$: qui non c'è più ``minimo tra due sorgenti'').
@@ -1432,10 +1432,10 @@ $\widehat{L}$ (post blocco) & $\boldsymbol{N \times D}$ & $\mathbf{512 \times 10
 % nodi
 \node[iobox] (in)  at (0, 0)    {Input: $\widehat L \in \mathbb{R}^{512 \times 1024}$};
 \node[box]   (ln1) at (0, -1.2) {LayerNorm};
-\node[box]   (sa)  at (0, -2.3) {Multi-Head Self-Attention \quad ($H{=}8$, $d_{\text{head}}{=}128$)};
+\node[box]   (sa)  at (0, -2.3) {Multi-Head Self-Attention \quad (es.\ $H{=}8$, $d_{\text{head}}{=}128$)};
 \node[plus]  (p1)  at (0, -3.4) {$+$};
 \node[box]   (ln2) at (0, -4.5) {LayerNorm};
-\node[box]   (mlp) at (0, -5.6) {MLP \quad $1024 \rightarrow 4096 \xrightarrow{\text{GELU}} 1024$};
+\node[box]   (mlp) at (0, -5.6) {MLP \quad $1024 \rightarrow 1024 \xrightarrow{\text{GELU}} 1024$};
 \node[plus]  (p2)  at (0, -6.7) {$+$};
 \node[iobox] (out) at (0, -7.8) {Output: $\widehat L^{\,(\text{next})} \in \mathbb{R}^{512 \times 1024}$};
 
@@ -1455,14 +1455,14 @@ $\widehat{L}$ (post blocco) & $\boldsymbol{N \times D}$ & $\mathbf{512 \times 10
 % ripetizione
 \node[font=\small\itshape, align=left, text=blue!70] at (5.5, -3.9) {ripetuto\\ $B = 6$\\ volte\\ (ImageNet)};
 \end{tikzpicture}
-\caption{Struttura interna di un blocco di Latent Transformer (pre-norm, architettura GPT-2). Opera \emph{solo} sui latenti --- forma invariata $N\times D = 512\times 1024$ --- con self-attention multi-head ($H=8$ teste da $d_{\text{head}}=128$) seguita da una MLP a hidden $4D$. Le frecce tratteggiate sono le residual connections. Il blocco è ripetuto $B=6$ volte tra due iterazioni di cross-attention.}
+\caption{Struttura interna di un blocco di Latent Transformer (pre-norm, architettura GPT-2). Opera \emph{solo} sui latenti --- forma invariata $N\times D = 512\times 1024$ --- con self-attention multi-head (per esempio $H=8$ teste da $d_{\text{head}}=128$: il paper non dichiara le teste del modello principale) seguita da una MLP a hidden $D$ (fattore 1; il nostro codice usa $4D$). Le frecce tratteggiate sono le residual connections. Il blocco è ripetuto $B=6$ volte tra due iterazioni di cross-attention.}
 \label{fig:latent-transformer-block}
 \end{figure}
 
 \begin{notabox}[title={\textbf{Architettura GPT-2 nel latent transformer}}]
 Il latent transformer del Perceiver non è un Transformer ``generico'': il paper (\S3.1) adotta esplicitamente l'\textbf{architettura GPT-2} (Radford et al., 2019), che a sua volta è il \emph{decoder-only} del Transformer originale (Vaswani et al., 2017) senza cross-attention sull'encoder. In pratica: LayerNorm pre-self-attention, self-attention multi-head, residual, LayerNorm pre-MLP, MLP con GELU, residual. Niente encoder, niente masking causale (il Perceiver è non-causale su tutti i blocchi).
 
-Dimensioni per ImageNet: $H_{\text{self}} = 8$ teste, $d_{\text{head}} = D/H_{\text{self}} = 128$, MLP hidden dim $= 4D = 4096$ (standard GPT-2).
+Dimensioni per ImageNet: MLP hidden dim $= D = 1024$ (fattore 1, pp.~6 e 17: il paper non allarga, a differenza di GPT-2 che usa $4D$). Il paper non dichiara le teste della self-attention del modello principale; con $H_{\text{self}} = 8$ (il valore del modello delle ablation e del nostro codice) $d_{\text{head}} = D/H_{\text{self}} = 128$.
 \end{notabox}
 
 \textbf{Input}
@@ -1522,17 +1522,17 @@ L' & \  = \widehat{L} + Z', & \ \ \ \ \ \ \ \  & L' & \  \in \mathbb{R}^{512 \ti
 
 \[{\widetilde{L}}' = \text{ LayerNorm}\left( L' \right)\]
 
-\textbf{Espansione:}
+\textbf{Primo Linear} (nel paper senza allargamento):
 
-\[H = {\widetilde{L}}'W_{1} + b_{1},\ W_{1} \in \mathbb{R}^{1024 \times 4096},\ H \in \mathbb{R}^{512 \times 4096}\]
+\[H = {\widetilde{L}}'W_{1} + b_{1},\ W_{1} \in \mathbb{R}^{1024 \times 1024},\ H \in \mathbb{R}^{512 \times 1024}\]
 
 \textbf{Attivazione non lineare:}
 
 \[H' = \sigma(H)\ (GELU)\]
 
-\textbf{Compressione}:
+\textbf{Secondo Linear}:
 
-\[F = H'W_{2} + b_{2},\ W_{2} \in \mathbb{R}^{4096 \times 1024},\ F \in \mathbb{R}^{512 \times 1024}\]
+\[F = H'W_{2} + b_{2},\ W_{2} \in \mathbb{R}^{1024 \times 1024},\ F \in \mathbb{R}^{512 \times 1024}\]
 
 \textbf{Residual finale}
 
@@ -1603,7 +1603,7 @@ Questa è una delle idee più importanti del Perceiver: dopo aver descritto \emp
   % Row y=0: blocchi CA e LT in sequenza
   \node[draw, rounded corners=2pt, minimum width=0.9cm, minimum height=0.7cm, font=\scriptsize, fill=gray!10] (L0)  at (-0.6, 0) {$L^{(0)}$};
   \node[first]  (CA1) at ( 0.9, 0) {$\text{CA}_1$\\\scriptsize unici};
-  \node[first]  (LT1) at ( 2.2, 0) {$\text{LT}_1$\\\scriptsize unici};
+  \node[shared] (LT1) at ( 2.2, 0) {$\text{LT}_1$\\\scriptsize shared};
   \node[shared] (CA2) at ( 3.7, 0) {$\text{CA}_2$\\\scriptsize shared};
   \node[shared] (LT2) at ( 5.0, 0) {$\text{LT}_2$\\\scriptsize shared};
   \node[shared] (CA3) at ( 6.5, 0) {$\text{CA}_3$\\\scriptsize shared};
@@ -1623,6 +1623,7 @@ Questa è una delle idee più importanti del Perceiver: dopo aver descritto \emp
   % Weight sharing (linee tratteggiate sopra le CA e sotto le LT)
   \draw[ws] (CA2.north) to[bend left=25] (CA3.north);
   \draw[ws] (CA3.north) to[bend left=22] (CAT.north);
+  \draw[ws] (LT1.south) to[bend right=25] (LT2.south);
   \draw[ws] (LT2.south) to[bend right=25] (LT3.south);
   \draw[ws] (LT3.south) to[bend right=22] (LTT.south);
 
@@ -1643,13 +1644,13 @@ Questa è una delle idee più importanti del Perceiver: dopo aver descritto \emp
 \end{tikzpicture}
 \end{center}
 
-\paragraph{Regola precisa (paper, \S4.1).} I pesi sono condivisi tra tutti i blocchi \emph{tranne il primo}:
+\paragraph{Regola precisa (paper, p.~6 e didascalia della Tab.~7).} I pesi sono condivisi fra tutte le letture, \emph{tranne la prima cross-attention}:
 \begin{itemize}
 \item \textbf{Cross-Attention}: $\text{CA}_1$ ha pesi \emph{unici}; i blocchi $\text{CA}_2, \text{CA}_3, \ldots, \text{CA}_T$ condividono tutti lo stesso set di pesi ($W_Q^{\text{sh}}, W_K^{\text{sh}}, W_V^{\text{sh}}, W_o^{\text{sh}}$).
-\item \textbf{Latent Transformer}: analogamente, $\text{LT}_1$ ha pesi \emph{unici} e $\text{LT}_2, \ldots, \text{LT}_T$ condividono lo stesso blocco di $L = 6$ self-attention layer.
+\item \textbf{Latent Transformer}: i $L = 6$ blocchi di self-attention sono gli stessi a \emph{ogni} lettura, anche alla prima: $\text{LT}_1 = \text{LT}_2 = \ldots = \text{LT}_T$. Lo confermano i conti: con un $\text{LT}_1$ separato il modello avrebbe 82{,}7M parametri, non i 44{,}9M della Tab.~7.
 \end{itemize}
 
-\textbf{Perché il primo blocco è escluso?} Il paper riporta che condividere i pesi già dal primo blocco \emph{porta a instabilità di training}. L'intuizione: la prima cross-attention è qualitativamente diversa dalle successive perché riceve i latenti nella loro inizializzazione ``neutra'' (learned position encoding $\mathcal{N}(0, 0.02^2)$), mentre dalla seconda in poi legge latenti già ``popolati'' di informazione dall'input. Due regimi così diversi non possono condividere gli stessi pesi senza causare oscillazioni del gradiente nelle prime epoche.
+\textbf{Perché la prima cross-attention è esclusa?} Il paper riporta che condividere anche la prima cross-attention \emph{porta a instabilità di training} (p.~6). L'intuizione: la prima cross-attention è qualitativamente diversa dalle successive perché riceve i latenti nella loro inizializzazione ``neutra'' (learned position encoding $\mathcal{N}(0, 0.02^2)$), mentre dalla seconda in poi legge latenti già ``popolati'' di informazione dall'input. Due regimi così diversi non possono condividere gli stessi pesi senza causare oscillazioni del gradiente nelle prime epoche.
 
 \paragraph{Effetto sui parametri e sulle prestazioni} (Tab.\ 7 del paper):
 \begin{itemize}
@@ -1681,7 +1682,7 @@ Con learning rate $\eta = 0.01$: $w \leftarrow w - \eta\, \tfrac{\partial\mathca
 \textbf{Attenzione:} fare l'aggiornamento \emph{due volte} (una con $-0.3$ e una con $+0.1$, come se fossero pesi distinti) produrrebbe un risultato diverso e sbagliato: l'accumulazione deve avvenire \emph{prima} del passo dell'ottimizzatore, non dopo.
 
 \medskip
-\textbf{Perché il primo blocco \emph{non} partecipa alla somma.} I pesi di $\text{CA}_1$ e $\text{LT}_1$ sono parametri separati, quindi i loro gradienti stanno in un \emph{accumulatore diverso}: non si sommano con quelli dei blocchi shared, ma vengono aggiornati in modo indipendente.
+\textbf{Perché la prima cross-attention \emph{non} partecipa alla somma.} I pesi di $\text{CA}_1$ sono parametri separati, quindi i loro gradienti stanno in un \emph{accumulatore diverso}: non si sommano con quelli delle cross-attention condivise, ma vengono aggiornati in modo indipendente. I blocchi latenti invece sono condivisi da tutte le letture: per loro i contributi che si sommano sono $T$, non $T-1$.
 \end{notabox}
 
 \begin{notabox}[title={\textbf{Checkpoint dimensioni --- fine \S1.4.11 (dopo $T = 8$ iterazioni)}}]
@@ -1695,7 +1696,7 @@ Dopo aver ripetuto il blocco $T = 8$ volte con weight sharing, i latenti sono ne
 \midrule
 Byte array $X$ & $M \times C_{\text{tot}}$ & $50\,176 \times 261$ & riusato da ogni $\text{CA}_t$ \\
 Latente iniziale $L^{(0)}$ & $N \times D$ & $512 \times 1024$ & parametro appreso \\
-Latente iter.\ 1: $L^{(1)}$ & $N \times D$ & $512 \times 1024$ & post $\text{CA}_1 + \text{LT}_1$ (pesi propri) \\
+Latente iter.\ 1: $L^{(1)}$ & $N \times D$ & $512 \times 1024$ & post $\text{CA}_1$ (pesi propri) $+$ LT (condiviso) \\
 Latente iter.\ 2: $L^{(2)}$ & $N \times D$ & $512 \times 1024$ & post $\text{CA}_2 + \text{LT}_2$ (pesi shared) \\
 \dots & \dots & \dots & \dots \\
 \textbf{Latente finale $L^{(T)}$} & $\boldsymbol{N \times D}$ & $\mathbf{512 \times 1024}$ & dopo $T=8$ iterazioni \\
@@ -1709,7 +1710,7 @@ Latente iter.\ 2: $L^{(2)}$ & $N \times D$ & $512 \times 1024$ & post $\text{CA}
 \item ``stato ricorrente'' = latente $L^{(t)}$ (dimensione fissa $512 \times 1024$);
 \item ``input (costante nel tempo)'' = byte array $X$;
 \item ``funzione di transizione'' = il blocco shared $(\text{CA}_{\text{sh}}, \text{LT}_{\text{sh}})$;
-\item ``stato iniziale'' = $L^{(0)}$ (ma $L^{(1)}$ è fatto con pesi propri, quindi in realtà è un RNN con ``warm-up'' speciale al primo passo).
+\item ``stato iniziale'' = $L^{(0)}$ (ma $L^{(1)}$ passa per una cross-attention con pesi propri, quindi in realtà è un RNN con ``warm-up'' speciale al primo passo).
 \end{itemize}
 
 \medskip
@@ -2105,7 +2106,7 @@ Le formule che seguono derivano il gradiente \emph{per un singolo blocco} (una c
 \[
 \frac{\partial \mathcal{L}}{\partial W^{\text{sh}}} = \sum_{t=2}^{T} \frac{\partial \mathcal{L}}{\partial W^{(t)}}
 \]
-In PyTorch questa somma è automatica: ogni chiamata a \texttt{backward()} accumula il gradiente sul \texttt{.grad} del parametro condiviso. I pesi del primo blocco ($\text{CA}_1$, $\text{LT}_1$), che sono unici, ricevono un solo contributo.
+In PyTorch questa somma è automatica: ogni chiamata a \texttt{backward()} accumula il gradiente sul \texttt{.grad} del parametro condiviso. I pesi della prima cross-attention ($\text{CA}_1$), che sono unici, ricevono un solo contributo; quelli dei blocchi latenti, condivisi da tutte le letture, ne ricevono $T$.
 \end{notabox}
 
 \begin{notabox}[title={\textbf{Nota su $b_Q$, $b_K$, $b_V$: bias nelle proiezioni Q/K/V}}]
@@ -2590,17 +2591,17 @@ la residual connection è una semplice somma
 
 Nel Forward il blocco MLP era:
 
-\paragraph{1. \textbf{Espansione}}
+\paragraph{1. \textbf{Primo Linear}}
 
-\[H = \widetilde{L}W_{1} + b_{1}\ \left( W_{1} \in \mathbb{R}^{1024 \times 4096},H \in \mathbb{R}^{N \times 4096} \right)\]
+\[H = \widetilde{L}W_{1} + b_{1}\ \left( W_{1} \in \mathbb{R}^{1024 \times 1024},H \in \mathbb{R}^{N \times 1024} \right)\]
 
 \paragraph{2. \textbf{Attivazione (GELU)}}
 
-\[H' = \sigma(H)\ (\text{ stessa forma } N \times 4096)\]
+\[H' = \sigma(H)\ (\text{ stessa forma } N \times 1024)\]
 
-\paragraph{3. \textbf{Compressione}}
+\paragraph{3. \textbf{Secondo Linear}}
 
-\[F = H'W_{2} + b_{2}\ \left( W_{2} \in \mathbb{R}^{4096 \times 1024},F \in \mathbb{R}^{N \times 1024} \right)\]
+\[F = H'W_{2} + b_{2}\ \left( W_{2} \in \mathbb{R}^{1024 \times 1024},F \in \mathbb{R}^{N \times 1024} \right)\]
 
 \paragraph{4. \textbf{Residual connection}}
 
@@ -2728,7 +2729,7 @@ la cui derivata è facile da calcolare esplicitamente o via autograd.
 \end{notabox}
 
 \begin{notabox}[title={\textbf{Checkpoint gradienti --- fine MLP backward}}]
-Dopo l'MLP abbiamo i gradienti sui 4 parametri del blocco MLP e il gradiente che propaga indietro verso la LayerNorm precedente. La MLP usa hidden dim $4D = 4096$.
+Dopo l'MLP abbiamo i gradienti sui 4 parametri del blocco MLP e il gradiente che propaga indietro verso la LayerNorm precedente. La MLP del paper usa hidden dim $D = 1024$ (fattore 1; con il fattore 4 del nostro codice sarebbe $4D = 4096$).
 
 \medskip
 \begin{center}
@@ -2738,12 +2739,12 @@ Dopo l'MLP abbiamo i gradienti sui 4 parametri del blocco MLP e il gradiente che
 \textbf{Gradiente} & \textbf{Forma simbolica} & \textbf{ImageNet} & \textbf{Uso} \\
 \midrule
 $\partial\mathcal{L}/\partial F$ & $\mathbb{R}^{N \times D}$ & $\mathbb{R}^{512 \times 1024}$ & residual copy \\
-$\partial\mathcal{L}/\partial W_2 = {H'}^\top \partial\mathcal{L}/\partial F$ & $\mathbb{R}^{4D \times D}$ & $\mathbb{R}^{4096 \times 1024}$ & \textbf{aggiorna $W_2$} \\
+$\partial\mathcal{L}/\partial W_2 = {H'}^\top \partial\mathcal{L}/\partial F$ & $\mathbb{R}^{D \times D}$ & $\mathbb{R}^{1024 \times 1024}$ & \textbf{aggiorna $W_2$} \\
 $\partial\mathcal{L}/\partial b_2 = \sum_i \partial\mathcal{L}/\partial F_i$ & $\mathbb{R}^{D}$ & $\mathbb{R}^{1024}$ & \textbf{aggiorna $b_2$} \\
-$\partial\mathcal{L}/\partial H' = \partial\mathcal{L}/\partial F \cdot W_2^\top$ & $\mathbb{R}^{N \times 4D}$ & $\mathbb{R}^{512 \times 4096}$ & intermedio \\
-$\partial\mathcal{L}/\partial H = \partial\mathcal{L}/\partial H' \odot \mathrm{GELU}'(H)$ & $\mathbb{R}^{N \times 4D}$ & $\mathbb{R}^{512 \times 4096}$ & intermedio \\
-$\partial\mathcal{L}/\partial W_1 = \widetilde{L}^\top \partial\mathcal{L}/\partial H$ & $\mathbb{R}^{D \times 4D}$ & $\mathbb{R}^{1024 \times 4096}$ & \textbf{aggiorna $W_1$} \\
-$\partial\mathcal{L}/\partial b_1 = \sum_i \partial\mathcal{L}/\partial H_i$ & $\mathbb{R}^{4D}$ & $\mathbb{R}^{4096}$ & \textbf{aggiorna $b_1$} \\
+$\partial\mathcal{L}/\partial H' = \partial\mathcal{L}/\partial F \cdot W_2^\top$ & $\mathbb{R}^{N \times D}$ & $\mathbb{R}^{512 \times 1024}$ & intermedio \\
+$\partial\mathcal{L}/\partial H = \partial\mathcal{L}/\partial H' \odot \mathrm{GELU}'(H)$ & $\mathbb{R}^{N \times D}$ & $\mathbb{R}^{512 \times 1024}$ & intermedio \\
+$\partial\mathcal{L}/\partial W_1 = \widetilde{L}^\top \partial\mathcal{L}/\partial H$ & $\mathbb{R}^{D \times D}$ & $\mathbb{R}^{1024 \times 1024}$ & \textbf{aggiorna $W_1$} \\
+$\partial\mathcal{L}/\partial b_1 = \sum_i \partial\mathcal{L}/\partial H_i$ & $\mathbb{R}^{D}$ & $\mathbb{R}^{1024}$ & \textbf{aggiorna $b_1$} \\
 $\partial\mathcal{L}/\partial \widetilde{L}^{(\text{MLP})}$ & $\mathbb{R}^{N \times D}$ & $\mathbb{R}^{512 \times 1024}$ & propaga verso MLP input \\
 \midrule
 $\left.\partial\mathcal{L}/\partial \widetilde{L}\right|_{\text{tot}}$ & $\mathbb{R}^{N \times D}$ & $\mathbb{R}^{512 \times 1024}$ & \textbf{somma} residual $+$ MLP \\
@@ -3821,8 +3822,8 @@ $\partial\mathcal{L}/\partial h$ & $\mathbb{R}^D$ & $\mathbb{R}^{1024}$ & input 
 $\partial\mathcal{L}/\partial L_i^{(T)}$ & $\mathbb{R}^D$ (per ogni $i$) & $\mathbb{R}^{1024}$ & broadcast: $\tfrac{1}{N}\,\partial\mathcal{L}/\partial h$ \\
 \midrule
 \multicolumn{4}{@{}l}{\emph{Latent Transformer backward (MLP $+$ self-attention, ripetuto $B=6$)}} \\
-$\partial\mathcal{L}/\partial W_1^{(LT)}$ & $D \times 4D$ & $1024 \times 4096$ & MLP expansion \\
-$\partial\mathcal{L}/\partial W_2^{(LT)}$ & $4D \times D$ & $4096 \times 1024$ & MLP compression \\
+$\partial\mathcal{L}/\partial W_1^{(LT)}$ & $D \times D$ & $1024 \times 1024$ & MLP, primo Linear \\
+$\partial\mathcal{L}/\partial W_2^{(LT)}$ & $D \times D$ & $1024 \times 1024$ & MLP, secondo Linear \\
 $\partial\mathcal{L}/\partial \gamma^{(LT)}, \partial\mathcal{L}/\partial \beta^{(LT)}$ & $D$ ciascuno & $1024$ & LayerNorm params \\
 $\partial\mathcal{L}/\partial W_Q^{(LT)}, W_K^{(LT)}, W_V^{(LT)}$ & $D \times D$ ciascuno & $1024 \times 1024$ & self-attn proiezioni \\
 $\partial\mathcal{L}/\partial W_o^{(LT)}, b_o^{(LT)}$ & $D\times D$, $D$ & $1024\times 1024$, $1024$ & output projection \\
@@ -3855,7 +3856,7 @@ $\partial\mathcal{L}/\partial X$ & $M \times C_{\text{tot}}$ & $50\,176 \times 2
 \textbf{Regola di simmetria.} Se un tensore $T \in \mathbb{R}^{a \times b}$ esiste nel forward, allora nel backward $\partial\mathcal{L}/\partial T \in \mathbb{R}^{a \times b}$: forma identica. Vale per tutti i tensori --- input, intermedi, output --- e anche per i parametri.
 
 \medskip
-\textbf{Nota sul weight sharing (\S\ref{sec:weight-sharing}).} Per i parametri condivisi tra le iterazioni $t = 2, \ldots, T=8$ (tutti tranne il primo blocco), i gradienti di ogni iterazione si \emph{accumulano} sul medesimo buffer \texttt{.grad} di PyTorch. Il primo blocco ha invece parametri propri aggiornati da un solo contributo.
+\textbf{Nota sul weight sharing (\S\ref{sec:weight-sharing}).} Per la cross-attention condivisa ($t = 2, \ldots, T=8$) e per i blocchi latenti ($t = 1, \ldots, 8$), i gradienti di ogni iterazione si \emph{accumulano} sul medesimo buffer \texttt{.grad} di PyTorch. La prima cross-attention ha invece parametri propri aggiornati da un solo contributo.
 \end{notabox}
 
 \bigskip
@@ -3885,9 +3886,9 @@ $b_o$ & $D$ & $1024$ & \S1.4.5 \\
 $\gamma_\text{cross}, \beta_\text{cross}$ & $D$ ciascuno & $1024$ & LayerNorm cross \\
 \midrule
 \multicolumn{4}{@{}l}{\emph{MLP cross-attention (ogni blocco; shared)}} \\
-$W_1$ & $D \times 4D$ & $1024 \times 4096$ & \S1.4.9 \\
-$b_1$ & $4D$ & $4096$ & \S1.4.9 \\
-$W_2$ & $4D \times D$ & $4096 \times 1024$ & \S1.4.9 \\
+$W_1$ & $D \times D$ & $1024 \times 1024$ & \S1.4.9 (fattore 1 del paper) \\
+$b_1$ & $D$ & $1024$ & \S1.4.9 \\
+$W_2$ & $D \times D$ & $1024 \times 1024$ & \S1.4.9 \\
 $b_2$ & $D$ & $1024$ & \S1.4.9 \\
 \midrule
 \multicolumn{4}{@{}l}{\emph{Latent Transformer (shared; ripetuto $\ell = 6$ volte per blocco)}} \\
@@ -3905,7 +3906,7 @@ $b_c$ & $K_{\text{cls}}$ & $1000$ & \S1.4.12 \\
 \end{center}
 
 \medskip
-\textbf{Effetto del weight sharing.} Nelle iterazioni $t = 2, \ldots, T$, i parametri di cross-attention e latent transformer sono gli stessi fisici (stesso \texttt{nn.Parameter}), quindi i gradienti di ogni iterazione si \emph{accumulano} sul medesimo accumulatore \texttt{.grad} di PyTorch (cfr.\ \S\ref{sec:weight-sharing}). Il primo blocco $\text{CA}_1, \text{LT}_1$ ha invece parametri propri che ricevono un contributo gradiente da una sola iterazione.
+\textbf{Effetto del weight sharing.} Nelle iterazioni $t = 2, \ldots, T$ la cross-attention è la stessa fisica (stesso \texttt{nn.Parameter}), e i blocchi latenti sono gli stessi in tutte le iterazioni $t = 1, \ldots, T$: i gradienti di ogni iterazione si \emph{accumulano} sul medesimo accumulatore \texttt{.grad} di PyTorch (cfr.\ \S\ref{sec:weight-sharing}). Solo la prima cross-attention $\text{CA}_1$ ha parametri propri, che ricevono un contributo gradiente da una sola iterazione.
 
 \medskip
 \textbf{Totale parametri aggiornati}: $\sim$44.9M per il Perceiver ImageNet (Tab.\ 7 del paper), dopo il weight sharing. Tutti i gradienti sopra servono per farlo andare nell'ottimizzatore LAMB.
@@ -3924,7 +3925,7 @@ $b_c$ & $K_{\text{cls}}$ & $1000$ & \S1.4.12 \\
 2. Input Embedding & $X = x W_E + b_E$, \newline $W_E \in \mathbb{R}^{C_{\text{raw}} \times D}$, \newline $X \in \mathbb{R}^{M \times D}$ & $\frac{\partial \mathcal{L}}{\partial W_E} = x^\top \frac{\partial \mathcal{L}}{\partial X}$, \newline $\frac{\partial \mathcal{L}}{\partial x} = \frac{\partial \mathcal{L}}{\partial X} W_E^\top$ \\[4pt]
 3. Cross-Attention \newline (Q da latenti, K/V da input) & $Q = L W_Q$, $K = X W_K$, $V = X W_V$ \newline $A = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)$, $Z = AV \in \mathbb{R}^{N \times d_v}$ \newline Output: $Z' = Z W_o + b_o$; residual: $L \leftarrow L + Z'$ & Residual: gradiente copiato su $L$ e $Z'$ \newline $\to \frac{\partial\mathcal{L}}{\partial Q}, \frac{\partial\mathcal{L}}{\partial K}, \frac{\partial\mathcal{L}}{\partial V}$ \newline $\to \frac{\partial\mathcal{L}}{\partial W_Q}, \frac{\partial\mathcal{L}}{\partial W_K}, \frac{\partial\mathcal{L}}{\partial W_V}$ \\[4pt]
 4. Latent Transformer Block \newline (un blocco, composto da $\ell = 6$ self-attention layer) & LayerNorm $\to \tilde{L} = \text{LN}(L)$ \newline Self-Attention: Q, K, V \emph{tutti} dai latenti $\tilde{L} \in \mathbb{R}^{N \times D}$ \newline Residual: $L' = L + Z'$ \newline LayerNorm $\to \tilde{L}' = \text{LN}(L')$ \newline MLP: $F = \sigma(\tilde{L}' W_1 + b_1) W_2 + b_2$ \newline Residual: $L'' = L' + F$ & Stesse formule del backward cross-attention, ma con $Q, K, V$ tutte dai latenti (niente $\frac{\partial\mathcal{L}}{\partial X}$: solo $\frac{\partial\mathcal{L}}{\partial L}$). \newline Ripetuto $\ell = 6$ volte per blocco. \\[4pt]
-3$+$4. Iterazione \newline ($\times T = 8$ volte) & L'intera sequenza Cross-Att $+$ Latent Transformer viene applicata $T$ volte con weight sharing (tranne il primo blocco) & Gradienti dei pesi condivisi \emph{sommati} su $t = 2, \ldots, T$ (\S\ref{sec:weight-sharing}) \\[4pt]
+3$+$4. Iterazione \newline ($\times T = 8$ volte) & L'intera sequenza Cross-Att $+$ Latent Transformer viene applicata $T$ volte con weight sharing (tranne la prima cross-attention) & Gradienti dei pesi condivisi \emph{sommati}: su $t = 2, \ldots, T$ per la cross-attention, su $t = 1, \ldots, T$ per i blocchi latenti (\S\ref{sec:weight-sharing}) \\[4pt]
 5. Pooling & $h = \frac{1}{N}\sum_{i=1}^{N} L_i^{(\text{finale})} \in \mathbb{R}^D$ & $\frac{\partial \mathcal{L}}{\partial L_i^{(\text{finale})}} = \frac{1}{N} \frac{\partial \mathcal{L}}{\partial h}$ \\[4pt]
 6. Classification + Softmax & $z = h W_c + b_c$, $p = \text{softmax}(z)$ & $\frac{\partial \mathcal{L}}{\partial z} = p - y$, $\frac{\partial \mathcal{L}}{\partial W_c} = h^\top (p-y)$, $\frac{\partial \mathcal{L}}{\partial h} = (p-y) W_c^\top$ \\[4pt]
 7. Loss & $\mathcal{L} = -\sum_k y_k \ln p_k$ & Punto di partenza del backward \\
@@ -4067,7 +4068,7 @@ Questa scelta riduce il numero di parametri da $\sim$326.2M a $\sim$44.9M (Tab.\
 \item \textbf{Epoche}: 120.
 \item \textbf{Learning rate}: iniziale $4 \times 10^{-3}$, con \emph{step decay} di fattore $10$ alle epoche $[84, 102, 114]$. Non cosine, non warmup: è il classico step schedule.
 \item \textbf{Regolarizzazione}: \textbf{no dropout} (il paper lo ha provato in versioni preliminari e ha osservato \emph{peggioramento} delle performance --- cfr.\ App.\ C). Weight decay, gradient clipping. Data augmentation: RandAugment (Cubuk et al., 2020).
-\item \textbf{Architettura}: $T = 8$ blocchi (cross-att + latent transformer), ciascun latent transformer con $L = 6$ moduli di self-attention. Pesi condivisi tra tutti i blocchi \emph{tranne il primo} (la prima cross-attention e il primo latent transformer hanno pesi propri: condividerli con i successivi porta a instabilità in training).
+\item \textbf{Architettura}: $T = 8$ blocchi (cross-att + latent transformer), ciascun latent transformer con $L = 6$ moduli di self-attention. Pesi condivisi fra le letture: la prima cross-attention ha pesi propri (condividerla porta a instabilità in training), le cross-attention 2--8 ne condividono uno, e i 6 blocchi latenti sono gli stessi a ogni lettura (didascalia della Tab.~7).
 \item \textbf{Parametri totali}: $\sim$45M --- paragonabile a modelli convoluzionali usati su ImageNet.
 \end{itemize}
 
@@ -5224,6 +5225,8 @@ Compressione:
 
 \[F = H'W_{2} + b_{2},\ W_{2} \in \mathbb{R}^{4D \times D},\ F \in \mathbb{R}^{N \times D}\]
 
+\emph{Nota: $4D$ è il fattore del nostro codice. Nel paper l'MLP dei latenti ha hidden $D$ (Tab.~11: FFW hidden $= D$); solo il modello pre-addestrato su JFT usa $4D$.}
+
 \paragraph{8. \textbf{Residual Connection (post-MLP)}}
 
 \[Z^{(1)} = Z_{a} + F\  \in \mathbb{R}^{N \times D}\]
@@ -5455,6 +5458,8 @@ Attivazione (GELU):
 Compressione:
 
 \[F = H'W_{2} + b_{2},\ W_{2} \in \mathbb{R}^{4D \times D},\ F \in \mathbb{R}^{N \times D}\]
+
+\emph{Nota: $4D$ è il fattore del nostro codice. Nel paper l'MLP dei latenti ha hidden $D$ (Tab.~11: FFW hidden $= D$); solo il modello pre-addestrato su JFT usa $4D$.}
 
 \textbf{Residual Connection (post-MLP)}
 
@@ -6197,6 +6202,8 @@ Dove:
   \(W_{2} \in \mathbb{R}^{4D \times D}\)
 \item
   la funzione di attivazione nel Perceiver IO è GELU
+\item
+  $4D$ è il fattore del nostro codice: nel paper l'MLP dei latenti ha hidden $D$ (Tab.~11)
 \end{itemize}
 
 Step per step:
@@ -6558,7 +6565,7 @@ Il progetto riproduce \textbf{from-scratch in PyTorch} le architetture Perceiver
 \item \textbf{GLUE} (8 task NLU): CoLA (accettabilità grammaticale), SST-2 (sentiment), MRPC e QQP (paraphrase), STS-B (similarità semantica, regressione), MNLI/QNLI/RTE (entailment). Usato per il fine-tuning del checkpoint MLM.
 \end{itemize}
 
-\paragraph{Setup hardware.} Gli esperimenti sono stati condotti su una \textbf{GPU NVIDIA RTX 3080 (10\,GB VRAM)}. Questo limita la dimensione dei batch e costringe a usare configurazioni di modello più piccole rispetto al paper originale (che impiega 64 TPU con batch $\geq 512$). Quando pertinente, i gap di accuracy rispetto ai risultati del paper sono giustificati dal budget computazionale ridotto.
+\paragraph{Setup hardware.} Gli esperimenti sono stati condotti su una \textbf{GPU NVIDIA RTX 3080 (10\,GB VRAM)}. Questo limita la dimensione dei batch e costringe a usare configurazioni di modello più piccole rispetto al paper originale (che usa più TPU e batch grandi: Perceiver IO dichiara 64 TPU e batch 1024 su ImageNet). Quando pertinente, i gap di accuracy rispetto ai risultati del paper sono giustificati dal budget computazionale ridotto.
 
 \paragraph{Struttura del codice.}
 
@@ -6595,7 +6602,7 @@ Il progetto riproduce \textbf{from-scratch in PyTorch} le architetture Perceiver
 \subsection{Divergenze tra la nostra implementazione e il paper}
 \label{sec:progetto-divergenze}
 
-Le nostre scelte implementative divergono dal paper in alcuni punti specifici. Le riassumo qui come nota di \emph{trasparenza metodologica}. La maggior parte viene dal budget (una GPU invece di 64 TPU); le ultime quattro righe no, e vanno dichiarate proprio per questo.
+Le nostre scelte implementative divergono dal paper in alcuni punti specifici. Le riassumo qui come nota di \emph{trasparenza metodologica}. La maggior parte viene dal budget (una GPU invece delle TPU dei paper); le ultime sei righe no, e vanno dichiarate proprio per questo.
 
 \begin{center}
 {\small
@@ -6604,11 +6611,11 @@ Le nostre scelte implementative divergono dal paper in alcuni punti specifici. L
 \textbf{Aspetto} & \textbf{Paper originale} & \textbf{Nostra implementazione} \\
 \midrule
 Teste cross-attention & $H_{\text{cross}} = 1$ (single-head), $d_{\text{QKV}} = 261$ su ImageNet & $H_{\text{cross}} = 1$, come nel paper (Perceiver ed encoder del Perceiver IO); il decoder del Perceiver IO usa 8 teste \\
-Teste self-attention (latent transformer) & $H_{\text{self}} = 8$, $d_{\text{head}} = D/H = 128$ & $H_{\text{self}} = 8$: $d_{\text{head}} = 48$ su CIFAR-10, $64$ su ModelNet40 e sul testo \\
+Teste self-attention (latent transformer) & Non dichiarate per il modello principale (8 nel modello delle ablation) & $H_{\text{self}} = 8$: $d_{\text{head}} = 48$ su CIFAR-10, $64$ su ModelNet40 e sul testo \\
 Frequenze Fourier & Linearly spaced $[1, \mu/2]$, $K=64$ bande (ImageNet e ModelNet40) & CIFAR-10: $K=64$, $\text{max\_freq}=16$ (Nyquist), come nel paper. ModelNet40 e testo: $K=6$ (vedi sotto) \\
 Latent array (CIFAR-10) & $N=512$, $D=1024$ (ImageNet config) & $N=96$, $D=384$ (versione ridotta per GPU) \\
 Iterazioni & $T=8$ con weight sharing (ImageNet) & $T=4$ su CIFAR-10, $2$ su ModelNet40, $1$ sul testo \\
-Batch size (CIFAR) & 1024 su 64 TPU & $64$ su 1 GPU \\
+Batch size (immagini) & Non dichiarato per il modello ImageNet (Perceiver IO: 1024 su 64 TPU) & $64$ su 1 GPU \\
 Batch size (ModelNet) & 512 & 32 \\
 Epoche (CIFAR) & 120 & 120 (coerente) \\
 Optimizer & LAMB & LAMB (coerente) \\
@@ -6618,13 +6625,15 @@ Bande Fourier su ModelNet40 e testo & $K=64$ & $K=6$: $3 + 3\cdot(2\cdot 6+1) = 
 Augmentation ModelNet40 & Scala e traslazione applicate a \emph{ogni punto} & Scala e traslazione dell'\emph{intera} nuvola, annullate dalla normalizzazione che segue; la rotazione è attorno a un asse 3D qualsiasi \\
 Mascheramento MLM & 15\% delle \emph{parole}, sequenze da 2048 byte & 15\% dei \emph{byte}, scelti uno per uno, sequenze da 512 \\
 Padding GLUE & --- & Byte 0 fino a 512 posizioni, non mascherato nel cross-attention \\
+Larghezza dell'MLP & $D$ (fattore 1, pp.~6 e 17) & $4D$, come GPT-2: e01 ha 10{,}2M parametri invece di 4{,}9M \\
+Profondità nelle ablation su $T$ & 48 blocchi latenti fissi, cambia solo il numero di letture (Tab.~6) & $4T$ blocchi: 4 con $T=1$, 32 con $T=8$ \\
 \bottomrule
 \end{tabular}
 }
 \end{center}
 
 \begin{notabox}[title={\textbf{Implicazioni delle divergenze}}]
-Le divergenze dovute all'hardware riducono la \emph{capacità} (N, D, T, batch più piccoli): i valori di accuracy osservati sono \emph{sistematicamente inferiori} a quelli del paper, ma le \emph{relazioni ablative} tra le condizioni restano misurabili. Le quattro righe in fondo sono di natura diversa. Le prime due sono emerse rileggendo il codice \emph{dopo} le run: il flag delle bande di ModelNet40 diceva 64 ma veniva ignorato, e la traslazione veniva annullata dalla normalizzazione. I risultati riportati sono stati prodotti così; il registro ora lo dichiara esplicitamente (\texttt{-{}-modelnet40\_fourier\_bands 6}, \texttt{-{}-text\_fourier\_bands 6}) e un test impedisce che cambi in silenzio.
+Le divergenze dovute all'hardware riducono la \emph{capacità} (N, D, T, batch più piccoli): i valori di accuracy osservati sono \emph{sistematicamente inferiori} a quelli del paper, ma le \emph{relazioni ablative} tra le condizioni restano misurabili. Le sei righe in fondo sono di natura diversa. Le prime due sono emerse rileggendo il codice \emph{dopo} le run: il flag delle bande di ModelNet40 diceva 64 ma veniva ignorato, e la traslazione veniva annullata dalla normalizzazione. Le ultime due sono emerse confrontando i conti con le tabelle del paper: con l'MLP a fattore 1 le formule del progetto ritrovano i 44{,}9M e i 326{,}2M parametri della Tab.~7, e i FLOPs della Tab.~6 tornano solo tenendo fissi 48 blocchi latenti. Da noi il confronto fra valori diversi di $T$ mescola quindi numero di letture e profondità; i confronti a pari $T$ restano puliti. I risultati riportati sono stati prodotti così; il registro ora lo dichiara esplicitamente (\texttt{-{}-modelnet40\_fourier\_bands 6}, \texttt{-{}-text\_fourier\_bands 6}) e un test impedisce che cambi in silenzio.
 \end{notabox}
 
 % -----------------------------------------------------------------------------
@@ -7796,7 +7805,7 @@ Questo bilanciamento automatico per layer è ciò che consente la linearità nel
 \end{notabox}
 
 \begin{notabox}[title={\textbf{LAMB nel Perceiver IO}}]
-Il paper del Perceiver (Jaegle et al., 2021) usa LAMB con le seguenti impostazioni per ImageNet:
+Il paper Perceiver IO (Jaegle et al., 2022) usa LAMB con le seguenti impostazioni per il training da zero su ImageNet (il paper del Perceiver dichiara solo LAMB, learning rate 0{,}004 e 120 epoche):
 \begin{itemize}
   \item Batch size: \textbf{1024} su \textbf{64 TPU} (batch per TPU: 16).
   \item Learning rate base: $2 \times 10^{-3}$.
@@ -9927,7 +9936,7 @@ Nessun componente domain-specific è stato aggiunto: l'adattamento avviene inter
   \textit{Principali sfide: (1) gestione corretta delle dimensioni nei moduli di attenzione multi-head; (2) implementazione stabile della scaled dot-product attention con masking; (3) verifica del weight sharing (stessi moduli Python riutilizzati nel loop, non copie); (4) encoding Fourier corretto per input 2D/3D con frequenze \emph{linearmente} spaziate (\texttt{torch.linspace}, non bande geometriche). Keyword: debugging shapes, tied weights.}
 
   \item \textbf{Come hai gestito il training con risorse limitate rispetto al paper (64 TPU)?}
-  \textit{Il paper usa 64 TPU v3 per training completo su ImageNet. Con una sola RTX 3080 da 10\,GB: batch da 32--64 senza accumulo del gradiente, mixed precision bf16 (\texttt{torch.amp.autocast}), gradient clipping a norma 1 (senza, LAMB a $\text{lr}=4\text{e-}3$ divergeva a \texttt{nan}), weight sharing per stare in memoria, e CIFAR-10 al posto di ImageNet. Il confronto con i risultati del paper è quindi qualitativo sul trend, non sui numeri assoluti; per leggere i numeri servono la banda di rumore (tre seed) e una ResNet-18 misurata alle stesse condizioni. Keyword: mixed precision, gradient clipping, resource constraints.}
+  \textit{I paper usano più TPU (Perceiver IO dichiara 64 TPU v3 su ImageNet). Con una sola RTX 3080 da 10\,GB: batch da 32--64 senza accumulo del gradiente, mixed precision bf16 (\texttt{torch.amp.autocast}), gradient clipping a norma 1 (senza, LAMB a $\text{lr}=4\text{e-}3$ divergeva a \texttt{nan}), weight sharing per stare in memoria, e CIFAR-10 al posto di ImageNet. Il confronto con i risultati del paper è quindi qualitativo sul trend, non sui numeri assoluti; per leggere i numeri servono la banda di rumore (tre seed) e una ResNet-18 misurata alle stesse condizioni. Keyword: mixed precision, gradient clipping, resource constraints.}
 
 \end{itemize}
 

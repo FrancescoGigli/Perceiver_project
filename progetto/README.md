@@ -175,9 +175,18 @@ python baseline_mlm.py   # sempre il byte più frequente 19,07% · tabella dei v
 
 ## Differenze note rispetto ai paper
 
-Oltre alla scala (una GPU invece di 512 core TPU), quattro scelte si discostano
+Oltre alla scala (una GPU invece delle TPU dei paper), sei scelte si discostano
 dai paper. Sono dichiarate qui perché i risultati sono stati prodotti così:
 
+- **MLP largo 4 volte D** (il paper: 1, cioè hidden = D, p. 6 e 17). È il
+  default dei Transformer (`mlp_ratio=4`). Con fattore 1 le formule del
+  progetto ritrovano i 44,9M e i 326,2M parametri della Tab. 7 del paper;
+  e01 avrebbe 4,9M parametri invece di 10,2M.
+- **Profondità che cresce con il numero di letture** nelle run della Tab. 6
+  (e08-e14): ogni lettura porta i suoi 4 blocchi latenti, quindi T=1 ha 4
+  blocchi e T=8 ne ha 32. Nel paper i blocchi restano 48 qualunque sia T (i
+  FLOPs della Tab. 6 tornano solo così). I confronti a pari T sono puliti;
+  quelli fra T diversi mescolano letture e profondità.
 - **Fourier a 6 bande su ModelNet40 e sul testo** (il paper: 64). Ogni punto 3D
   ha 3 + 39 = 42 canali, ogni byte 257 + 13 = 270. Il registro lo dichiara
   esplicitamente (`--modelnet40_fourier_bands 6`, `--text_fourier_bands 6`).

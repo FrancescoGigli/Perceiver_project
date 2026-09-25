@@ -638,7 +638,7 @@
 \end{frame}
 
 % -- Slide 14b: Implementation Differences from the Paper --
-\begin{frame}[shrink=17]{Implementation Differences from the Paper}
+\begin{frame}[shrink=23]{Implementation Differences from the Paper}
   \vspace{0.15em}
   \begin{table}
     \centering\scriptsize
@@ -674,16 +674,16 @@
       --- &
       \textbf{Validation carved from train} (45k/5k/10k); test touched once. ModelNet40 has no validation split: epoch picked on test \\
       \addlinespace[2pt]
-      Parameters &
-      $30$--$200\text{M}+$ &
-      $10.18$M (CIFAR-10), $23.29$M (ModelNet40), $18.87$M (IO text) \\
+      Parameters, MLP width &
+      $44.9$M on ImageNet; MLP $1\times$ (hidden $=D$) &
+      $10.18$M (CIFAR-10), $23.29$M (ModelNet40), $18.87$M (IO text); MLP $4\times$ \\
       \bottomrule
     \end{tabular}
   \end{table}
 
   \vspace{0.3em}
   \colhead{Kept identical to the paper}
-    \small Core mechanism preserved: cross-attention bottleneck $\to$ weight-shared latent transformer $\to$ mean-pooling (Perceiver) / output-query decoder (IO); GELU MLP, pre-norm LayerNorm, Fourier frequencies linearly spaced to Nyquist.
+    \small Core mechanism preserved: cross-attention bottleneck $\to$ weight-shared latent transformer $\to$ mean-pooling (Perceiver) / output-query decoder (IO); GELU MLP (but $4\times$ wide, the paper uses $1\times$), pre-norm LayerNorm, Fourier frequencies linearly spaced to Nyquist.
   
 \end{frame}
 
@@ -777,7 +777,7 @@
         Two extra runs cost a few GPU-hours and change the status of all the others: without a measured band, every comparison is an opinion.
 
         \vspace{0.4em}
-        It also sets the honest ceiling of this study. On CIFAR-10 with 1\,024 pixels and one GPU, most of the paper's ablations --- measured on ImageNet with 50\,176 pixels and 64 TPUs --- simply do not have room to show up.
+        It also sets the honest ceiling of this study. On CIFAR-10 with 1\,024 pixels and one GPU, most of the paper's ablations --- measured on ImageNet with 50\,176 pixels on TPU pods --- simply do not have room to show up.
       
 
       \vspace{0.3em}
@@ -908,7 +908,7 @@
   \end{columns}
 
   \vspace{0.2em}
-  \scriptsize Note the non-monotonicity along $T$: reading the input once is as good as reading it four times, with 15\% fewer parameters.
+  \scriptsize Across rows, reads and depth change together: in our code each read brings its own 4 latent blocks ($T=1$: 4 blocks, $T=8$: 32), while the paper keeps 48 fixed. Within a row the comparison is clean.
 \end{frame}
 
 % ── Fig. 6 ───────────────────────────────────────────────────────────────────
@@ -1521,17 +1521,17 @@
 
 % ── Slide 30: Hardware Limitations ──────────────────────────────────────────────
 \begin{frame}[shrink=14]{Hardware Limitations \& Design Choices}
-  \lead{Every limitation below is one GPU instead of 512 TPU cores. The architecture is the paper's; the budget is not.}
+  \lead{Every limitation below is one GPU instead of a TPU pod. The mechanism is the paper's; the budget is not.}
   \begin{table}
     \centering\small
     \begin{tabular}{lcc}
       \toprule
       \textbf{Parameter} & \textbf{Original Paper (Google)} & \textbf{Project Setup} \\
       \midrule
-      Hardware & 512 TPU v3 cores & 1 NVIDIA RTX 3080 \\
+      Hardware & TPU pods (up to 64 TPUs) & 1 NVIDIA RTX 3080 \\
       Batch size & up to 1024 & 32--64 \\
       Latents ($N$) & 256--512 & 96--128 \\
-      Model size & 30--200M+ params & 10.2--23.3M params \\
+      Model size & 44.9M (Perceiver), 201M (IO text) & 10.2--23.3M params \\
       Pre-training corpus & Wikipedia $+$ C4, 201M-param IO & WikiText-103, 18.9M-param IO \\
       \bottomrule
     \end{tabular}
