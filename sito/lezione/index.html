@@ -1434,6 +1434,14 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       <div class="chap-meta"><span class="chap-badge">Cap. 11</span><span class="chap-time">~4 min</span></div>
       <h1>Dettagli di training (ImageNet)</h1>
       <p class="intro">L'architettura è chiara. Adesso vediamo come si allena. Tre dettagli importanti: ottimizzatore, schedule, e una scelta controintuitiva sul dropout.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>LAMB, learning rate 0,004, 120 epoche, diviso per 10 alle epoche 84, 102 e 114.</li>
+          <li>Niente dropout: regolarizzano il collo di bottiglia, il weight sharing e l'augmentation (crop Inception e RandAugment).</li>
+          <li>Il nostro e01 usa la stessa ricetta su CIFAR-10, con batch 64: circa 700 passi per epoca.</li>
+        </ul>
+      </div>
 
       <h2>L'ottimizzatore: LAMB</h2>
       <p>Il paper usa <strong>LAMB</strong> (You et al., 2020), non Adam. Citazione dal paper: il Perceiver è <em>più facile da ottimizzare</em> con LAMB rispetto ad Adam.</p>
@@ -1444,7 +1452,7 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
         <li><strong>Epoche totali</strong>: 120</li>
         <li><strong>LR iniziale</strong>: <code>4 × 10⁻³</code></li>
         <li><strong>Step decay</strong>: ÷10 alle epoche <strong>84, 102, 114</strong></li>
-        <li>Niente cosine annealing, niente warmup</li>
+        <li>Niente cosine annealing. Il paper non parla di warmup, né di batch size o weight decay per questo modello.</li>
       </ul>
       <p>Schema "vecchia scuola": rate alto per la maggior parte del training, poi tre tagli netti verso la fine per fissare i pesi.</p>
 
@@ -1469,17 +1477,45 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       <ul>
         <li>Il <strong>latent bottleneck</strong> N≪M comprime brutalmente l'informazione.</li>
         <li>Il <strong>weight sharing</strong> riduce i parametri di ~7×.</li>
-        <li>Il <strong>weight decay</strong> nell'ottimizzatore.</li>
-        <li>La <strong>data augmentation</strong> aggressiva: RandAugment (Cubuk et al., 2020).</li>
+                <li>La <strong>data augmentation</strong> aggressiva: RandAugment (Cubuk et al., 2020).</li>
       </ul>
       <p>Aggiungere dropout sopra tutto questo soffoca la capacità del modello invece di aiutarlo.</p>
 
       <h2>Dimensione del modello</h2>
-      <p><strong>~45M parametri</strong>, paragonabile a una ResNet usata su ImageNet. Tutto sommato, non un modello enorme — e gran parte di quei parametri sta nella prima cross-attention + latent transformer (gli unici non condivisi).</p>
+      <p><strong>~45M parametri</strong>: circa il doppio di una ResNet-50 (26 M), ma 7 volte meno del modello senza sharing. Il grosso, 37,8 M, sta nei 6 blocchi del latent transformer, che sono <strong>condivisi</strong> da tutte le letture. La prima cross-attention, l'unico pezzo con pesi propri, ne ha 2,8 M.</p>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">La ricetta, numero per numero</p>
+        <ol class="passi">
+          <li>Learning rate 0,004 dall'epoca 0 alla 83: il <strong>70%</strong> del training.</li>
+          <li>Epoca 84 → 0,0004. Epoca 102 → 0,00004. Epoca 114 → 0,000004.</li>
+          <li>Nostro e01: stessa schedule. CIFAR-10 diviso in 45.000 immagini di train, 5.000 di validation e 10.000 di test. Con batch 64 sono circa <strong>704 passi</strong> per epoca, circa 84.000 in tutto.</li>
+          <li>L'epoca migliore di e01 è la <strong>92</strong>, subito dopo il primo taglio. 21 run CIFAR su 24 toccano il massimo dopo l'epoca 84. Le 3 eccezioni (e23, e24, e28) sono le run instabili.</li>
+          <li>Nel nostro codice serve il gradient clipping a norma 1: senza, LAMB a 0,004 divergeva (loss nan). Il paper non ne parla.</li>
+        </ol>
+      </div>
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>Training "essenziale": <strong>LAMB</strong>, 120 epoche con <em>step decay</em>, <strong>niente dropout</strong>, ~45M parametri. La regolarizzazione viene dall'architettura (bottleneck + weight sharing), non dai trucchi di training.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>LAMB non è «Adam con un altro nome»: adatta l'ampiezza del passo strato per strato ed è pensato per batch grandi.</li>
+          <li>Il paper non dichiara batch size, numero di TPU, warmup né weight decay per il modello principale. All'esame non inventarli.</li>
+          <li>«Niente dropout» non vuol dire «niente regolarizzazione»: restano RandAugment, il collo di bottiglia e il weight sharing.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Qual è la ricetta di training del paper su ImageNet?</summary><p class="qa-a">LAMB, learning rate 0,004, 120 epoche, diviso per 10 alle epoche 84, 102 e 114. Crop Inception-style 224×224 e RandAugment. Niente dropout (p. 6 e 17).</p></details>
+        <details class="qa-item"><summary>Perché il Perceiver non usa dropout?</summary><p class="qa-a">Il paper l'ha provato: con dropout le prestazioni peggioravano. Il modello è già regolarizzato dal collo di bottiglia e dal weight sharing.</p></details>
+        <details class="qa-item"><summary>Cosa non dice il paper sul training del modello principale?</summary><p class="qa-a">Batch size, numero di TPU, numero di passi, weight decay, warmup e gradient clipping.</p></details>
+        <details class="qa-item"><summary>In quale epoca il tuo e01 ha il massimo di validation, e perché proprio lì?</summary><p class="qa-a">Alla 92, subito dopo il primo taglio del learning rate (epoca 84): con passi più piccoli la rete si assesta in un punto migliore.</p></details>
+        <details class="qa-item"><summary>Perché nel tuo codice c'è il gradient clipping?</summary><p class="qa-a">Senza, LAMB con learning rate 0,004 faceva divergere il training (loss nan). Con la norma del gradiente limitata a 1 il training è stabile.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -1494,6 +1530,14 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       <div class="chap-meta"><span class="chap-badge">Cap. 12</span><span class="chap-time">~6 min</span></div>
       <h1>I risultati che "vendono" il Perceiver</h1>
       <p class="intro">Abbiamo visto tutta l'architettura e il training. Adesso: <em>funziona</em>? E cosa dimostra di unico rispetto agli altri modelli? Questo è il capitolo cruciale per l'esame.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>ImageNet: 78,0% sui pixel grezzi, senza convoluzioni. ResNet-50 fa 77,6 e ViT-B/16 77,9.</li>
+          <li>Pixel permutati: il Perceiver resta a 78,0. ResNet-50 crolla da 73,5 a 39,4, ViT da 76,7 a 61,7.</li>
+          <li>Stessa rete su audio (AudioSet, 38,3 mAP) e nuvole di punti (ModelNet40, 85,7%).</li>
+        </ul>
+      </div>
 
       <h2>ImageNet su pixel grezzi: competitivo senza prior 2D</h2>
       <p>Top-1 accuracy sulla validation set di ImageNet (Tab. 1 del paper):</p>
@@ -1520,6 +1564,19 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
         </tbody>
       </table>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">La Tab. 2 letta con il campo recettivo (quanti pixel vede il primo strato)</p>
+        <ol class="passi">
+          <li>ResNet-50 vede 7 × 7 = <strong>49</strong> pixel alla volta. Dopo la permutazione i vicini non sono più vicini: 73,5 → 39,4 (−34,1).</li>
+          <li>ViT-B/16 vede pezzi da 16 × 16 = <strong>256</strong> pixel: 76,7 → 61,7 (−15,0).</li>
+          <li>Il Transformer 64×64 vede tutti i <strong>4.096</strong> pixel: 57,0 → 57,0.</li>
+          <li>Il Perceiver vede tutti i <strong>50.176</strong> pixel: 78,0 → 78,0. Anche con posizione appresa: 70,9 → 70,9.</li>
+          <li>Regola: più il primo strato guarda in locale, più la permutazione fa male. Chi guarda tutto con l'attenzione non se ne accorge.</li>
+          <li>Nel nostro CIFAR-10: e02 fa 68,95 contro 71,63 di e01, cioè −2,68, dentro la banda di rumore di 2,78. Con posizione appresa (e04 contro e03): 69,87 contro 71,07.</li>
+        </ol>
+      </div>
       <div class="concept-lab permutation-shuffle-lab" data-lab="permutation-shuffle">
         <div class="lab-head">
           <div>
@@ -1567,6 +1624,24 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
         </tbody>
       </table>
 
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>La permutazione è una sola, fissa, uguale per tutte le immagini, anche in training. È applicata dopo aver calcolato le Fourier features (p. 6–7).</li>
+          <li>L'invarianza viene dall'attenzione, non dalle Fourier features: lo dimostra la riga con posizione appresa (70,9 → 70,9).</li>
+          <li>Su ModelNet40 il paper sceglie il risultato migliore sul test set (p. 9). Anche noi: il dataset non ha una validation.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Quanto fa il Perceiver su ImageNet, e contro quali modelli?</summary><p class="qa-a">78,0% top-1. ResNet-50 77,6, ViT-B/16 77,9, Transformer su immagini 64×64 57,0 (Tab. 1).</p></details>
+        <details class="qa-item"><summary>Cosa succede permutando i pixel?</summary><p class="qa-a">Perceiver 78,0 → 78,0. ResNet-50 (con Fourier features) 73,5 → 39,4. ViT-B/16 (con Fourier features) 76,7 → 61,7 (Tab. 2).</p></details>
+        <details class="qa-item"><summary>Perché ResNet e ViT perdono e il Perceiver no?</summary><p class="qa-a">Il loro primo strato guarda in locale (49 e 256 pixel): la permutazione distrugge quei vicinati. L'attenzione del Perceiver guarda tutti i 50.176 pixel insieme e la posizione viaggia dentro ogni riga.</p></details>
+        <details class="qa-item"><summary>Come è fatta la permutazione del paper?</summary><p class="qa-a">Una sola permutazione, fissa per tutte le immagini, applicata dopo aver calcolato le Fourier features.</p></details>
+        <details class="qa-item"><summary>Che risultato hai ottenuto tu permutando i pixel?</summary><p class="qa-a">e02: 68,95% contro 71,63% di e01. La differenza, −2,68, è dentro la banda di rumore: invarianza confermata entro la precisione delle misure.</p></details>
+        <details class="qa-item"><summary>ModelNet40: risultato del paper e tuo?</summary><p class="qa-a">Paper 85,7% (PointNet++ 91,9%), risultato migliore scelto sul test. Tuo mn01 87,36% all'epoca migliore e 86,43% all'ultima, con lo stesso protocollo ma 6 bande di Fourier invece di 64.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-12">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="12"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -1579,10 +1654,18 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       <div class="chap-meta"><span class="chap-badge">Cap. 13</span><span class="chap-time">~6 min</span></div>
       <h1>Ablation: cosa conta davvero</h1>
       <p class="intro">Quali componenti del Perceiver sono indispensabili e quali sono dettagli? Gli ablation studies del paper rispondono. Sono il modo migliore per capire l'architettura "smontandola".</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Senza latent transformer il modello crolla: 39,4% con 4 letture, 45,3% con 8 (Tab. 5).</li>
+          <li>Alternare letture e blocchi latenti batte il leggere tutto all'inizio: 78,0 contro 73,7 con 8 letture (Tab. 6).</li>
+          <li>Weight sharing: 7,3 volte meno parametri e +5,1 punti (Tab. 7).</li>
+        </ul>
+      </div>
 
       <div class="nota">
         <span class="nota-label">Attenzione: ablation su un modello ridotto</span>
-        Per le ablation su N, D, ℓ, T il paper (App. B) usa un <em>modello base</em> intenzionalmente più piccolo del migliore di Tab. 1: senza weight sharing, 4 self-attention per blocco, 2 cross-attends, D=512, batch 64. Le accuracy stanno tra ~60% e ~76% — i trend qualitativi sono informativi, i numeri NON sono direttamente confrontabili col 78.0% del main model.
+        Per le ablation su N, D, ℓ, T il paper (App. B) usa un <em>modello base</em> intenzionalmente più piccolo del migliore di Tab. 1: senza weight sharing, 4 self-attention per blocco, 2 cross-attends, D=512, batch 64. Le accuracy stanno fra circa 63% e 72% (valori letti dalla Fig. 5; training di 5 milioni di passi su 32 TPU) — i trend qualitativi sono informativi, i numeri NON sono direttamente confrontabili col 78.0% del main model.
       </div>
 
       <div class="concept-lab ablation-switchboard-lab" data-lab="ablation-switchboard">
@@ -1634,6 +1717,19 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       <p>Con 8 cross-attend tutte all'inizio, il modello deve comprimere l'intera informazione in un'unica lettura prolungata. Con interleaved, alterna fasi di "lettura" e "ragionamento" latente: ogni re-lettura avviene con latenti già parzialmente raffinati. <strong>Il modello deve ri-leggere l'input più volte in modo adattivo.</strong></p>
       <p><em>Attenzione ai numeri</em>: il guadagno è <strong>non-monotono</strong> — da T=1 a T=4 cambia pochissimo (76.7 → 76.5), il vero salto arriva solo a T=8 (78.0). La lezione robusta è qualitativa: <em>alternare</em> lettura e ragionamento (interleaved) batte comunque il <em>comprimere tutto in un colpo</em> — già a una sola rilettura interleaved (76.7%) si fa meglio di 8 cross-attend at-start (73.7%).</p>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">La Tab. 6 letta con i FLOPs</p>
+        <ol class="passi">
+          <li>1 lettura: <strong>404,3</strong> miliardi di FLOPs. 8 letture: <strong>707,2</strong> miliardi. Da 2 letture in su i parametri restano 44,9 M.</li>
+          <li>Differenza: 302,9 miliardi per 7 letture in più, cioè circa <strong>43 miliardi</strong> a lettura.</li>
+          <li>I blocchi latenti restano 48 in tutte le righe: i FLOPs tornano solo così. Una lettura dei 50.176 pixel costa quasi 6 volte un blocco latente (43 contro 7,5 miliardi).</li>
+          <li>Con 1 lettura: 76,7% in entrambe le disposizioni. Con 8: 78,0 alternate, 73,7 tutte in testa.</li>
+          <li>Quindi 7 letture in più costano il 75% di calcolo in più e danno +1,3 punti, ma solo se alternate ai blocchi.</li>
+          <li>Nel nostro progetto invece ogni lettura porta i suoi 4 blocchi: e08 (T = 1) ne ha 4, e10 (T = 8) ne ha 32. Il confronto fra T non è quello del paper (<button class="inline-summary-link" type="button" data-go-to="45">cap. 45</button>).</li>
+        </ol>
+      </div>
       <h2>3. Weight sharing = regolarizzatore</h2>
       <table>
         <thead><tr><th>Configurazione</th><th>Val (%)</th><th>Train (%)</th><th>Gap</th></tr></thead>
@@ -1650,7 +1746,7 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       </figure>
 
       <h2>4. Fourier features: numero di bande</h2>
-      <p>Più bande di frequenza catturano dettagli spaziali più fini. I risultati migliorano <strong>fino al valore di Nyquist</strong> (determinato dalla risoluzione dell'immagine). Oltre la frequenza di Nyquist non si ottiene alcun beneficio: le frequenze in più sono ridondanti.</p>
+      <p>Più bande di frequenza catturano dettagli spaziali più fini. Nella Fig. 6: 16, 32 e 64 bande danno 71,7, 72,4 e 72,5; frequenza massima con max resolution 56, 112 e 224 dà 71,1, 72,4 e 73,1. Il guadagno cresce <strong>fino al valore di Nyquist</strong> e si appiattisce. Oltre Nyquist una banda non porta informazione nuova: fra due pixel vicini fa più di mezza oscillazione.</p>
       <div class="display-eq">f_max = \frac{min(H, W)}{2}</div>
       <p><code>K</code> indica quante bande campioniamo; <code>f_max</code> indica la frequenza massima raggiunta. Per ImageNet (224×224) il paper usa <code>K=64</code> frequenze <em>linearly spaced</em> tra 1 e <code>f_max=112</code>, cioè il limite di Nyquist.</p>
 
@@ -1658,9 +1754,10 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       <table>
         <thead><tr><th>Parametro</th><th>Effetto</th></tr></thead>
         <tbody>
-          <tr><td>N (latenti)</td><td>↑ aiuta monotonamente (256→512→1024 entro l'intervallo testato)</td></tr>
-          <tr><td>D (dim canale)</td><td>↑ aiuta fino a un punto; oltre, overfitting (senza weight sharing)</td></tr>
-          <tr><td>ℓ (self-att per blocco)</td><td>↑ aiuta ma con rendimenti decrescenti (2→4 guadagno grande, 4→8 piccolo)</td></tr>
+          <tr><td>N (latenti)</td><td>↑ aiuta: 256 → 512 → 1024 danno 68,0 → 70,3 → 72,1</td></tr>
+          <tr><td>D (dim canale)</td><td>↑ aiuta fino a un punto: 64,9 → 70,3 → 66,7 per 256, 512, 1024 (oltre, overfitting, senza sharing)</td></tr>
+          <tr><td>ℓ (self-att per blocco)</td><td>↑ aiuta con rendimenti decrescenti: 64,5 → 70,3 → 71,1 per 2, 4, 8</td></tr>
+          <tr><td>Cross-attend</td><td>↑ aiuta nel modello piccolo: 62,9 → 70,5 → 72,4 per 1, 2, 4</td></tr>
         </tbody>
       </table>
 
@@ -1678,6 +1775,23 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
         <p>Smontando il Perceiver, tutto torna alle tre intuizioni: <strong>bottleneck</strong> per integrare globalmente, <strong>iterazione</strong> per raffinare, <strong>weight sharing</strong> per generalizzare. Tutto il resto è dettaglio implementativo.</p>
       </div>
 
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Le ablation della Fig. 5 (N, D, blocchi, letture) usano un modello piccolo senza sharing: i suoi numeri (63–72%) non si confrontano con il 78,0.</li>
+          <li>In Tab. 6 la profondità è fissa: 48 blocchi latenti. Cambia solo quante volte si rilegge l'input.</li>
+          <li>Più bande aiutano fino a Nyquist, poi il guadagno si appiattisce: 32 → 64 bande vale solo +0,1 (Fig. 6).</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Cosa succede senza latent transformer?</summary><p class="qa-a">Tab. 5: 39,4% con 4 letture, 45,3% con 8, memoria esaurita con 12. Il modello completo fa 78,0.</p></details>
+        <details class="qa-item"><summary>Letture alternate o tutte all'inizio: con quali numeri?</summary><p class="qa-a">Con 8 letture 78,0 alternate contro 73,7 in testa. Con 1 lettura 76,7 in entrambi i casi.</p></details>
+        <details class="qa-item"><summary>Nella Tab. 6 cosa resta fisso e cosa cambia?</summary><p class="qa-a">Restano fissi i 48 blocchi latenti e, da 2 letture in su, i 44,9 M parametri. Cambiano le letture e quindi i FLOPs: da 404,3 a 707,2 miliardi.</p></details>
+        <details class="qa-item"><summary>Cosa dice la Fig. 5 su N e D?</summary><p class="qa-a">N = 256, 512, 1024 → 68,0, 70,3, 72,1: più latenti aiutano. D = 256, 512, 1024 → 64,9, 70,3, 66,7: oltre 512 il modello senza sharing va in overfitting.</p></details>
+        <details class="qa-item"><summary>Perché i tuoi esperimenti sul numero di letture non si confrontano 1:1 con la Tab. 6?</summary><p class="qa-a">Perché nel tuo codice ogni lettura ha i suoi 4 blocchi latenti: T = 1 ha 4 blocchi, T = 8 ne ha 32. Nel paper i blocchi restano 48 e cambia solo il numero di letture.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-13">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="13"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -1690,6 +1804,14 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       <div class="chap-meta"><span class="chap-badge">Cap. 14</span><span class="chap-time">~5 min</span></div>
       <h1>Backward pass: i risultati chiave</h1>
       <p class="intro">Il backward pass del Perceiver è meccanico: chain rule applicata blocco per blocco. Però ci sono <em>tre risultati</em> che vale la pena conoscere a memoria, soprattutto per l'orale.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Softmax + cross-entropy: il gradiente sui logit è p − y.</li>
+          <li>Un peso condiviso somma i contributi di tutte le volte in cui è usato, come la BPTT delle RNN.</li>
+          <li>La residual lascia passare il gradiente così com'è: è il termine I in (I + ∂f/∂L).</li>
+        </ul>
+      </div>
 
       <h2>Ordine del backward</h2>
       <p>Il backward attraversa l'architettura in <strong>ordine inverso</strong> rispetto al forward:</p>
@@ -1725,10 +1847,22 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
         Saper derivare (o almeno enunciare) <code>∂ℒ/∂z = p − y</code> è una delle domande più frequenti in qualsiasi corso di deep learning con softmax+CE. Memorizzalo a livello automatico.
       </div>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">p − y su un esempio vero</p>
+        <ol class="passi">
+          <li>Logit z = (2,0, 1,0, 0,1). Softmax: p = (0,659, 0,242, 0,099). La classe giusta è la prima: y = (1, 0, 0).</li>
+          <li>Gradiente sui logit: p − y = <strong>(−0,341, +0,242, +0,099)</strong>. La somma fa 0.</li>
+          <li>La discesa del gradiente fa z ← z − η·(p − y): il logit giusto sale, gli altri scendono, ognuno in proporzione a quanto sbaglia.</li>
+          <li>Se il modello è sicuro e ha ragione (p₁ = 0,99) il gradiente è quasi zero: impara poco. Se è sicuro e sbaglia, il gradiente è grande.</li>
+          <li>Nella testa del Perceiver: ∂ℒ/∂W_c = hᵀ·(p − y). Nel nostro e01 (D = 384, 10 classi) sono 3.840 numeri, uno per peso.</li>
+        </ol>
+      </div>
       <h2>Risultato 2: gradienti dei pesi condivisi (BPTT)</h2>
       <p>Quando un peso <code>W</code> è usato in <em>più</em> blocchi del forward (caso del weight sharing del Perceiver), nel backward ogni istanza produce un contributo. Per il training corretto, questi contributi <strong>si sommano</strong>:</p>
       <div class="display-eq">\frac{∂ℒ}{∂W_sh} = Σ_{t=2}^{T}  \frac{∂ℒ}{∂W^(t)}</div>
-      <p>È lo stesso meccanismo di un RNN srotolato (BPTT, back-propagation through time). In PyTorch è automatico: quando più nodi del grafo computazionale puntano allo stesso <code>nn.Parameter</code>, i gradienti calcolati in <code>backward()</code> vengono accumulati sul <code>.grad</code> del parametro.</p>
+      <p>La somma parte da t = 2 per le cross-attention condivise. Per i blocchi latenti, condivisi da <em>tutte</em> le letture, parte da t = 1. È lo stesso meccanismo di un RNN srotolato (BPTT, back-propagation through time). In PyTorch è automatico: quando più nodi del grafo computazionale puntano allo stesso <code>nn.Parameter</code>, i gradienti calcolati in <code>backward()</code> vengono accumulati sul <code>.grad</code> del parametro.</p>
 
       <div class="esempio">
         <div class="esempio-label">Esempio numerico con T=3 iterazioni</div>
@@ -1878,6 +2012,22 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
         <p>Del backward del Perceiver, ricorda <strong>tre cose</strong>: (1) <code>∂ℒ/∂z = p − y</code> per softmax+CE; (2) i gradienti dei pesi condivisi si <strong>sommano</strong> (BPTT); (3) le <strong>residual</strong> creano un "gradient highway" che permette le reti profonde.</p>
       </div>
 
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>p − y vale per softmax e cross-entropy insieme. Derivarle separatamente porta a conti lunghi e instabili.</li>
+          <li>Accumulare i gradienti e aggiornare una volta sola non equivale ad aggiornare a ogni contributo quando l'ottimizzatore ha uno stato (Adam, LAMB).</li>
+          <li>Per la prima cross-attention il gradiente ha un solo contributo; per i blocchi latenti ne ha T, uno per lettura.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Qual è il gradiente di softmax + cross-entropy rispetto ai logit?</summary><p class="qa-a">p − y: probabilità predette meno il vettore one-hot della classe vera.</p></details>
+        <details class="qa-item"><summary>Calcola p − y per p = (0,7, 0,2, 0,1) se la classe giusta è la seconda.</summary><p class="qa-a">(0,7, −0,8, 0,1). Il secondo logit deve salire, gli altri scendere.</p></details>
+        <details class="qa-item"><summary>Come si calcola il gradiente di un peso condiviso?</summary><p class="qa-a">Sommando i contributi di ogni uso: da t = 2 a T per la cross-attention condivisa, da t = 1 a T per i blocchi latenti.</p></details>
+        <details class="qa-item"><summary>Perché la residual aiuta il gradiente?</summary><p class="qa-a">Perché ∂L'/∂L = I + ∂f/∂L: il termine I riporta indietro il gradiente anche quando ∂f/∂L è piccolo.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-14">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="14"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -1890,6 +2040,14 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       <div class="chap-meta"><span class="chap-badge">Cap. 15</span><span class="chap-time">~6 min</span></div>
       <h1>Perceiver IO: dal classificatore agli output generici</h1>
       <p class="intro">Il Perceiver originale è forte come encoder generale, ma la testa finale è ancora limitata: pooling sui latenti e classificazione globale. Perceiver IO conserva lo stesso encoder, ma aggiunge un decoder a cross-attention che permette output di forma arbitraria.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Tre fasi: encode (input → latenti), process (latenti → latenti), decode (query di output → risultati).</li>
+          <li>Il decoder è una cross-attention: Q dalle O query, K e V dai latenti. La matrice è O × N.</li>
+          <li>Il costo è O([M + O + L·N]·N·F): lineare sia nell'input sia nell'output.</li>
+        </ul>
+      </div>
 
       <figure>
         <img src="../figure_corso/perceiver_io_fig2_architecture.png" alt="Architettura di Perceiver IO">
@@ -1949,6 +2107,19 @@ Y = Y + MLP(LN(Y))</div>
         <p>Questa lettura aiuta molto all'orale: il Perceiver separa <em>memoria interna</em> e <em>domande di output</em>. Cambiando le query finali cambia il task, non il backbone.</p>
       </details>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Quattro task, stesso schema (numeri del paper e nostri)</p>
+        <ol class="passi">
+          <li>Classificazione ImageNet: <strong>1</strong> query. Uscita 1 × 1.000 logit.</li>
+          <li>MLM sui byte: 2.048 byte in ingresso, <strong>2.048</strong> query in uscita, una per byte, e 256 latenti. Matrice del decoder: 2.048 × 256 = 524.288.</li>
+          <li>Optical flow: una query per pixel, 368 × 496 = <strong>182.528</strong> query.</li>
+          <li>Autoencoding su Kinetics: <strong>802.816</strong> query per il video, 1.920 per l'audio, 1 per la label.</li>
+          <li>Un BERT sui 2.048 byte avrebbe matrici 2.048 × 2.048 = 4,2 milioni per strato. Perceiver IO: 524.288 nell'encoder e 256 × 256 = 65.536 in ognuno dei 26 strati latenti.</li>
+          <li>Nostro io_mlm: 512 byte, 128 latenti, 512 query. Decoder: 512 × 128 = 65.536 numeri.</li>
+        </ol>
+      </div>
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>Perceiver IO non cambia il cuore del Perceiver: cambia il modo di <strong>estrarre</strong> informazione dai latenti. Il decoder a cross-attention rende l'output flessibile senza rinunciare al latent bottleneck.</p>
@@ -1995,6 +2166,23 @@ Y = Y + MLP(LN(Y))</div>
         <p class="cv-caption" id="cv-caption"></p>
       </div>
 
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Le query di output non sono i latenti: sono un secondo array, fatto su misura per il task.</li>
+          <li>Le uscite sono indipendenti fra loro: ogni query guarda solo i latenti. Per questo si possono decodificare a pezzi (su Kinetics, in training, solo 512 pixel e 512 campioni audio per esempio).</li>
+          <li>Nel decoder il residual a volte si toglie (optical flow): sommerebbe la query all'uscita.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Cosa aggiunge Perceiver IO al Perceiver?</summary><p class="qa-a">Un decoder a cross-attention: O query di output leggono i latenti finali e producono O uscite.</p></details>
+        <details class="qa-item"><summary>Che forma ha la matrice di attenzione del decoder?</summary><p class="qa-a">O × N. Nel tuo MLM 512 × 128; nell'MLM del paper 2.048 × 256.</p></details>
+        <details class="qa-item"><summary>Perché il costo resta lineare nell'output?</summary><p class="qa-a">Ogni query guarda solo gli N latenti, non le altre query: il decoder costa O·N·F.</p></details>
+        <details class="qa-item"><summary>Perché il decoder a query è meglio di media + proiezione?</summary><p class="qa-a">Usa pesi appresi e dipendenti dai dati invece di 1/N uguali per tutti, e si estende a output densi aggiungendo query. Su ImageNet, con la stessa ricetta, Perceiver IO fa 79,0 contro 78,6 (Tab. 7 di Perceiver IO).</p></details>
+        <details class="qa-item"><summary>Cosa hanno in comune encoder e decoder?</summary><p class="qa-a">Sono la stessa cella: cross-attention con pre-norm, residual e MLP. Cambia solo chi fa le domande e chi risponde.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-15">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="15"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -2007,6 +2195,14 @@ Y = Y + MLP(LN(Y))</div>
       <div class="chap-meta"><span class="chap-badge">Cap. 16</span><span class="chap-time">~6 min</span></div>
       <h1>Output queries: come il decoder chiede cosa produrre</h1>
       <p class="intro">Le output queries sono il ponte tra una rappresentazione latente compressa e un output con struttura propria. Non sono una decorazione: definiscono quanti output vogliamo e che significato ha ciascun output.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Una query è una domanda al modello: O query danno O risposte.</li>
+          <li>Si costruiscono con quello che si sa dell'uscita: la posizione (MLM, flow), il compito (GLUE multitask), la modalità (Kinetics).</li>
+          <li>Nel paper: 1 query per ImageNet, 2.048 per l'MLM, 8 per GLUE multitask, 802.816 per il video di Kinetics.</li>
+        </ul>
+      </div>
 
       <figure>
         <img src="../figure_corso/perceiver_io_fig3_output_queries.png" alt="Output queries in Perceiver IO">
@@ -2069,6 +2265,18 @@ Y = Y + MLP(LN(Y))</div>
         <p>La frase da ricordare: le <strong>task-specific queries</strong> definiscono la forma dell'output; i latenti restano la memoria condivisa.</p>
       </details>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Le query del nostro progetto, contate</p>
+        <ol class="passi">
+          <li>io01_cifar: <strong>1</strong> query da 384 numeri. Uscita 1 × 384 → Linear → 10 classi. Test 71,79%.</li>
+          <li>io_mlm: <strong>512</strong> query apprese, una per posizione. Uscita 512 × 512 → Linear → 256 byte. 86,68% dei byte mascherati indovinati.</li>
+          <li>Le 512 query pesano 512 × 512 = <strong>262.144</strong> parametri. La query singola di GLUE ne pesa 512.</li>
+          <li>GLUE single-task: 1 query, testa a 2 classi (3 per MNLI, 1 numero per STS-B). Media sugli 8 task: 71,13.</li>
+          <li>GLUE multitask: <strong>8</strong> query, una per task, un solo modello. Media 74,05: +2,92, quasi tutto dai task piccoli (STS-B, RTE, MRPC).</li>
+        </ol>
+      </div>
       <h2>Decoder a cross-attention</h2>
       <p>Nel decoder a cross-attention, le query di output diventano <code>Q</code>, mentre i latenti finali forniscono <code>K</code> e <code>V</code>. La matrice di attenzione ha dimensione <code>O × N</code>, dove <code>O</code> è il numero di output richiesti e <code>N</code> è il numero di latenti.</p>
       <div class="display-eq">Attention decoder: softmax(\frac{Q_out K_latent^T}{sqrt(d)}) V_latent</div>
@@ -2087,11 +2295,11 @@ Y = Y + MLP(LN(Y))</div>
         <summary>Come si costruisce una query per ogni task (dal progetto)</summary>
         <p>La forma della query e il numero <code>O</code> sono <strong>specifici del task</strong>; i latenti restano identici. Esempi concreti (Jaegle et al. 2022, Fig. 3, e dal mio progetto):</p>
         <ul class="diverg-list">
-          <li><strong>MLM byte-level (WikiText-103)</strong>: <code>O = 2048</code> query, una per posizione byte, learned position-dependent di dim <code>E = 768</code>. Per ogni posizione mascherata il decoder produce un vettore → layer lineare → softmax sul vocabolario byte.</li>
-          <li><strong>GLUE single-task</strong>: <code>O = 1</code> query apprendibile (<code>E = 768</code>), l'equivalente del token <code>[CLS]</code> di BERT ma <em>esterno</em> ai latenti; una MLP 2-layer ne ricava i logit di classe.</li>
-          <li><strong>GLUE multi-task (8 task insieme)</strong>: <code>O = 8</code> query, ognuna con un embedding <code>task_id</code>; una MLP per task. È la configurazione migliore (81.8 avg GLUE nel paper).</li>
+          <li><strong>MLM byte-level</strong>: nel paper (dati C4 + Wikipedia) <code>O = 2048</code> query, una per posizione byte, apprese e dipendenti dalla posizione; la Tab. 11 dà dimensione <code>E = 768</code>, la Tab. 6 dice 1280. Nel nostro progetto (WikiText-103) <code>O = 512</code> query da 512. Per ogni posizione il decoder produce un vettore → layer lineare → softmax sui 256 byte.</li>
+          <li><strong>GLUE single-task</strong>: <code>O = 1</code> query apprendibile (1280 canali in Tab. 6), l'equivalente del token <code>[CLS]</code> di BERT ma <em>esterno</em> all'input; una MLP a 2 strati con tanh ne ricava i logit di classe.</li>
+          <li><strong>GLUE multi-task (8 task insieme)</strong>: <code>O = 8</code> query, una per task; una MLP per task. Media GLUE 81,8 nel paper, pari ai token specifici per task e sopra gli 81,0 dei modelli separati (Tab. 2).</li>
           <li><strong>Optical flow</strong>: la query combina le <em>feature</em> del punto e le sue coordinate <code>(x, y)</code>.</li>
-          <li><strong>Multimodal autoencoding</strong>: un set di query per modalità (video: una per pixel; audio: una per sample; label: una) con indicatori <code>is_video/is_audio/is_label</code> → <code>O ≈ 804.737</code> totali.</li>
+          <li><strong>Multimodal autoencoding</strong>: un set di query per modalità (video: una per pixel; audio: una per sample; label: una) con indicatori <code>is_video/is_audio/is_label</code> → <code>O ≈ 804.737</code> totali secondo la Fig. 3 (la Tab. 5 conta 803.297 uscite: tornano con 480 elementi audio invece di 1.920).</li>
         </ul>
         <p>Morale: cambiando solo la costruzione delle query (numero <code>O</code> e dimensione <code>E</code>), lo stesso encoder-processor produce token, pixel, etichette o vettori di flusso.</p>
       </details>
@@ -2139,6 +2347,23 @@ Y = Y + MLP(LN(Y))</div>
         <p class="md-caption"><strong>L'asimmetria è tutto il Perceiver IO.</strong> L'encoder <em>comprime</em>: le domande vengono dai 96 latenti, le risposte dai 1.024 pixel. Il decoder <em>riespande</em>: le domande vengono dalle query di output — quante ne vuoi — e le risposte dai latenti. Per questo l'output può avere una forma qualunque senza toccare l'encoder: una classe per CIFAR-10, o 1.024 byte per il masked language model, con la stessa rete in mezzo.</p>
       </div>
 
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Il numero di query non è un iperparametro di capacità: è il numero di uscite che vuoi.</li>
+          <li>Le query dell'MLM non sanno quali byte sono mascherati: sanno solo la posizione. Il contenuto lo trovano nei latenti.</li>
+          <li>Nel multitask ogni query è legata a un task, non a una posizione dell'input: per questo non serve un token [CLS] dentro l'input.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Cosa decide il numero di query O?</summary><p class="qa-a">Quante uscite produce il modello: 1 per una classe, una per posizione nell'MLM, una per pixel nell'optical flow.</p></details>
+        <details class="qa-item"><summary>Come sono fatte le query dell'MLM nel paper e nel tuo progetto?</summary><p class="qa-a">Apprese e dipendenti dalla posizione, una per byte: 2.048 nel paper, 512 nel tuo io_mlm.</p></details>
+        <details class="qa-item"><summary>Cosa cambia fra GLUE single-task e multitask?</summary><p class="qa-a">1 query per modello contro 8 query in un solo modello, una per task. Paper: 81,0 → 81,8. Tuo: 71,13 → 74,05.</p></details>
+        <details class="qa-item"><summary>Che query usa l'optical flow?</summary><p class="qa-a">Le feature dell'input in quel punto più la posizione (x, y), con Fourier features: la query dice al decoder dove guardare.</p></details>
+        <details class="qa-item"><summary>Quanti parametri pesano le query del tuo MLM?</summary><p class="qa-a">512 × 512 = 262.144.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-16">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="16"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -2151,6 +2376,14 @@ Y = Y + MLP(LN(Y))</div>
       <div class="chap-meta"><span class="chap-badge">Cap. 17</span><span class="chap-time">~7 min</span></div>
       <h1>Implementazione pratica: forme, scelte e punti fragili</h1>
       <p class="intro">Questa parte traduce la teoria in controlli pratici. È pensata per evitare gli errori più comuni quando si implementa Perceiver o Perceiver IO in PyTorch.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Controlla le forme: se vedi una matrice M × M, hai fatto self-attention sull'input.</li>
+          <li>Il modulo condiviso si crea una volta sola, fuori dal ciclo delle letture.</li>
+          <li>Nel progetto: bfloat16, gradient clipping a 1, batch 64 (CIFAR-10) e 32 (ModelNet40), una GPU RTX 3080 da 10 GB.</li>
+        </ul>
+      </div>
 
       <h2>Checkpoint delle forme</h2>
       <table>
@@ -2180,6 +2413,29 @@ Y = Y + MLP(LN(Y))</div>
         <div class="lab-readout" id="shapeTracerReadout">Controllo rapido: se trovi una matrice M×M, stai facendo self-attention sull'input.</div>
       </div>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Le forme del nostro e01, con il batch</p>
+        <ol class="passi">
+          <li>Input: B × M × C_tot = <strong>64 × 1.024 × 261</strong>.</li>
+          <li>Latenti replicati sul batch: 64 × 96 × 384.</li>
+          <li>Q: 64 × 96 × 261. K e V: 64 × 1.024 × 261.</li>
+          <li>Attenzione di una lettura: 64 × 96 × 1.024 = <strong>6.291.456</strong> numeri, circa 12,6 MB in bfloat16 (2 byte per numero).</li>
+          <li>Nei blocchi latenti: 64 × 8 teste × 96 × 96 = 4.718.592 numeri.</li>
+          <li>Uscita: 64 × 10 logit.</li>
+        </ol>
+      </div>
+
+      <div class="concept-lab" data-lab="calc-perceiver" data-preset="e01_baseline">
+        <div class="lab-head">
+          <div>
+            <span class="lab-source">calcolatrice · parti dalla tua configurazione</span>
+            <h3>Dal tuo e01 a quello che vuoi</h3>
+            <p>Cambia N, D, T o L e guarda parametri e costo. Il confronto con i parametri contati da PyTorch compare quando la configurazione coincide con una run.</p>
+          </div>
+        </div>
+      </div>
       <h2>La scelta di d_QKV</h2>
       <p>Nel paper originale, per ImageNet, la dimensione interna della cross-attention è scelta come <code>d_QKV = min(D, C_tot)</code>. Con <code>D = 1024</code> e <code>C_tot = 261</code>, si ottiene <code>d_QKV = 261</code>. Questo evita di espandere inutilmente ogni pixel a 1024 dimensioni prima dell'attention.</p>
       <div class="display-eq">d_QKV = min(D, C_tot) = min(1024, 261) = 261</div>
@@ -2209,6 +2465,22 @@ Y = Y + MLP(LN(Y))</div>
       <div class="nota">
         <span class="nota-label">Fonte interna</span>
         <code>appunti_ml_definitivo.tex</code>: forward pass, appunti sul paper originale, note implementative e confronto con il progetto.
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Creare il blocco dentro il ciclo delle letture crea pesi nuovi a ogni lettura: niente weight sharing. e16 ha pesi distinti per scelta, con <code>--no_weight_sharing</code>.</li>
+          <li>I latenti si replicano sul batch con expand: non si crea un parametro per esempio.</li>
+          <li>bfloat16 non ha bisogno del loss scaling; float16 sì.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Come riconosci da una forma che hai sbagliato architettura?</summary><p class="qa-a">Se trovi una matrice di attenzione M × M (1.024 × 1.024 nel tuo caso) stai facendo self-attention sull'input, non un Perceiver.</p></details>
+        <details class="qa-item"><summary>Come si implementa il weight sharing in PyTorch?</summary><p class="qa-a">Si crea il modulo una volta e lo si chiama più volte. I gradienti di ogni chiamata si sommano sullo stesso nn.Parameter.</p></details>
+        <details class="qa-item"><summary>Quanto è grande la matrice di attenzione di una lettura nel tuo e01, con il batch?</summary><p class="qa-a">64 × 96 × 1.024 ≈ 6,3 milioni di numeri, circa 12,6 MB in bfloat16.</p></details>
+        <details class="qa-item"><summary>Quali scelte ti hanno fatto stare in una GPU da 10 GB?</summary><p class="qa-a">bfloat16, batch 64 su CIFAR-10 e 32 su ModelNet40, niente accumulo del gradiente. Il gradient clipping a 1 serve invece alla stabilità.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -2263,7 +2535,7 @@ Y = Y + MLP(LN(Y))</div>
           <tr><td>Cosa sono i latenti?</td><td>Parametri appresi, condivisi tra esempi, usati come memoria compatta interrogabile dall'input.</td></tr>
           <tr><td>Da dove vengono Q, K, V nella cross-attention?</td><td><code>Q</code> dai latenti; <code>K,V</code> dall'input arricchito con Fourier features.</td></tr>
           <tr><td>Perceiver vs Perceiver IO?</td><td>Il primo fa pooling e classificazione; IO aggiunge un decoder a cross-attention con output queries.</td></tr>
-          <tr><td>Perché niente dropout?</td><td>Bottleneck latente, weight sharing, weight decay e augmentation già regolarizzano molto.</td></tr>
+          <tr><td>Perché niente dropout?</td><td>Il paper l'ha provato e le prestazioni peggioravano (p. 17). Bottleneck latente, weight sharing e augmentation regolarizzano già.</td></tr>
         </table>
       </details>
 
@@ -2275,6 +2547,18 @@ Y = Y + MLP(LN(Y))</div>
       <div class="nota">
         <span class="nota-label">Riferimenti laterali</span>
         Softmax, Fourier features, Cross-Entropy, LayerNorm, attivazioni, residual e ottimizzatori non sono più nel percorso principale: li trovi come riferimenti teorici nella barra laterale e nel pannello a destra.
+      </div>
+
+      <h2>Autoverifica: i numeri da sapere</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Quanti pixel ha un'immagine ImageNet e quanti latenti usa il Perceiver?</summary><p class="qa-a">50.176 pixel (224 × 224) e 512 latenti da 1.024 numeri.</p></details>
+        <details class="qa-item"><summary>Quanti canali ha un pixel dopo le Fourier features, e quanto vale d_QKV?</summary><p class="qa-a">261 canali (3 + 2 · 129). d_QKV = min(261, 1.024) = 261.</p></details>
+        <details class="qa-item"><summary>Quante letture e quanti blocchi latenti esegue il modello ImageNet?</summary><p class="qa-a">8 letture e 48 blocchi, di cui solo 6 distinti grazie al weight sharing.</p></details>
+        <details class="qa-item"><summary>Parametri e FLOPs del modello, con e senza sharing?</summary><p class="qa-a">44,9 M e 326,2 M di parametri. 707,2 miliardi di FLOPs in entrambi i casi (Tab. 7).</p></details>
+        <details class="qa-item"><summary>Top-1 su ImageNet, normale e con pixel permutati?</summary><p class="qa-a">78,0 e 78,0. ResNet-50 con Fourier features: 73,5 e 39,4.</p></details>
+        <details class="qa-item"><summary>Risultati su ModelNet40 e AudioSet?</summary><p class="qa-a">ModelNet40 85,7% (PointNet++ 91,9). AudioSet 38,3 mAP con audio grezzo, 43,5 con audio e video.</p></details>
+        <details class="qa-item"><summary>Perceiver IO su GLUE sui byte?</summary><p class="qa-a">81,0 di media, contro 71,5 di un BERT sui byte con gli stessi FLOPs e 81,1 di BERT Base sui token.</p></details>
+        <details class="qa-item"><summary>Perceiver IO sull'optical flow?</summary><p class="qa-a">EPE 1,81 su Sintel.clean e 2,42 su Sintel.final, meglio di RAFT (1,95 e 2,57). Su KITTI 4,98 contro 4,23 di RAFT.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -4615,6 +4899,14 @@ S_{ij} & j \le i \\
       <div class="chap-meta"><span class="chap-badge">Rif. 22</span><span class="chap-time">~5 min</span></div>
       <h1>Riferimento: Perceiver IO — Risultati Sperimentali</h1>
       <p class="intro">Stessa architettura, output query diverse, task radicalmente diversi. Questi numeri dimostrano la generalità del Perceiver IO.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>GLUE sui byte: 81,0 di media, come BERT Base sui token (81,1). Un BERT sui byte con gli stessi FLOPs fa 71,5.</li>
+          <li>Optical flow: EPE 1,81 su Sintel.clean e 2,42 su Sintel.final, meglio di RAFT; su KITTI no (4,98 contro 4,23).</li>
+          <li>Kinetics: una sola rete ricostruisce video, audio e label cambiando solo le query.</li>
+        </ul>
+      </div>
 
       <div class="concept-lab io-results-lab" data-lab="io-results">
         <div class="lab-head">
@@ -4634,13 +4926,73 @@ S_{ij} & j \le i \\
       </div>
 
       <h2>Messaggio chiave</h2>
-      <p>Lo stesso modello — stessa architettura encoder-process-decode, stessi pesi — adattato solo tramite le output query e le proiezioni di ingresso/uscita:</p>
+      <p>La stessa architettura encoder-process-decode, addestrata a parte per ogni task, adattata solo tramite le output query e le proiezioni di ingresso e uscita:</p>
       <ul>
-        <li><strong>Optical flow</strong>: query = coordinate pixel + feature immagine → AEE 1.81 Sintel Clean</li>
-        <li><strong>Language MLM</strong>: query = posizioni byte mascherati → BPC 1.74</li>
-        <li><strong>Multimodal autoencoding</strong>: query = indicatori modalità → video/audio/label simultaneamente</li>
+        <li><strong>Optical flow</strong>: query = feature del pixel + coordinate → EPE 1,81 su Sintel.clean e 2,42 su Sintel.final (Tab. 3)</li>
+        <li><strong>Linguaggio</strong>: query di posizione per il pre-training MLM, poi una query per task su GLUE → media 81,0 sui byte (Tab. 1)</li>
+        <li><strong>Autoencoding multimodale</strong>: query con indicatore di modalità → video, audio e label dalla stessa rete (Tab. 4)</li>
       </ul>
 
+
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Perché Perceiver IO può leggere i byte (Tab. 1)</p>
+        <ol class="passi">
+          <li>Sui byte le sequenze sono circa 4 volte più lunghe: 2.048 byte invece di 512 token.</li>
+          <li>Un BERT sui byte con gli stessi FLOPs deve rimpicciolirsi: 6 strati e 20 M di parametri. Media GLUE <strong>71,5</strong>.</li>
+          <li>Perceiver IO porta 2.048 byte in 256 latenti. La cross-attention costa 2.048 × 256 = 524.288 punteggi, 8 volte meno di 2.048² = 4.194.304.</li>
+          <li>Così può permettersi 26 strati latenti e 201 M di parametri con 113 miliardi di FLOPs. Media GLUE <strong>81,0</strong>.</li>
+          <li>È la media di BERT Base sui token SentencePiece (81,1): senza tokenizzatore, stessa qualità.</li>
+          <li>Con 40 strati e D = 1.536, Perceiver IO++ arriva a <strong>81,8</strong>, con 425 M di parametri e 241 miliardi di FLOPs.</li>
+        </ol>
+      </div>
+
+      <details class="deep-dive">
+        <summary>Le tabelle del paper, per task (valori verificati sul PDF)</summary>
+        <p><strong>Tab. 1 — GLUE (dev), media sugli 8 task.</strong> Confronto a parità di FLOPs.</p>
+        <table>
+          <thead><tr><th>Modello</th><th>Input</th><th>M</th><th>N</th><th>Strati</th><th>Parametri</th><th>FLOPs</th><th>Media</th></tr></thead>
+          <tbody>
+            <tr><td>BERT Base (nostra reimpl.)</td><td>SentencePiece</td><td>512</td><td>512</td><td>12</td><td>110M</td><td>109B</td><td>81,1</td></tr>
+            <tr><td>Perceiver IO Base</td><td>SentencePiece</td><td>512</td><td>256</td><td>26</td><td>223M</td><td>119B</td><td>81,2</td></tr>
+            <tr><td>BERT (stessi FLOPs)</td><td>byte UTF-8</td><td>2048</td><td>2048</td><td>6</td><td>20M</td><td>130B</td><td>71,5</td></tr>
+            <tr><td><strong>Perceiver IO</strong></td><td>byte UTF-8</td><td>2048</td><td>256</td><td>26</td><td>201M</td><td>113B</td><td><strong>81,0</strong></td></tr>
+            <tr><td>Perceiver IO++</td><td>byte UTF-8</td><td>2048</td><td>256</td><td>40</td><td>425M</td><td>241B</td><td>81,8</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Tab. 14 — GLUE per task.</strong> CoLA in Matthews, STS-B in Pearson, gli altri in accuracy.</p>
+        <table>
+          <thead><tr><th>Modello</th><th>CoLA</th><th>MNLI m/mm</th><th>MRPC</th><th>QNLI</th><th>QQP</th><th>RTE</th><th>SST-2</th><th>STS-B</th><th>Media</th></tr></thead>
+          <tbody>
+            <tr><td>BERT Base (nostra reimpl.)</td><td>50,28</td><td>85,56/85,68</td><td>85,75</td><td>92,67</td><td>91,05</td><td>61,72</td><td>93,98</td><td>88,04</td><td>81,14</td></tr>
+            <tr><td>Perceiver IO (byte)</td><td>50,19</td><td>83,22/83,89</td><td>87,24</td><td>91,71</td><td>90,12</td><td>64,84</td><td>93,17</td><td>86,81</td><td>80,95</td></tr>
+            <tr><td>Perceiver IO, query multitask</td><td>47,88</td><td>82,05/82,77</td><td>90,36</td><td>90,37</td><td>89,49</td><td>80,08</td><td>93,75</td><td>79,95</td><td>81,79</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Tab. 15 — quanti latenti</strong> (FLOPs circa costanti): N = 128, 256, 512 con D = 1920, 1280, 896 → media GLUE 75,84, <strong>80,95</strong>, 80,92.</p>
+        <p><strong>Tab. 3 — optical flow</strong> (EPE, più basso è meglio; tutti addestrati su AutoFlow):</p>
+        <table>
+          <thead><tr><th>Rete</th><th>Sintel.clean</th><th>Sintel.final</th><th>KITTI</th></tr></thead>
+          <tbody>
+            <tr><td>PWCNet</td><td>2,17</td><td>2,91</td><td>5,76</td></tr>
+            <tr><td>RAFT</td><td>1,95</td><td>2,57</td><td><strong>4,23</strong></td></tr>
+            <tr><td><strong>Perceiver IO</strong></td><td><strong>1,81</strong></td><td><strong>2,42</strong></td><td>4,98</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Tab. 4 — autoencoding su Kinetics-700</strong> (latente da 512 canali):</p>
+        <table>
+          <thead><tr><th>Compressione</th><th>Latenti</th><th>PSNR audio</th><th>PSNR video</th><th>Top-1 label</th></tr></thead>
+          <tbody>
+            <tr><td>88×</td><td>784</td><td>26,97</td><td>24,37</td><td>10,2%</td></tr>
+            <tr><td>176×</td><td>392</td><td>25,33</td><td>24,27</td><td>8,6%</td></tr>
+            <tr><td>352×</td><td>196</td><td>14,15</td><td>23,21</td><td>11,5%</td></tr>
+          </tbody>
+        </table>
+        <p>Pesando di più la loss della classe: 45% top-1 con 20,7 dB di PSNR video.</p>
+        <p><strong>Tab. 7 — ImageNet</strong> (stessa ricetta di training per i due modelli): Perceiver 78,6% (42,1M, 404B FLOPs), Perceiver IO 79,0% (48,4M, 407B). Con pre-training su JFT: Perceiver IO 84,5%; con preprocessing convoluzionale e pre-training 86,4%.</p>
+        <p><strong>Tab. 9 — StarCraft II</strong>: al posto dell'encoder di entità di AlphaStar, stessa win rate (0,87) con FLOPs da 3,3B a 0,93B.</p>
+        <p><strong>Tab. 10 — AudioSet</strong> (audio + video): Perceiver 43,6 mAP, Perceiver IO 44,9 mAP con spettrogramma mel.</p>
+      </details>
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>Nessun componente domain-specific aggiunto. L'adattamento avviene interamente attraverso le <strong>output query</strong>. Questo è il contributo centrale del paper: <em>one architecture, many outputs</em>.</p>
@@ -4648,6 +5000,24 @@ S_{ij} & j \le i \\
 
       <div class="paper-fig-label">📄 Dal paper originale</div>
       <figure class="paper-fig"><img src="../immagini/papers/perceiverio_optical_flow.png" alt="Optical flow di Perceiver IO" loading="lazy"><figcaption>Flusso ottico denso predetto da Perceiver IO (codifica a colori): stato dell'arte su Sintel trattando l'output come decodifica di query strutturate. — «Perceiver IO» (Jaegle et al., 2021, arXiv:2107.14795)</figcaption></figure>
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>I risultati GLUE sono sul dev set, con la migliore combinazione di iperparametri scelta task per task.</li>
+          <li>Il confronto di Tab. 1 è a parità di FLOPs, non di parametri: Perceiver IO ha 201 M di parametri, il BERT sui byte 20 M.</li>
+          <li>Optical flow: Perceiver IO è il migliore su Sintel, non su KITTI.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Quanto fa Perceiver IO su GLUE sui byte, e contro cosa?</summary><p class="qa-a">81,0 di media. Un BERT sui byte con gli stessi FLOPs fa 71,5; BERT Base sui token SentencePiece 81,1.</p></details>
+        <details class="qa-item"><summary>Perché il paper confronta a parità di FLOPs e non di parametri?</summary><p class="qa-a">I FLOPs crescono col quadrato della lunghezza e dicono quanto costa il training; i parametri no.</p></details>
+        <details class="qa-item"><summary>Quali sono i numeri dell'optical flow?</summary><p class="qa-a">EPE 1,81 su Sintel.clean e 2,42 su Sintel.final, migliori di RAFT (1,95 e 2,57). Su KITTI 4,98 contro 4,23 di RAFT.</p></details>
+        <details class="qa-item"><summary>Cosa mostra la Tab. 15 sul numero di latenti?</summary><p class="qa-a">Con FLOPs circa costanti, N = 128, 256, 512 danno 75,84, 80,95 e 80,92: 256 latenti bastano.</p></details>
+        <details class="qa-item"><summary>Quanto guadagna il multitask, nel paper e nel tuo progetto?</summary><p class="qa-a">Paper: da 81,0 a 81,8 con le query per task. Tuo: da 71,13 a 74,05, ma quasi tutto dai task piccoli (STS-B, RTE, MRPC).</p></details>
+        <details class="qa-item"><summary>Cosa ha fatto Perceiver IO su StarCraft II?</summary><p class="qa-a">Ha sostituito l'encoder di entità di AlphaStar con la stessa win rate (0,87) e FLOPs scesi da 3,3 a 0,93 miliardi.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-40">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="40"><span class="check"></span><span class="check-label">Ho capito</span></label>

@@ -3042,9 +3042,9 @@ tr.rq-todo td {
 }
 
 .cv-rank-row i { width: 12px; height: 3px; border-radius: 2px; flex: none; }
-.cv-rank-row code { flex: 1; font-size: .8rem; }
+.cv-rank-row code { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: .8rem; }
 .cv-rank-row strong { font-variant-numeric: tabular-nums; }
-.cv-rank-ep { color: var(--muted); font-size: .76rem; min-width: 68px; text-align: right; }
+.cv-rank-ep { color: var(--muted); font-size: .76rem; min-width: 60px; text-align: right; white-space: nowrap; }
 
 .cv-caption { font-size: .9rem; color: var(--text-soft); }
 

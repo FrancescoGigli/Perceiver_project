@@ -1736,37 +1736,38 @@ const LAB_SOURCE_REFS = {
     const readout = document.getElementById('ioResultsReadout');
     if (!tableWrap) return;
 
+    // Numeri delle Tab. 1, 3 e 4 di Perceiver IO (Jaegle et al., 2022).
     const DATA = {
       flow: {
-        caption: 'Optical Flow — Average Endpoint Error ↓ (pixel)',
-        headers: ['Modello', 'Sintel Clean AEE ↓', 'Sintel Final AEE ↓', 'Tipo'],
+        caption: 'Optical flow — EPE, errore medio in pixel, più basso è meglio (Tab. 3)',
+        headers: ['Modello', 'Sintel.clean', 'Sintel.final', 'KITTI', 'Tipo'],
         rows: [
-          ['Perceiver IO', '1.81', '2.42', 'Generale', true],
-          ['RAFT', '1.43', '2.71', 'Specializzato', false],
-          ['PWC-Net', '2.55', '3.93', 'Specializzato', false],
-          ['FlowNet2', '3.96', '6.02', 'Specializzato', false]
+          ['Perceiver IO', '1,81', '2,42', '4,98', 'Generale', true],
+          ['RAFT', '1,95', '2,57', '4,23', 'Specializzato', false],
+          ['PWCNet', '2,17', '2,91', '5,76', 'Specializzato', false]
         ],
-        readout: 'Optical flow: il Perceiver IO supera RAFT su Sintel Final (il benchmark più difficile) pur essendo un modello generale.'
+        readout: 'Optical flow: Perceiver IO è il migliore su Sintel (1,81 e 2,42), non su KITTI (4,98 contro 4,23 di RAFT). Tutti addestrati su AutoFlow.'
       },
       language: {
-        caption: 'Language Modeling — Bits Per Character ↓',
-        headers: ['Modello', 'BPC ↓', 'Granularità', 'Parametri'],
+        caption: 'GLUE (dev) — media sugli 8 task, più alto è meglio (Tab. 1)',
+        headers: ['Modello', 'Input', 'Parametri', 'FLOPs', 'Media'],
         rows: [
-          ['Perceiver IO', '1.74', 'byte', '201M', true],
-          ['BERT-base', '1.69', 'subword', '110M', false],
-          ['ByT5-base', '1.38', 'byte', '582M', false]
+          ['Perceiver IO', 'byte', '201M', '113B', '81,0', true],
+          ['Perceiver IO++', 'byte', '425M', '241B', '81,8', true],
+          ['BERT (stessi FLOPs)', 'byte', '20M', '130B', '71,5', false],
+          ['BERT Base', 'SentencePiece', '110M', '109B', '81,1', false]
         ],
-        readout: 'Language: competitivo con BERT-base nonostante lavori a livello di byte, senza tokenizzazione specializzata.'
+        readout: 'Linguaggio: sui byte un BERT con gli stessi FLOPs fa 71,5; Perceiver IO 81,0, come BERT Base sui token (81,1).'
       },
       multimodal: {
-        caption: 'Multimodal Autoencoding (Kinetics-700)',
-        headers: ['Modalità output', 'Metodo di query', 'Risultato'],
+        caption: 'Autoencoding multimodale su Kinetics-700 (Tab. 4)',
+        headers: ['Compressione', 'PSNR audio', 'PSNR video', 'Top-1 label'],
         rows: [
-          ['Video (RGB)', 'coordinate frame+pixel', 'qualità competitiva', true],
-          ['Audio (raw)', 'timestamp audio', 'qualità competitiva', true],
-          ['Class label', 'token di classe', 'accuracy ImageNet-level', true]
+          ['88×', '26,97', '24,37', '10,2%', true],
+          ['176×', '25,33', '24,27', '8,6%', true],
+          ['352×', '14,15', '23,21', '11,5%', true]
         ],
-        readout: "Multimodal: stessa rete, stessi pesi — tre modalità gestite cambiando solo l'output query al decoder."
+        readout: 'Multimodale: una sola rete ricostruisce video, audio e label cambiando le query. Pesando di più la classe: 45% top-1 con 20,7 dB di PSNR video.'
       }
     };
 
