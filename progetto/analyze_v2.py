@@ -291,7 +291,7 @@ def print_io_section(results, band):
     mlm = results.get("io_mlm")
     if mlm is not None and not _is_missing(_acc(mlm)):
         print(f"   io_mlm: accuratezza sui byte mascherati {_fmt_pct(_acc(mlm))} "
-              f"(a caso: 0.39%, cioe' 1/256)")
+              f"(caso uniforme 0.39%; baseline senza rete: python baseline_mlm.py)")
     for task in ("sst2", "rte"):
         pre = _acc_of(results, f"io_glue_{task}")
         scr = _acc_of(results, f"io_glue_{task}_scratch")

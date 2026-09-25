@@ -28,7 +28,9 @@ def get_base_config():
                         help='Permute the token axis after the PE is generated')
     parser.add_argument('--permute_pixels_seed', type=int, default=42,
                         help='Seed of the fixed token permutation')
-    parser.add_argument('--modelnet40_fourier_bands', type=int, default=64, help='Number of Fourier bands for ModelNet40 PE')
+    parser.add_argument('--modelnet40_fourier_bands', type=int, default=6,
+                        help='Fourier bands per axis for the ModelNet40 PE: 3*(2K+1) channels, 39 with K=6 '
+                             '(the paper uses 64; the mn* runs used 6)')
     parser.add_argument('--modelnet40_max_freq', type=float, default=1120.0, help='Max frequency for ModelNet40 Fourier PE')
     parser.add_argument('--modelnet40_num_points', type=int, default=2048, help='Number of points for ModelNet40')
 
@@ -65,7 +67,8 @@ def get_base_config():
     parser.add_argument('--use_rotation', action='store_true',
                         help='ModelNet40: random point-cloud rotation')
     parser.add_argument('--use_translation', action='store_true',
-                        help='ModelNet40: random per-point translation')
+                        help='ModelNet40: random shift of the whole cloud (+/-0.02). The re-centring that '
+                             'follows undoes it: unlike the per-point jitter of the paper, it never reaches the model')
     parser.add_argument('--output_pooling', type=str, default='mean', choices=['mean', 'cls'], help='Method to pool latents for classification: mean or cls (CLS token)')
     parser.add_argument('--no_positional_encoding', action='store_true', help='Disable positional encoding, use only RGB patches')
     parser.add_argument('--num_output_queries', type=int, default=1, help='Number of output queries for Perceiver-IO')
@@ -74,7 +77,8 @@ def get_base_config():
     parser.add_argument('--mlm_vocab_size', type=int, default=256, help='Vocabulary size for MLM (byte-level uses 256)')
     parser.add_argument('--text_seq_len', type=int, default=2048, help='Sequence length for byte-level MLM')
     parser.add_argument('--mlm_mask_prob', type=float, default=0.15, help='Mask probability for MLM')
-    parser.add_argument('--text_fourier_dim', type=int, default=64, help='Fourier dim for text positional encoding')
+    parser.add_argument('--text_fourier_bands', type=int, default=6,
+                        help='Fourier bands for the 1D text PE: 2K+1 channels, 13 with K=6 (input 257+13=270)')
     parser.add_argument('--text_max_freq', type=float, default=64.0, help='Max frequency for text positional encoding')
     parser.add_argument('--wikitext2_zip_path', type=str, default=None, help='Optional path to local wikitext-2-v1.zip')
     parser.add_argument('--wikitext103_zip_path', type=str, default=None, help='Optional path to local wikitext-103-v1.zip')

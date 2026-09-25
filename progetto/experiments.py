@@ -32,6 +32,9 @@ BASE = [
 
 # Config base per gli esperimenti su POINT CLOUD (ModelNet40, paper Tab. 4):
 # 2 cross-attend, 6 self-attn per blocco, 2048 punti, LAMB lr 1e-3.
+# Fourier 3D a 6 bande per asse fino a 1120: 3 + 3*(2*6+1) = 42 canali per punto.
+# Il paper usa 64 bande; le run mn01-mn03 sono state prodotte con 6, e il registro
+# lo dichiara invece di lasciarlo a un default.
 BASE_MODELNET = [
     "--dataset", "modelnet40",
     "--num_latents", "128",
@@ -40,6 +43,8 @@ BASE_MODELNET = [
     "--num_transformer_blocks", "6",
     "--num_heads_cross", "1",
     "--num_heads_self", "8",
+    "--modelnet40_fourier_bands", "6",
+    "--modelnet40_max_freq", "1120.0",
     "--dropout", "0.0",
     "--optimizer", "lamb",
     "--lr", "0.001",
@@ -87,6 +92,8 @@ BASE_IO_CIFAR = [
 
 # Encoder condiviso da MLM e GLUE: la lunghezza di sequenza DEVE coincidere fra
 # pre-training e fine-tuning, altrimenti i positional encoding non si trasferiscono.
+# Ogni byte entra come one-hot da 257 (256 byte + maschera) piu' un Fourier 1D a
+# 6 bande (13 canali): 270 canali in tutto.
 _IO_TEXT_ENCODER = [
     "--model_type", "perceiver_io",
     "--num_latents", "128",
@@ -96,7 +103,7 @@ _IO_TEXT_ENCODER = [
     "--num_heads", "8",
     "--dropout", "0.1",
     "--text_seq_len", "512",
-    "--text_fourier_dim", "64",
+    "--text_fourier_bands", "6",
     "--text_max_freq", "64.0",
     "--optimizer", "lamb",
     "--batch_size_cifar10", "32",   # riusato come batch dei dataset testuali
@@ -147,7 +154,10 @@ BASE_MULTITASK = [
     "--lr", "0.0005",
     "--num_workers", "2",
     "--text_seq_len", "512",
-    "--max_steps_per_epoch", "4000",   # senza, QQP e MNLI dominerebbero il campionamento
+    # Tetto di passi per epoca: accorcia l'epoca, NON riequilibra i task. Il
+    # campionamento resta proporzionale alla taglia (QQP + MNLI = 80% dei batch):
+    # in 10 epoche ogni task vede circa 1,35 passate sui propri dati.
+    "--max_steps_per_epoch", "4000",
 ]
 
 
@@ -292,7 +302,7 @@ def run(experiment_id):
 # Soglia sotto la quale una run e' considerata crollata al livello del caso.
 # Dipende dal task: 0.5 vale per CIFAR-10 (caso = 0.10) e ModelNet40 (0.025), non
 # per GLUE, dove i task binari hanno il caso proprio a 0.50, MNLI a 0.33 e STS-B e'
-# una regressione il cui "accuracy" e' -loss (negativo). Applicare 0.5 anche li'
+# una regressione misurata con la correlazione di Pearson. Applicare 0.5 anche li'
 # marcherebbe ogni run GLUE come divergita' e --next resterebbe in loop su di essa.
 _COLLAPSE_FLOOR = {
     "image": 0.5,

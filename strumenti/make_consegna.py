@@ -1,8 +1,8 @@
-# tools/make_consegna.py
+# strumenti/make_consegna.py
 # Costruisce la cartella di consegna: SOLO il codice, pronto per la repo privata.
 #
-#   python tools/make_consegna.py                 # cartella + zip
-#   python tools/make_consegna.py --keep-comments # senza spogliare i commenti
+#   python strumenti/make_consegna.py                 # cartella + zip
+#   python strumenti/make_consegna.py --keep-comments # senza spogliare i commenti
 #
 # Cosa fa, in ordine:
 #   1. copia da progetto/ i soli file TRACCIATI da git
@@ -24,7 +24,7 @@ import tokenize
 import zipfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]   # tools/ -> radice del repo
+ROOT = Path(__file__).resolve().parents[1]   # strumenti/ -> radice del repo
 SOURCE = ROOT / "progetto"
 
 

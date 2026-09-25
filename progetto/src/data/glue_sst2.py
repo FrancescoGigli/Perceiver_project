@@ -41,8 +41,8 @@ class SST2Dataset(Dataset):
         return torch.tensor(bytes_list, dtype=torch.long), torch.tensor(label, dtype=torch.long)
 
 class SST2PerceiverDataModule:
-    def __init__(self, data_dir, batch_size=64, num_workers=4, seq_len=512, 
-                 fourier_dim=64, max_frequencies=64, num_frequency_bands=6,
+    def __init__(self, data_dir, batch_size=64, num_workers=4, seq_len=512,
+                 max_frequencies=64, num_frequency_bands=6,
                  use_positional_encoding=True):
         self.data_dir = data_dir
         self.sst2_dir = os.path.join(data_dir, 'SST-2')
@@ -51,7 +51,6 @@ class SST2PerceiverDataModule:
         self.seq_len = seq_len
         
         # Positional Encoding settings
-        self.fourier_dim = fourier_dim
         self.max_frequencies = max_frequencies
         self.num_frequency_bands = num_frequency_bands
         self.use_positional_encoding = use_positional_encoding

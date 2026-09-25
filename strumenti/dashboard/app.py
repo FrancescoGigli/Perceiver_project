@@ -131,7 +131,9 @@ def setup_nostro(e):
         ("T", val("--num_cross_attend_stages")), ("l", val("--num_transformer_blocks")),
         # Senza questi, le run di Fig. 6 sembrerebbero tutte identiche al baseline:
         # il loro unico override e' proprio qui.
-        ("K", val("--fourier_num_bands")), ("f_max", val("--fourier_max_freq")),
+        ("K", val("--fourier_num_bands") or val("--modelnet40_fourier_bands")
+              or val("--text_fourier_bands")),
+        ("f_max", val("--fourier_max_freq") or val("--modelnet40_max_freq")),
         ("init", val("--latent_init_scale")),
     ) if v]
     if dims:

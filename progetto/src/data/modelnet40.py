@@ -17,7 +17,6 @@ class ModelNet40PerceiverDataModule:
                  batch_size=32,
                  num_workers=4,
                  num_points=1024,
-                 fourier_dim=128,
                  max_frequencies=10,
                  num_frequency_bands=6,
                  augment_train=True,
@@ -32,16 +31,15 @@ class ModelNet40PerceiverDataModule:
             batch_size: Batch size
             num_workers: Number of workers for DataLoader
             num_points: Number of points per point cloud
-            fourier_dim: Dimension of Fourier positional encoding
             max_frequencies: Maximum frequency for Fourier encoding
-            num_frequency_bands: Number of frequency bands for Fourier encoding
+            num_frequency_bands: Frequency bands per axis; the encoding has 3*(2K+1) channels
+                (fourier_dim, derived), and each point gets 3 + fourier_dim values
             augment_train: Whether to apply data augmentation to the training set
         """
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.num_points = num_points
-        self.fourier_dim = fourier_dim
         self.max_frequencies = max_frequencies
         self.num_frequency_bands = num_frequency_bands
         self.augment_train = augment_train
@@ -60,11 +58,14 @@ class ModelNet40PerceiverDataModule:
             T.NormalizeScale(),
         ])
         
-        # Point cloud augmentation (separate from torch_geometric transforms)  
+        # Point cloud augmentation (separate from torch_geometric transforms).
+        # Same ranges as the paper, but applied to the whole cloud, not per point:
+        # the normalisation at the end of ModelNet40Augmentation undoes scale and
+        # translation (see transforms.py). Only rotation reaches the model.
         self.train_augmentation = ModelNet40Augmentation(
             augment=augment_train,
-            scale_min=0.99,  # Paper specification
-            scale_max=1.01,  # Paper specification
+            scale_min=0.99,
+            scale_max=1.01,
             use_translation=use_translation,
             translate_range=translate_range,
             use_rotation=use_rotation

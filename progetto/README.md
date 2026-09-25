@@ -33,6 +33,7 @@ progetto/
 ├── experiments.py              # registro delle run + runner (--list/--run/--next/--all/--group)
 ├── multitask_glue.py           # Perceiver IO multitask sugli 8 task GLUE (paper IO Tab. 2)
 ├── baseline_cnn.py             # baseline ResNet-18 su CIFAR-10 (termine di paragone)
+├── baseline_mlm.py             # baseline senza rete per l'MLM: byte piu' frequente, tabella dei vicini
 ├── check.py                    # stato delle run: fatte / da fare / divergite (sola lettura)
 ├── analyze_v2.py               # analisi comparativa dei risultati vs baseline (sola lettura)
 ├── bench.py                    # micro-benchmark: VRAM di picco e tempo/batch
@@ -44,7 +45,7 @@ progetto/
     ├── perceiver_io/           # perceiver_io.py  (decoder con output queries)
     ├── data/                   # cifar10.py, modelnet40.py, transforms.py, wikitext103.py, glue_tasks.py, glue_sst2.py
     ├── config/base_cfg.py      # configurazione centralizzata (argparse)
-    └── utils/                  # positional_encoding, learned_pe, scheduler, logger, seed
+    └── utils/                  # positional_encoding, scheduler, logger, seed
 ```
 
 I dati (`data/`) e i risultati (`logs/`) **non** sono nel repo: vedi
@@ -59,7 +60,8 @@ Ogni esperimento parte da una base e ne cambia solo alcuni parametri
 |---|---|---|
 | latent (N × D) | 96 × 384 | 128 × 512 |
 | cross-attend (T) / self-attn per blocco (L) | 4 / 4 | 2 / 6 |
-| Fourier (bande K, f_max) | 64, 16 | — |
+| Fourier (bande K, f_max) | 64, 16 | 6, 1120 (il paper: 64) |
+| canali per elemento | 3 + 258 = 261 | 3 + 39 = 42 |
 | ottimizzatore / lr | LAMB / 0.004 | LAMB / 0.001 |
 | epoche / batch | 120 / 64 | 120 / 32 |
 | seed | 42 | 42 |
@@ -162,6 +164,36 @@ python check.py --csv results_reference.csv   # esporta tutti i numeri in un CSV
 originali (test/val accuracy, epoca selezionata, parametri, seed): è la fonte dei
 numeri citati nella presentazione e serve a confrontare una run rilanciata con
 quella originale senza dover rifare tutto.
+
+Per leggere l'86,68% del pre-training MLM serve un termine di paragone migliore
+del caso uniforme (0,39%). `baseline_mlm.py` lo calcola senza rete, sugli stessi
+file e con lo stesso mascheramento (circa 15 secondi, niente GPU):
+
+```bash
+python baseline_mlm.py   # sempre il byte più frequente 19,07% · tabella dei vicini 42,96%
+```
+
+## Differenze note rispetto ai paper
+
+Oltre alla scala (una GPU invece di 512 core TPU), quattro scelte si discostano
+dai paper. Sono dichiarate qui perché i risultati sono stati prodotti così:
+
+- **Fourier a 6 bande su ModelNet40 e sul testo** (il paper: 64). Ogni punto 3D
+  ha 3 + 39 = 42 canali, ogni byte 257 + 13 = 270. Il registro lo dichiara
+  esplicitamente (`--modelnet40_fourier_bands 6`, `--text_fourier_bands 6`).
+- **Augmentation di ModelNet40 sull'oggetto intero.** Scala e traslazione
+  spostano tutta la nuvola, e la normalizzazione che segue (ricentra, raggio 1)
+  le annulla: arriva al modello solo la rotazione. Il paper applica scala e
+  traslazione a ogni punto. Di conseguenza `mn03_translation` è di fatto una
+  replica di `mn01_baseline`.
+- **MLM su byte singoli.** Il 15% dei byte viene mascherato in modo indipendente;
+  il paper maschera parole intere. Il compito è più facile, ed è per questo che
+  la tabella dei vicini arriva già al 42,96%.
+- **Padding GLUE non mascherato.** Le frasi sono completate con byte 0 fino a
+  512 e il cross-attention li vede; nel pre-training il padding non c'era.
+
+ModelNet40 non ha una split di validation: l'epoca migliore è scelta sul test set
+(87,36%). L'ultima epoca, senza selezione, fa 86,43%.
 
 ## Mappe d'attenzione
 

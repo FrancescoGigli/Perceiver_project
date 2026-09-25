@@ -1,34 +1,22 @@
 # check.py
 # Dashboard delle run v2: quali sono fatte, il loro test accuracy, quali sono
-# divergite (nan) e quali mancano ancora. Legge logs/<id>/results.json e scansiona
-# lo stdout salvato per il marcatore "nan". Sola lettura, non lancia nulla.
+# divergite (nan) e quali mancano ancora. L'unica fonte e' logs/<id>/results.json:
+# una run divergente ma protetta ha comunque un test_accuracy valido, preso dal
+# checkpoint scelto prima della divergenza. Sola lettura, non lancia nulla.
 #
 #   python check.py            # tabella di stato di tutte le 42 run
 #   python check.py --watch e01_baseline   # segue una run finche' non finisce o diverge
 #   python check.py --csv results_reference.csv   # esporta i numeri di ogni results.json
 
 import argparse
-import glob
 import json
 import os
-import re
-import sys
 import time
 
 from experiments import EXPERIMENTS
 
 GROUP_OF = {e["id"]: e["group"] for e in EXPERIMENTS}
 ORDER = [e["id"] for e in EXPERIMENTS]
-
-
-def _tail_has_nan(experiment_id):
-    """True se l'ultimo log di training della run contiene 'nan' (divergenza)."""
-    logs = glob.glob(os.path.join("logs", experiment_id, "events.out.tfevents.*"))
-    # I tfevents sono binari; il segnale affidabile e' results.json + il json stesso.
-    # Qui controlliamo solo il json: una run divergente ma protetta ha comunque un
-    # test_accuracy valido (checkpoint pre-divergenza). Il nan si vede nello stdout,
-    # che non e' catturato in modo stabile: usiamo results.json come verita'.
-    return False
 
 
 def _status_of(experiment_id):
@@ -99,8 +87,8 @@ def export_csv(path):
 
 
 def watch(experiment_id, poll_seconds=30):
-    """Segue una run: stampa l'ultima epoca dallo stdout del processo, esce quando
-    compare results.json (fine) oppure 'nan' (divergenza)."""
+    """Segue una run: ogni poll_seconds ricontrolla results.json ed esce quando
+    compare (fine) o quando riporta un'accuratezza nan (divergenza)."""
     print(f"watching {experiment_id} (Ctrl-C per uscire)")
     while True:
         stato, acc, ep = _status_of(experiment_id)

@@ -638,13 +638,13 @@
 \end{frame}
 
 % -- Slide 14b: Implementation Differences from the Paper --
-\begin{frame}[shrink=11]{Implementation Differences from the Paper}
+\begin{frame}[shrink=17]{Implementation Differences from the Paper}
   \vspace{0.15em}
   \begin{table}
     \centering\scriptsize
     \begin{tabular}{>{\raggedright\arraybackslash}p{0.20\textwidth}>{\raggedright\arraybackslash}p{0.34\textwidth}>{\raggedright\arraybackslash}p{0.38\textwidth}}
       \toprule
-      \textbf{Choice} & \textbf{Original paper (ImageNet)} & \textbf{This project} \\
+      \textbf{Choice} & \textbf{Original paper} & \textbf{This project} \\
       \midrule
       Input tokenization &
       Raw pixels, no patching ($M=50{,}176$) &
@@ -659,8 +659,12 @@
       $4$ (CIFAR-10), $2$ (ModelNet40) --- and $T$ is itself an ablation axis \\
       \addlinespace[2pt]
       Positional encoding &
-      2D Fourier, $K=64$ bands/axis ($258$ dims) &
-      \textbf{Identical}: 2D Fourier, $K=64$ bands/axis, $258$ dims $+$ 3 RGB $=261$ \\
+      Fourier, $K=64$ bands/axis (ImageNet: $258$ dims; ModelNet40 too) &
+      CIFAR-10 \textbf{identical}: $258$ dims $+$ 3 RGB $=261$. ModelNet40 and text: \textbf{$K=6$} ($3+39=42$ per point, $257+13=270$ per byte) \\
+      \addlinespace[2pt]
+      Augmentation, masking &
+      ModelNet40: scale and shift jittered \emph{per point}. MLM: 15\% of \emph{whole words} masked &
+      Scale and shift of the \emph{whole} cloud, undone by the normalisation. MLM: 15\% of \emph{single bytes} --- an easier task \\
       \addlinespace[2pt]
       Weight sharing &
       On by default (shared across $T$) &
@@ -668,7 +672,7 @@
       \addlinespace[2pt]
       Model selection &
       --- &
-      \textbf{Validation carved from train} (45k/5k/10k); test touched once \\
+      \textbf{Validation carved from train} (45k/5k/10k); test touched once. ModelNet40 has no validation split: epoch picked on test \\
       \addlinespace[2pt]
       Parameters &
       $30$--$200\text{M}+$ &
@@ -741,7 +745,7 @@
 \end{frame}
 
 % ── The noise band ───────────────────────────────────────────────────────────
-\begin{frame}[shrink=5]{The Noise Band: How Much Does a Number Move on Its Own?}
+\begin{frame}[shrink=11]{The Noise Band: How Much Does a Number Move on Its Own?}
   \lead{Three runs, identical in everything but the seed, land 2.78 points apart. Read every other comparison against that.}
   \begin{columns}[T]
     \begin{column}{0.52\textwidth}
@@ -778,6 +782,9 @@
 
       \vspace{0.3em}
       \scriptsize The band depends on the metric: 2.78pp on test accuracy, 2.94pp on best validation, 3.24pp on final validation. The conclusions do not change.
+
+      \vspace{0.2em}
+      \texttt{e01} is the \emph{luckiest} of the three seeds. Measured from their mean (70.48\%) instead, \texttt{e12} and \texttt{e14} fall back inside: 10 runs clear the band, not 12.
     \end{column}
   \end{columns}
 \end{frame}
@@ -791,7 +798,8 @@
     \end{column}
     \begin{column}{0.27\textwidth}
       \small
-      \textbf{24 runs, 12 conclusive}
+      \textbf{24 runs, 12 conclusive}\\
+      {\scriptsize 10 against the three-seed mean}
 
       \vspace{0.3em}
       \begin{itemize}
@@ -888,7 +896,7 @@
     \begin{column}{0.48\textwidth}
       \colhead{The one conclusive result}
         \small
-        At $T=4$, interleaving beats front-loading by \textbf{4.44pp} --- outside the band. Re-reading the input \emph{after} the latents have been refined lets each pass look for something different.
+        At $T=4$, interleaving beats front-loading by \textbf{4.44pp} --- outside the band, even measured from the three-seed mean ($3.29$pp). Re-reading the input \emph{after} the latents have been refined lets each pass look for something different.
       
     \end{column}
     \begin{column}{0.48\textwidth}
@@ -991,8 +999,8 @@
           Latent array & $128 \times 512$ \\
           Cross-attn / blocks & 2 / 6 \\
           Points per model & 2\,048 \\
-          Input per point & 387 dims \\
-          Fourier bands / max f & 64 / 1120 \\
+          Input per point & 42 dims ($3 + 39$) \\
+          Fourier bands / max f & \textbf{6} / 1120 (paper: 64) \\
           Optimizer / lr & LAMB / 0.001 \\
           Batch (paper: 512) & \textbf{32} \\
           Epochs & 120 \\
@@ -1002,7 +1010,7 @@
       \end{table}
 
       \vspace{0.2em}
-      \scriptsize \textbf{Metric note:} ModelNet40 has no separate validation split --- the standard test set (2\,468 objects) \emph{is} the validation set, so the figure is \texttt{val\_accuracy} at the best epoch.
+      \scriptsize \textbf{Metric note:} ModelNet40 has no separate validation split --- the standard test set (2\,468 objects) \emph{is} the validation set, so the figure is \texttt{val\_accuracy} at the best epoch. The last epoch, with no selection at all, gives \textbf{86.43\%}.
     \end{column}
     \begin{column}{0.52\textwidth}
       \includegraphics[width=\textwidth,height=0.60\textheight,keepaspectratio]{modelnet40_correct.png}
@@ -1010,7 +1018,7 @@
       \vspace{0.2em}
       \colhead{Above the paper}
         \small
-        \textbf{87.36\%} vs the paper's \textbf{85.7\%}, with a batch $16\times$ smaller. Plausible: ModelNet40 is small and its objects arrive canonically aligned, so the large-batch advantage that dominates ImageNet counts for little here.
+        \textbf{87.36\%} vs the paper's \textbf{85.7\%}, with a batch $16\times$ smaller --- and still above at the last epoch. Plausible: ModelNet40 is small and its objects arrive canonically aligned, so the large-batch advantage that dominates ImageNet counts for little here.
       
     \end{column}
   \end{columns}
@@ -1018,7 +1026,7 @@
 
 % ── ModelNet40 augmentation ──────────────────────────────────────────────────
 \begin{frame}[shrink=5]{ModelNet40: Rotation Costs 13 Points --- and Why}
-  \lead{Translation is free. Rotation costs 13.29 points — and the reason is the positional encoding again.}
+  \lead{Rotation costs 13.29 points — the positional encoding again. Scale and translation never reach the network.}
   \begin{columns}[T]
     \begin{column}{0.46\textwidth}
       \begin{table}
@@ -1027,18 +1035,18 @@
           \toprule
           \textbf{Augmentation} & \textbf{Accuracy} & \textbf{$\Delta$} \\
           \midrule
-          scale only & \textbf{87.36\%} & --- \\
-          $+$ translation & 87.20\% & $-0.16$ \\
+          scale only$^{*}$ & \textbf{87.36\%} & --- \\
+          $+$ translation$^{*}$ & 87.20\% & $-0.16$ \\
           $+$ rotation & \textcolor{AccentRed}{74.07\%} & \textcolor{AccentRed}{\textbf{$-13.29$}} \\
           \bottomrule
         \end{tabular}
       \end{table}
 
       \vspace{0.4em}
-      \colhead{The largest effect in the whole project}
+      \colhead{$^{*}$\,Two of the three runs see the same data}
         \small
-        And the one with the cleanest theoretical explanation.
-      
+        The normalisation re-centres each cloud and rescales it to unit radius, so a scale or a shift of the \emph{whole} cloud is undone before the model sees it --- the paper jitters \emph{each point} instead. \texttt{mn01} and \texttt{mn03} are therefore a free replica: $0.16$pp is seed noise.
+
     \end{column}
     \begin{column}{0.50\textwidth}
       \colhead{The Perceiver has no rotational inductive bias}
@@ -1046,8 +1054,8 @@
         3D Fourier PE encodes \textbf{absolute} position. Rotating an object changes every coordinate --- and therefore every encoding --- while the label stays the same. The network must learn from scratch an invariance the architecture does not grant, and that this task does not even need: ModelNet40 objects are already canonically aligned.
 
         \vspace{0.4em}
-        Translation is nearly harmless ($-0.16$) because it shifts all points equally: the \emph{relative} structure survives.
-      
+        Here the axis is arbitrary in 3D and the rotation is applied in training only: the test objects stay upright. The paper also found that rotation did not help.
+
 
       \vspace{0.2em}
       \scriptsize \textbf{Takeaway:} a missing inductive bias cannot be patched with augmentation.
@@ -1205,7 +1213,7 @@
 \end{frame}
 
 % ── MLM ──────────────────────────────────────────────────────────────────────
-\begin{frame}[shrink=12]{WikiText-103: Byte-Level Masked Language Model}
+\begin{frame}[shrink=18]{WikiText-103: Byte-Level Masked Language Model}
   \lead{Pre-train a language encoder with no tokenizer at all: the input is the raw UTF-8 byte stream.}
   \begin{columns}[T]
     \begin{column}{0.46\textwidth}
@@ -1220,14 +1228,16 @@
           Heads (cross / self) & 1 / 8 \\
           Sequence length & 512 bytes \\
           Vocabulary & $256 + 1$ mask \\
-          Masking rate & 15\% \\
+          Masking & 15\% of single bytes \\
           Output queries & one per position \\
           Optimizer / lr & LAMB / 0.001 \\
           Epochs / batch & 10 / 32 \\
           Parameters & 18\,872\,740 \\
           \midrule
           \textbf{Masked-byte accuracy} & \textbf{86.68\%} \\
-          Chance level ($1/256$) & 0.39\% \\
+          Lookup of the two neighbours & 42.96\% \\
+          Always a space (most frequent) & 19.07\% \\
+          Uniform chance ($1/256$) & 0.39\% \\
           \bottomrule
         \end{tabular}
       \end{table}
@@ -1235,7 +1245,7 @@
     \begin{column}{0.50\textwidth}
       \colhead{Where the decoder finally earns its keep}
         \small
-        \textbf{$\sim$222$\times$ better than chance}, reading raw UTF-8 with \textbf{no tokenizer at all}. Nearly nine masked bytes out of ten reconstructed.
+        Nearly nine masked bytes out of ten, reading raw UTF-8 with \textbf{no tokenizer at all} --- \textbf{44 points above} a lookup table of the two neighbouring bytes. That gap is what the long context buys.
       
 
       \vspace{0.3em}
@@ -1247,7 +1257,7 @@
       \vspace{0.3em}
       \alerthead{Read this number carefully}
         \scriptsize
-        Masked-\emph{byte} accuracy is not comparable to masked-\emph{token} accuracy: the space is 256, not tens of thousands. It shows the pre-training worked --- the comparison with BERT lives on GLUE.
+        We mask \emph{single bytes}, the paper \emph{whole words}: a masked byte usually keeps its neighbours, which is why the lookup already reaches 42.96\% (\texttt{baseline\_mlm.py}). Nor is it comparable to masked-\emph{token} accuracy --- the comparison with BERT lives on GLUE.
       
     \end{column}
   \end{columns}
@@ -1325,7 +1335,7 @@
 \end{frame}
 
 % ── GLUE multitask (paper IO, Tab. 2) ────────────────────────────────────────
-\begin{frame}[shrink=14]{GLUE Multitask: the Comparison That Replicates Best}
+\begin{frame}[shrink=26]{GLUE Multitask: the Comparison That Replicates Best}
   \lead{One model with eight output queries against eight separate fine-tunings — the comparison from Table 2 of the IO paper.}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.56\textwidth}
@@ -1338,7 +1348,13 @@
 
         \vspace{0.3em}
         The absolute level stays $\sim$8 points below. But \textbf{sign and order of magnitude hold} --- and that relation, not the level, is what Tab.~2 claims.
-      
+
+
+      \vspace{0.3em}
+      \colhead{Where the gain sits}
+        \small
+        All on the small tasks --- STS-B $+16.9$, RTE $+7.6$, MRPC $+6.1$ --- which see only 1.35 passes over their own data. The large ones lose 2 to 3.6 points; CoLA stays at the majority class in both.
+
 
       \vspace{0.3em}
       \colhead{Not a fair fight --- in our favour}
@@ -1412,8 +1428,8 @@
       \midrule
       Images (CIFAR-10) & Perceiver & 72.91\% & 93.61\%$^{\dagger}$ & \textbf{24} runs \\
       Images (CIFAR-10) & Perceiver IO & 71.79\% & 71.63\% (Perceiver) & 2 \\
-      Point Clouds (ModelNet40) & Perceiver & \textbf{87.36\%} & 85.7\% & 3 augmentations \\
-      Text (WikiText-103) & Perceiver IO & \textbf{86.68\%} MLM & 0.39\% chance & 1 \\
+      Point Clouds (ModelNet40) & Perceiver & \textbf{87.36\%} & 85.7\% & 3 \\
+      Text (WikiText-103) & Perceiver IO & \textbf{86.68\%} MLM & 42.96\% lookup & 1 \\
       NLU (GLUE, 8 tasks) & Perceiver IO & 71.13 mean & 81.0 (paper) & 11 \\
       Images (CIFAR-10) & ResNet-18 & \textbf{93.61\%} & --- & 1 \\
       \bottomrule
@@ -1427,11 +1443,11 @@
     \begin{column}{0.48\textwidth}
       \textbf{What is measured}
       \begin{itemize}\small
-        \item ModelNet40 \textbf{beats} the paper: $+$1.66pp
-        \item Byte-level MLM works: 86.68\% against a 0.39\% chance level
+        \item ModelNet40 \textbf{beats} the paper: $+$1.66pp ($+$0.73 at the last epoch)
+        \item Byte-level MLM: 86.68\%, 44pp above a neighbour lookup
         \item One multitask model beats eight separate ones: 74.05 vs 71.13
         \item Noise band \textbf{2.78pp}, measured on 3 seed replicas
-        \item 12 of 24 CIFAR runs are conclusive
+        \item 12 of 24 CIFAR runs are conclusive (10 against the seed mean)
       \end{itemize}
     \end{column}
     \begin{column}{0.48\textwidth}
@@ -1452,7 +1468,7 @@
 \section{Conclusion}
 
 % ── Slide 29: Gap vs Original Paper ─────────────────────────────────────────────
-\begin{frame}[shrink=22]{Gap vs Original Papers}
+\begin{frame}[shrink=28]{Gap vs Original Papers}
   \lead{On the modality with the weakest domain prior we beat the paper. On the one with the strongest, a convolutional net of the same size beats us.}
   \begin{columns}[T]
     \begin{column}{0.48\textwidth}
@@ -1473,7 +1489,7 @@
 
       \vspace{0.3em}
       \textbf{We are above the paper.}\\
-      With a batch $16\times$ smaller (32 vs 512). Plausible because ModelNet40 is small and canonically aligned, so the large-batch advantage counts for little.
+      With a batch $16\times$ smaller (32 vs 512). Plausible because ModelNet40 is small and canonically aligned, so the large-batch advantage counts for little. The epoch is picked on the test set; the last one, 86.43\%, is still above.
     \end{column}
     \begin{column}{0.48\textwidth}
       \textbf{CIFAR-10 (Images):}
@@ -1587,7 +1603,7 @@
 \end{frame}
 
 % ── Slide 32: Lessons Learned ───────────────────────────────────────────────────
-\begin{frame}[shrink=17]{Empirical Summary}
+\begin{frame}[shrink=29]{Empirical Summary}
   \lead{Everything measured, split by whether it survived the noise band.}
   \begin{columns}[T]
     \begin{column}{0.48\textwidth}
@@ -1607,6 +1623,7 @@
         \item Permutation invariance, with \emph{both} positional encodings
         \item Weight sharing: $3.1\times$ fewer parameters at no measurable cost
         \item Perceiver IO vs Perceiver on images: $+0.16$pp
+        \item ModelNet40 translation: $-0.16$pp --- undone by the normalisation, a free replica
       \end{itemize}
 
       \vspace{0.4em}
@@ -1622,7 +1639,7 @@
 
   \vspace{0.5em}
   \colhead{Central methodological finding}
-    Measuring the \textbf{noise band} --- three replicas differing only by seed --- cost two runs and changed the status of all the others. Without it, 12 of the 24 comparisons would have been reported as effects when they are variance.
+    Measuring the \textbf{noise band} --- three replicas differing only by seed --- cost two runs and changed the status of all the others. Without it, 12 of the 24 comparisons (14 against the seed mean) would have been reported as effects when they are variance.
   
 \end{frame}
 

@@ -431,8 +431,8 @@ def test_glue_and_mlm_build_the_same_input_representation():
     from src.data.glue_tasks import GLUEPerceiverDataModule
     from src.data.wikitext103 import WikiText103PerceiverDataModule
 
-    kw = dict(seq_len=64, fourier_dim=64, max_frequencies=64.0)
-    mlm = WikiText103PerceiverDataModule(data_dir="./data", num_frequency_bands=6, **kw)
+    kw = dict(seq_len=64, max_frequencies=64.0, num_frequency_bands=6)
+    mlm = WikiText103PerceiverDataModule(data_dir="./data", **kw)
     glue = GLUEPerceiverDataModule(task_name="rte", data_dir="./data", **kw)
     sst2 = SST2PerceiverDataModule(data_dir="./data", **kw)
 
@@ -635,7 +635,7 @@ def test_ogni_datamodule_glue_dichiara_num_classes():
     attese = {"cola": 2, "sst2": 2, "mrpc": 2, "stsb": 1,
               "qqp": 2, "mnli": 3, "qnli": 2, "rte": 2}
     comune = dict(data_dir="./data", batch_size=32, num_workers=0, seq_len=512,
-                  fourier_dim=64, max_frequencies=64.0)
+                  max_frequencies=64.0, num_frequency_bands=6)
     for task in TASKS:
         dm = (SST2PerceiverDataModule(**comune) if task == "sst2"
               else GLUEPerceiverDataModule(task_name=task, **comune))
@@ -664,3 +664,47 @@ def test_multitask_non_hardcoda_un_altro_ottimizzatore():
     sorgente = _io.open("multitask_glue.py", encoding="utf-8").read()
     assert "custom_optim.Lamb(" in sorgente, "multitask_glue non costruisce LAMB"
     assert "torch.optim.AdamW" not in sorgente, "AdamW e' tornato nel multitask"
+
+
+# --- larghezza d'ingresso delle run: il registro deve riprodurla ------------
+# ModelNet40 e testo sono stati prodotti con 6 bande Fourier (config.txt: Input
+# dimension 42 e 270), mentre i flag dicevano 64 e venivano ignorati. Ora le bande
+# passano davvero dal registro: un default cambiato in futuro non deve far girare
+# una configurazione diversa da quella dei risultati presentati.
+def _args_of(exp_id):
+    from experiments import command_for
+    cmd = command_for(next(e for e in EXPERIMENTS if e["id"] == exp_id))
+    return get_base_config().parse_args(cmd[2:])   # cmd = [python, script, *flag]
+
+
+def test_il_registro_riproduce_la_larghezza_d_ingresso_delle_run():
+    from src.data.glue_tasks import GLUEPerceiverDataModule
+    from src.data.modelnet40 import ModelNet40PerceiverDataModule
+    from src.data.wikitext103 import WikiText103PerceiverDataModule
+
+    mn = _args_of("mn01_baseline")
+    points = ModelNet40PerceiverDataModule(max_frequencies=mn.modelnet40_max_freq,
+                                           num_frequency_bands=mn.modelnet40_fourier_bands)
+    assert 3 + points.fourier_dim == 42          # logs/mn01_baseline/config.txt
+
+    for exp_id in ("io_mlm", "io_glue_rte"):
+        a = _args_of(exp_id)
+        kw = dict(seq_len=a.text_seq_len, max_frequencies=a.text_max_freq,
+                  num_frequency_bands=a.text_fourier_bands)
+        text = (WikiText103PerceiverDataModule(**kw) if exp_id == "io_mlm"
+                else GLUEPerceiverDataModule(task_name="rte", data_dir="./data", **kw))
+        assert text.input_dim == 270, exp_id     # logs/io_mlm/config.txt
+
+
+# --- baseline senza rete dell'MLM: il termine di paragone citato nelle slide ---
+def test_la_baseline_mlm_usa_i_vicini_e_il_protocollo_di_mascheramento():
+    """Su un testo periodico 'abc' la tabella dei vicini indovina quasi ogni byte
+    mascherato, il byte piu' frequente circa uno su tre, il caso uniforme 1/256."""
+    import numpy as np
+    from baseline_mlm import count_triples, evaluate
+
+    text = np.frombuffer(b"abc" * 4000, dtype=np.uint8)
+    res = evaluate(text, count_triples(text), seq_len=64, mask_prob=0.15, seed=0)
+    assert res["uniform"] == pytest.approx(1 / 256)
+    assert 0.25 < res["always_most_frequent"] < 0.42
+    assert res["neighbours"] > 0.95

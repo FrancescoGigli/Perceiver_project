@@ -57,7 +57,8 @@ def build_datamodules(args):
     for task in TASKS:
         common = dict(data_dir=args.data_dir, batch_size=args.batch_size,
                       num_workers=args.num_workers, seq_len=args.text_seq_len,
-                      fourier_dim=args.text_fourier_dim, max_frequencies=args.text_max_freq)
+                      max_frequencies=args.text_max_freq,
+                      num_frequency_bands=args.text_fourier_bands)
         dm = (SST2PerceiverDataModule(**common) if task == "sst2"
               else GLUEPerceiverDataModule(task_name=task, **common))
         dm.setup()
@@ -159,11 +160,14 @@ def main():
     parser.add_argument("--num_heads", type=int, default=8)
     parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--text_seq_len", type=int, default=512)
-    parser.add_argument("--text_fourier_dim", type=int, default=64)
+    parser.add_argument("--text_fourier_bands", type=int, default=6,
+                        help="bande del Fourier 1D: 2K+1 canali, come nel pre-training MLM")
     parser.add_argument("--text_max_freq", type=float, default=64.0)
     parser.add_argument("--optimizer", default="lamb")
     parser.add_argument("--max_steps_per_epoch", type=int, default=4000,
-                        help="i task grandi (QQP, MNLI) dominerebbero: si campiona")
+                        help="tetto di passi per epoca: accorcia l'epoca, non riequilibra i task "
+                             "(il campionamento resta proporzionale alla taglia: QQP e MNLI "
+                             "sono circa l'80%% dei batch)")
     args = parser.parse_args()
 
     set_global_seed(args.seed)

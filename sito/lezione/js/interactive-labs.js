@@ -2260,21 +2260,25 @@ const LAB_SOURCE_REFS = {
 
     var DATA = {
       io: "<div class='exp-caption'>Perceiver IO su CIFAR-10 — decoder a query contro mean-pooling</div>"
-        + "<div class='exp-pending'>"
-        + "<p><strong>Questo confronto non è ancora disponibile.</strong> Le due run che lo producono &mdash; <code>io01_cifar</code> e la sua replica <code>io02_cifar_seed1</code> &mdash; sono nel registro ma non sono state eseguite.</p>"
-        + "<p>La domanda a cui risponderanno: <em>sostituire il mean-pooling dei latenti con un decoder a una sola output query cambia l'accuratezza, a parità di encoder?</em> Il Perceiver IO su immagini non dovrebbe guadagnare granché &mdash; il decoder serve quando l'output è <strong>strutturato</strong>, non quando è una singola classe. Il valore dell'esperimento è proprio verificare che il decoder <em>non costi</em> nulla quando non serve.</p>"
+        + "<div class='exp-table-wrap'><table class='exp-table'>"
+        + "<thead><tr><th>Run</th><th>Uscita</th><th>Test acc.</th><th>Epoca</th><th>Parametri</th></tr></thead><tbody>"
+        + "<tr><td><code>e01_baseline</code></td><td>mean-pooling (Perceiver)</td><td>71.63%</td><td>92</td><td>10.175.362</td></tr>"
+        + "<tr class='exp-best'><td><code>io01_cifar</code></td><td>decoder, 1 output query</td><td><strong>71.79%</strong></td><td>73</td><td>12.049.922</td></tr>"
+        + "<tr><td><code>io02_cifar_seed1</code></td><td>replica, seed 1</td><td>71.69%</td><td>108</td><td>12.049.922</td></tr>"
+        + "</tbody></table></div>"
+        + "<div class='exp-takeaway'><strong>Nessuna differenza, come previsto:</strong> +0,16 punti, dentro la banda di 2,78. Il decoder serve quando l'output è <strong>strutturato</strong>; per una singola classe interrogare i latenti con una query o farne la media è la stessa cosa. Il valore dell'esperimento è proprio questo: il decoder <em>non costa</em> nulla quando non serve."
         + "<p class='exp-warn'>Una versione precedente di questa pagina riportava qui &laquo;+8,51 punti a favore del decoder&raquo;. Quel numero veniva da una run della prima generazione, in cui il test set era usato anche come validation: <strong>è stato rimosso</strong>, non aggiornato.</p>"
         + "</div>",
-      text: "<div class='exp-caption'>Perceiver IO sul testo — MLM byte-level su WikiText-103</div>"
+      text: "<div class='exp-caption'>Perceiver IO sul testo — MLM byte-level su WikiText-103, poi GLUE</div>"
         + "<div class='exp-table-wrap'><table class='exp-table'>"
-        + "<thead><tr><th>Fase</th><th>Cosa misura</th><th>Risultato</th><th>Epoca</th><th>Parametri</th></tr></thead><tbody>"
-        + "<tr class='exp-best'><td>Pre-training MLM</td><td>accuratezza sui byte mascherati</td><td><strong>86.68%</strong></td><td>10</td><td>18.872.740</td></tr>"
-        + "<tr class='exp-pending-row'><td>Fine-tuning GLUE (8 task)</td><td>media confrontabile con la Tab. 1 del paper IO</td><td colspan='3'>&#9203; 0 task su 8 eseguiti</td></tr>"
-        + "<tr class='exp-pending-row'><td>Controlli senza pre-training</td><td>quanto vale davvero il transfer</td><td colspan='3'>&#9203; da eseguire (SST-2 e RTE)</td></tr>"
-        + "<tr class='exp-pending-row'><td>Multitask (Tab. 2 del paper IO)</td><td>una query per task, un solo modello</td><td colspan='3'>&#9203; da eseguire</td></tr>"
+        + "<thead><tr><th>Fase</th><th>Cosa misura</th><th>Risultato</th><th>Riferimento</th></tr></thead><tbody>"
+        + "<tr class='exp-best'><td>Pre-training MLM</td><td>byte mascherati indovinati</td><td><strong>86.68%</strong></td><td>tabella dei vicini 42,96% &middot; sempre lo spazio 19,07%</td></tr>"
+        + "<tr><td>Fine-tuning GLUE (8 task)</td><td>media sul dev set</td><td><strong>71,13</strong></td><td>paper 81,0 (byte) &middot; BERT 81,1</td></tr>"
+        + "<tr><td>Controlli senza pre-training</td><td>quanto vale il transfer</td><td>SST-2 +20,98 &middot; RTE +3,97</td><td>59,75% &rarr; 80,73% &middot; 52,71% &rarr; 56,68%</td></tr>"
+        + "<tr><td>Multitask (Tab. 2 del paper IO)</td><td>un modello, una query per task</td><td><strong>74,05</strong></td><td>+2,92 sugli otto separati (paper +0,8)</td></tr>"
         + "</tbody></table></div>"
-        + "<div class='exp-takeaway'><strong>Cosa dice il numero che abbiamo:</strong> 86.68% di accuratezza nel ricostruire byte mascherati. Il riferimento non è 100%, è il <strong>caso</strong>: con un vocabolario di 256 byte, indovinare a caso dà <strong>0,39%</strong>. Il modello fa circa <strong>222 volte</strong> meglio del caso, senza alcun tokenizer, leggendo UTF-8 grezzo. È la prova che l'encode-process-decode regge anche sul testo &mdash; il che rende la pipeline davvero multimodale, non solo dichiaratamente."
-        + "<p class='exp-warn'>Le otto righe GLUE che comparivano qui (QQP 75,65%, CoLA 69,13%, &hellip;, MNLI 46,47%) erano della prima generazione e <strong>sono state rimosse</strong>. Finché le run non girano, la media GLUE del progetto non esiste: scriverne una stimata sarebbe inventarla.</p>"
+        + "<div class='exp-takeaway'><strong>Come si leggono:</strong> l'86,68% va confrontato con una tabella dei byte vicini (42,96%, <code>baseline_mlm.py</code>), non con il caso uniforme dello 0,39%: la rete fa 44 punti in più, ed è il contesto lungo. Su GLUE due numeri su otto non sono apprendimento (CoLA e MRPC sono la classe maggioritaria), quindi la media poggia su sei task; il multitask guadagna tutto sui task piccoli."
+        + "<p class='exp-warn'>Le otto righe GLUE di prima generazione (QQP 75,65%, &hellip;, MNLI 46,47%) venivano da un codice in cui l'input di GLUE non coincideva con quello del pre-training: <strong>sono state rimosse</strong>, e questi numeri vengono dal codice corretto.</p>"
         + "</div>"
     };
 
@@ -2321,7 +2325,7 @@ const LAB_SOURCE_REFS = {
       exp2_learned_pe_permuted_evolution: "Learned PE + permutazione: le posizioni apprese si scombinano, attenzione meno coerente.",
       exp4A_weight_sharing_control_evolution: "Weight sharing control: attenzione con pesi condivisi (config base).",
       exp4B_no_weight_sharing_evolution: "Senza weight sharing (8.67M par): blocchi indipendenti, piu' parametri.",
-      exp3B_rgb_only_evolution: "RGB-only (senza positional encoding): l'attenzione non si localizza, resta quasi uniforme per tutto il training. Lettura qualitativa: la run equivalente in v2 (e29_no_pe) non e' ancora stata eseguita.",
+      exp3B_rgb_only_evolution: "RGB-only (senza positional encoding): l'attenzione non si localizza, resta quasi uniforme per tutto il training. Lettura qualitativa: la run equivalente in v2 (e29_no_pe) fa 32,36%, e la sua attenzione segue i confini di colore (9,83 bit su un massimo di 10).",
       ps_exp1: "Stile-Perceiver — baseline Fourier (epoca 41).",
       ps_exp6: "Stile-Perceiver — Fourier permutato (epoca 101): attenzione strutturata nonostante la permutazione dei pixel.",
       ps_exp2: "Stile-Perceiver — learned PE permutato (epoca 81).",
@@ -2330,7 +2334,7 @@ const LAB_SOURCE_REFS = {
       ps_exp4A: "Stile-Perceiver — weight sharing control (epoca 41).",
       ps_exp4B: "Stile-Perceiver — senza weight sharing (epoca 61).",
       modelnet_attn_baseline: "ModelNet40 — point cloud 3D colorato per attenzione ricevuta (mn01_baseline, 87,36%): i latenti si concentrano su spigoli ed estremità dell'oggetto.",
-      modelnet_attn_with_translation: "ModelNet40 — scala + traslazione (mn03, 87,20%): stessa lettura 3D dell'oggetto, solo 0,16 punti sotto il riferimento.",
+      modelnet_attn_with_translation: "ModelNet40 — scala + traslazione (mn03, 87,20%): di fatto la stessa run del riferimento, perche' la normalizzazione annulla la traslazione; i 0,16 punti di scarto sono varianza.",
       modelnet_attn_with_rotation: "ModelNet40 — scala + rotazione (mn02, 74,07%): l'attenzione resta sui punti salienti, ma l'accuratezza crolla di 13,29 punti — il Perceiver non ha bias induttivo rotazionale.",
       cm_exp6_ep1: "exp6 (Fourier permutato) — epoca 1: matrice quasi diffusa, il modello non distingue ancora le classi.",
       cm_exp6_ep20: "exp6 — epoca 20: la diagonale inizia a emergere, l'accuracy cresce.",

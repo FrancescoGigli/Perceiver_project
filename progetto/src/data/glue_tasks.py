@@ -204,7 +204,7 @@ class GLUEPerceiverDataModule:
     """DataModule per tutti i task GLUE: download, preprocessing e batching.
     (Classe semplice: non usava nulla di pytorch_lightning oltre al nome.)"""
     def __init__(self, task_name, data_dir, batch_size=64, num_workers=4, seq_len=512,
-                 fourier_dim=64, max_frequencies=64, num_frequency_bands=6,
+                 max_frequencies=64, num_frequency_bands=6,
                  use_positional_encoding=True):
         assert task_name in GLUE_TASKS, f"Unknown GLUE task: {task_name}. Available: {list(GLUE_TASKS.keys())}"
         
@@ -217,7 +217,6 @@ class GLUEPerceiverDataModule:
         self.seq_len = seq_len
         
         # Positional Encoding settings
-        self.fourier_dim = fourier_dim
         self.max_frequencies = max_frequencies
         self.num_frequency_bands = num_frequency_bands
         self.use_positional_encoding = use_positional_encoding

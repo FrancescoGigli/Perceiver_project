@@ -22,7 +22,7 @@ cartella di consegna.
 Pubblicato su GitHub Pages: **https://francescogigli.github.io/Perceiver_project/**
 
 - **[Lezione interattiva](https://francescogigli.github.io/Perceiver_project/sito/lezione/)** — 52 capitoli, laboratori manipolabili. È il punto di partenza.
-- **[Slide](https://francescogigli.github.io/Perceiver_project/sito/slide/)** — il deck d'esame, 38 pagine
+- **[Slide](https://francescogigli.github.io/Perceiver_project/sito/slide/)** — il deck d'esame, 41 pagine
 - **[Dispensa](https://francescogigli.github.io/Perceiver_project/sito/appunti_ml_definitivo.pdf)** — 211 pagine di appunti
 
 Le cartelle di figure sono cinque perché hanno origini diverse, non per
@@ -33,7 +33,7 @@ scaricate dai paper, disegnate a mano, prodotte dalle run).
 sito/
 ├── lezione/                    la lezione interattiva: index.html + css/ + js/
 │   └── figure_bibliografia/      66 figure dai paper, usate solo dall'atlante
-├── slide/                      deck d'esame: .tex, PDF (38 pp.), PPTX gemello
+├── slide/                      deck d'esame: .tex, PDF (41 pp.), PPTX gemello
 ├── appunti_ml_definitivo.tex   la dispensa, sorgente
 ├── appunti_ml_definitivo.pdf   la dispensa compilata, 211 pagine
 │
@@ -67,7 +67,7 @@ python experiments.py --next          # stato + lancia la prima mancante
 
 python check.py                       # quali sono fatte, quali mancano
 python analyze_v2.py                  # confronto con la banda di rumore
-python -m pytest tests/ -q            # 53 test
+python -m pytest tests/ -q            # 55 test
 ```
 
 > I comandi vanno lanciati con `cwd = progetto/`.
@@ -82,16 +82,18 @@ tranne il seed danno 71,63% / 68,85% / 70,97%: l'escursione è **2,78 punti
 percentuali**. Qualunque differenza più piccola non è un effetto, è varianza.
 
 Delle 24 run su CIFAR-10, **12 escono dalla banda** — le altre sono dichiarate
-non concludenti invece di essere presentate come tendenze.
+non concludenti invece di essere presentate come tendenze. Il riferimento e01
+è però il più fortunato dei tre seed: contro la loro media (70,48%) le run fuori
+banda sono 10, perché e12 ed e14 rientrano. Le conclusioni non cambiano.
 
 Risultati principali:
 
 | | |
 |---|---|
-| ModelNet40 | **87,36%** — sopra il paper (85,7%) |
+| ModelNet40 | **87,36%** — sopra il paper (85,7%); epoca scelta sul test, l'ultima fa 86,43% |
 | CIFAR-10, migliore | 72,91% con un solo cross-attend |
 | CIFAR-10, riferimento | 71,63% |
-| Pre-training MLM byte-level | **86,68%** contro lo 0,39% del caso |
+| Pre-training MLM byte-level | **86,68%** contro il 42,96% di una tabella dei byte vicini (19,07% rispondendo sempre "spazio") |
 | Perceiver IO vs Perceiver su immagini | 71,79% vs 71,63% — nessuna differenza |
 | GLUE, media sugli 8 task | 71,13 contro 81,0 del paper (due task degeneri, vedi sotto) |
 | Quanto vale il pre-training MLM | SST-2 59,75% → **80,73%**; RTE 52,71% → 56,68% |
@@ -127,7 +129,18 @@ qui 74,05 contro 71,13, cioè **+2,92**. Il livello assoluto è ~8 punti sotto e
 si colma — 18,9M parametri pre-addestrati su WikiText-103 contro 201M su
 Wikipedia + C4 — ma segno e ordine di grandezza dell'effetto tengono, e il
 multitask vince pur avendo una sola selezione dell'epoca contro le otto dei
-modelli separati.
+modelli separati. La media però nasconde dove sta il guadagno: tutto nei task
+piccoli (STS-B +16,9, RTE +7,6, MRPC +6,1), mentre i grandi perdono qualcosa
+(SST-2 −3,6, QQP −2,0, MNLI −1,9) e CoLA resta sulla classe maggioritaria anche
+qui. I task piccoli vedono appena 1,35 passate sui propri dati contro le 30
+epoche dei modelli separati: il guadagno viene plausibilmente dai task grandi e
+affini (MNLI per RTE, QQP per MRPC e STS-B).
+
+**Quattro differenze dai paper**, oltre alla scala, sono elencate in
+[progetto/README.md](progetto/README.md#differenze-note-rispetto-ai-paper):
+Fourier a 6 bande su ModelNet40 e testo (il paper: 64), scala e traslazione di
+ModelNet40 annullate dalla normalizzazione, MLM su byte singoli invece che su
+parole intere, padding GLUE non mascherato.
 
 ## Riferimenti
 

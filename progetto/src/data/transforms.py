@@ -128,16 +128,18 @@ class ModelNet40Augmentation:
             points = torch.from_numpy(points).float()
 
         if self.augment:
-            # Apply scaling (always applied when augment=True)
+            # Scale and translation act on the WHOLE cloud (one factor, one shift).
+            # normalize_point_cloud below re-centres it and rescales it to unit
+            # radius, so both are undone exactly: the model never sees them.
+            # (The paper jitters each point independently, which normalisation
+            # does not undo.) Rotation keeps centroid and radius, so it survives.
             points = scale_point_cloud(points, self.scale_min, self.scale_max)
-            
-            # Apply translation if enabled
+
             if self.use_translation:
                 points = translate_point_cloud(points, self.translate_range)
-            
-            # Apply rotation if enabled
+
             if self.use_rotation:
                 points = rotate_point_cloud(points)
-        
+
         points = normalize_point_cloud(points) # Always normalize
         return points

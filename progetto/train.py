@@ -78,9 +78,8 @@ def main(args):
             batch_size=args.batch_size_modelnet40,
             num_workers=args.num_workers,
             num_points=args.modelnet40_num_points,
-            fourier_dim=args.modelnet40_fourier_bands,
             max_frequencies=args.modelnet40_max_freq,
-            num_frequency_bands=6,
+            num_frequency_bands=args.modelnet40_fourier_bands,
             augment_train=True,
             use_translation=args.use_translation,
             use_rotation=args.use_rotation,
@@ -94,9 +93,8 @@ def main(args):
             num_workers=args.num_workers,
             seq_len=args.text_seq_len,
             mask_prob=args.mlm_mask_prob,
-            fourier_dim=args.text_fourier_dim,
             max_frequencies=args.text_max_freq,
-            num_frequency_bands=6,
+            num_frequency_bands=args.text_fourier_bands,
             wikitext2_zip_path=args.wikitext2_zip_path,
             use_positional_encoding=not args.no_positional_encoding,
         )
@@ -108,8 +106,8 @@ def main(args):
             batch_size=args.batch_size_cifar10, # Reuse CIFAR batch size arg
             num_workers=args.num_workers,
             seq_len=args.text_seq_len,
-            fourier_dim=args.text_fourier_dim,
             max_frequencies=args.text_max_freq,
+            num_frequency_bands=args.text_fourier_bands,
             use_positional_encoding=not args.no_positional_encoding
         )
         num_classes = 2 # Positive/Negative
@@ -121,9 +119,8 @@ def main(args):
             num_workers=args.num_workers,
             seq_len=args.text_seq_len,
             mask_prob=args.mlm_mask_prob,
-            fourier_dim=args.text_fourier_dim,
             max_frequencies=args.text_max_freq,
-            num_frequency_bands=6,
+            num_frequency_bands=args.text_fourier_bands,
             wikitext103_zip_path=args.wikitext103_zip_path,
             use_positional_encoding=not args.no_positional_encoding,
         )
@@ -137,8 +134,8 @@ def main(args):
             batch_size=args.batch_size_cifar10,
             num_workers=args.num_workers,
             seq_len=args.text_seq_len,
-            fourier_dim=args.text_fourier_dim,
             max_frequencies=args.text_max_freq,
+            num_frequency_bands=args.text_fourier_bands,
             use_positional_encoding=not args.no_positional_encoding
         )
         num_classes = data_module.num_classes

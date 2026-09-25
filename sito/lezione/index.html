@@ -1767,6 +1767,7 @@ Y = Y + MLP(LN(Y))</div>
           <li><strong>Confronto corretto</strong>: dire "il trend è coerente" è più onesto che confrontare direttamente una GPU con 64 TPU.</li>
         </ul>
         <div class="display-eq">effective_batch = batch_gpu · accumulation_steps</div>
+        <p><strong>Nel nostro progetto</strong>: niente accumulo del gradiente (batch da 32–64 entrano nei 10 GB), mixed precision in bfloat16, gradient clipping a norma 1 (senza, LAMB a lr 4e-3 divergeva a <code>nan</code>) e CIFAR-10 al posto di ImageNet.</p>
       </details>
 
       <div class="nota">
@@ -4653,7 +4654,7 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
             <td>50.176 pixel grezzi (224×224), 3 canali RGB + 258 dim di Fourier PE</td>
             <td>ImageNet <strong>78.0%</strong> top-1, senza conv 2D</td>
             <td>ImageNet <strong>79.0%</strong> (Fourier 2D); <strong>84.5%</strong> con pre-training JFT</td>
-            <td><strong>CIFAR-10</strong>: 23 run di ablation ✅ — Perceiver IO su immagini ⏳ da lanciare</td>
+            <td><strong>CIFAR-10</strong>: 24 run di ablation ✅ — Perceiver IO su immagini ✅ <strong>71,79%</strong> (Perceiver 71,63%) — ResNet-18 di riferimento 93,61%</td>
           </tr>
           <tr>
             <td><strong>Audio grezzo</strong></td>
@@ -4681,14 +4682,14 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
             <td>2.048 punti, solo coordinate (x, y, z) + Fourier PE 3D</td>
             <td>ModelNet40 <strong>85.7%</strong> (PointNet++: 91.9%)</td>
             <td>non riportato</td>
-            <td><strong>ModelNet40</strong>: 3 run ✅ (scale / +translation / +rotation) — <strong>87,36%</strong>, sopra il paper</td>
+            <td><strong>ModelNet40</strong>: 3 run ✅ (scale / +translation / +rotation) — <strong>87,36%</strong>, sopra il paper anche all'ultima epoca (86,43%)</td>
           </tr>
           <tr>
             <td><strong>Testo</strong></td>
             <td>2.048 byte UTF-8 grezzi, vocabolario 256, nessun tokenizer</td>
             <td>non affrontato dal paper</td>
             <td>GLUE <strong>81.0</strong> sui byte (BERT sui byte crolla a 71.5)</td>
-            <td><strong>MLM WikiText-103</strong> ✅ 86,68% sui byte mascherati — fine-tuning GLUE ⏳ da lanciare</td>
+            <td><strong>MLM WikiText-103</strong> ✅ 86,68% sui byte mascherati (tabella dei vicini: 42,96%) — GLUE ✅ media 71,13 sugli 8 task, multitask 74,05</td>
           </tr>
           <tr>
             <td><strong>Flusso ottico</strong></td>
@@ -4748,7 +4749,7 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
       <div class="concept-lab" data-lab="noise-band">
         <div class="lab-head">
           <div>
-            <span class="lab-source">progetto · 23 run CIFAR-10</span>
+            <span class="lab-source">progetto · 23 run CIFAR-10 (e29 fuori scala)</span>
             <h3>Cosa sopravvive alla banda di rumore</h3>
             <p>Ogni pallino è una run. La fascia è la banda misurata sulle tre repliche, centrata sul riferimento. Chi sta dentro non ha dimostrato niente.</p>
           </div>
@@ -4934,17 +4935,17 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
           </svg>
         <ul class="noise-legend">
           <li><i class="lg-rep"></i> le 3 repliche che <strong>definiscono</strong> la banda (stesso setup, seed diverso)</li>
-          <li><i class="lg-out"></i> fuori banda: effetto reale (11 run)</li>
+          <li><i class="lg-out"></i> fuori banda: effetto reale (11 run nel grafico, più <code>e29_no_pe</code> a 32,36%, fuori scala)</li>
           <li><i class="lg-in"></i> dentro la banda: <strong>non concludente</strong> (9 run)</li>
           <li><i class="lg-band"></i> banda di rumore, ±2,78 punti attorno a <code>e01_baseline</code></li>
         </ul>
       </div>
 
-      <p>Il grafico dice in un colpo solo la cosa che conta. Delle 23 run CIFAR-10, <strong>solo 11 escono dalla banda</strong>: sono le uniche su cui si può affermare qualcosa. Le altre 9 — permutazione dei pixel, learned PE, assenza di weight sharing, frequenza massima — cadono <em>dentro</em> il rumore. Non vuol dire che l'effetto non esista: vuol dire che con questo budget sperimentale <strong>non l'abbiamo misurato</strong>, ed è più onesto dirlo che difendere mezzo punto di differenza.</p>
+      <p>Il grafico dice in un colpo solo la cosa che conta. Delle 24 run CIFAR-10, <strong>solo 12 escono dalla banda</strong>: le 11 del grafico più <code>e29_no_pe</code>, che senza positional encoding crolla a 32,36% ed è fuori scala. Sono le uniche su cui si può affermare qualcosa. Altre 9 — permutazione dei pixel, learned PE, assenza di weight sharing, frequenza massima — cadono <em>dentro</em> il rumore, e le 3 repliche la definiscono. Non vuol dire che l'effetto non esista: vuol dire che con questo budget sperimentale <strong>non l'abbiamo misurato</strong>, ed è più onesto dirlo che difendere mezzo punto di differenza.</p>
 
       <div class="idea">
         <div class="idea-label">La domanda che ti faranno</div>
-        <p>«Questa differenza è significativa?» Senza una banda misurata non c'è risposta, e ogni confronto diventa opinione. Con tre repliche a seed diverso la risposta è un numero: <strong>2,78</strong>. Il costo sono due run in più; il guadagno è che tutti gli altri confronti diventano leggibili. Nota che la banda dipende anche da <em>quale</em> metrica guardi: sul <code>val_accuracy</code> di epoca migliore è 2,94, sull'ultima epoca 3,24 — le conclusioni però non cambiano.</p>
+        <p>«Questa differenza è significativa?» Senza una banda misurata non c'è risposta, e ogni confronto diventa opinione. Con tre repliche a seed diverso la risposta è un numero: <strong>2,78</strong>. Il costo sono due run in più; il guadagno è che tutti gli altri confronti diventano leggibili. Nota che la banda dipende anche da <em>quale</em> metrica guardi: sul <code>val_accuracy</code> di epoca migliore è 2,94, sull'ultima epoca 3,24 — le conclusioni però non cambiano. E dipende dal riferimento: <code>e01</code> è il più fortunato dei tre seed, e misurando dalla loro media (70,48%) le run fuori banda scendono da 12 a 10. Tieni pronta questa risposta: le conclusioni reggono, ma <code>e12</code> ed <code>e14</code> sono confronti al limite.</p>
       </div>
 
       <h2>Cosa sono i dataset</h2>
@@ -4954,19 +4955,19 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
           <div class="dataset-name">CIFAR-10 <span class="dataset-tag">immagini</span></div>
           <p><strong>60.000 immagini</strong> a colori <strong>32×32 px</strong>, in <strong>10 classi</strong> mutuamente esclusive (aereo, automobile, uccello, gatto, cervo, cane, rana, cavallo, nave, camion). Split usato: <strong>45.000 train / 5.000 validation / 10.000 test</strong>, classi bilanciate. La validation è ritagliata dal train, non dal test: è ciò che rende onesto il numero finale.</p>
           <p><strong>Come entra nella rete:</strong> l'immagine è appiattita in <strong>1.024 pixel</strong> trattati come insieme non ordinato. Ogni pixel diventa un vettore da <strong>261 dimensioni</strong>: 3 canali RGB + Fourier PE 2D con 64 bande su due assi, cioè 2·(2·64+1) = 258 canali (frequenza massima 16). Nessuna convoluzione, nessun patch embedding.</p>
-          <p class="dataset-use"><strong>Nel progetto:</strong> input delle 23 run di ablation — permutazione dei pixel, Fourier vs learned PE, latent transformer, numero e disposizione dei cross-attend, bande e frequenza di Fourier, scala di inizializzazione dei latenti.</p>
+          <p class="dataset-use"><strong>Nel progetto:</strong> input delle 24 run di ablation — permutazione dei pixel, assenza di positional encoding, Fourier vs learned PE, latent transformer, numero e disposizione dei cross-attend, bande e frequenza di Fourier, scala di inizializzazione dei latenti.</p>
         </div>
         <div class="dataset-card">
           <div class="dataset-name">ModelNet40 <span class="dataset-tag">point cloud 3D</span></div>
           <p><strong>12.311 modelli CAD 3D</strong> in <strong>40 categorie</strong> di oggetti (sedia, tavolo, aereo, letto, lampada…). Ogni oggetto è campionato come <strong>nuvola di 2.048 punti</strong> con coordinate (x, y, z). Split: 9.843 train / 2.468 test.</p>
-          <p><strong>Come entra nella rete:</strong> ogni punto è un vettore da 67 dimensioni — solo le tre coordinate più la loro Fourier PE 3D. Nessuna feature geometrica costruita a mano, nessun raggruppamento dei vicini: è quello che rende il confronto con PointNet++ interessante.</p>
-          <p class="dataset-use"><strong>Nel progetto:</strong> classificazione 3D e studio dell'effetto delle augmentation (scale / translation / rotation) — modalità non-immagine con la stessa architettura.</p>
+          <p><strong>Come entra nella rete:</strong> ogni punto è un vettore da 42 dimensioni — solo le tre coordinate più la loro Fourier PE 3D a 6 bande per asse, 3·(2·6+1) = 39 canali (il paper ne usa 64). Nessuna feature geometrica costruita a mano, nessun raggruppamento dei vicini: è quello che rende il confronto con PointNet++ interessante.</p>
+          <p class="dataset-use"><strong>Nel progetto:</strong> classificazione 3D e studio dell'effetto delle augmentation (scale / translation / rotation) — modalità non-immagine con la stessa architettura. Solo la rotazione arriva davvero alla rete: scala e traslazione vengono annullate dalla normalizzazione.</p>
         </div>
         <div class="dataset-card">
           <div class="dataset-name">WikiText-103 <span class="dataset-tag">testo</span></div>
           <p><strong>~103 milioni di token</strong> estratti da articoli Wikipedia di alta qualità (categoria "Good/Featured"), con punteggiatura e numeri reali (non normalizzati).</p>
-          <p><strong>Come entra nella rete:</strong> a livello di <strong>byte</strong> — vocabolario 256, sequenze da 1.024, Fourier PE 1D con 64 bande. Nessun tokenizer da addestrare, nessun vocabolario da 32.000 voci. Il Perceiver IO può permetterselo perché il costo del cross-attention cresce <em>linearmente</em> con la lunghezza della sequenza.</p>
-          <p class="dataset-use"><strong>Nel progetto:</strong> pre-training del Perceiver IO con <strong>masked language modeling</strong> (15% di byte mascherati) — il checkpoint da cui parte il fine-tuning GLUE.</p>
+          <p><strong>Come entra nella rete:</strong> a livello di <strong>byte</strong> — vocabolario 256 più il simbolo di maschera, sequenze da 512, Fourier PE 1D a 6 bande: ogni byte è un vettore da 257 + 13 = 270 numeri. Nessun tokenizer da addestrare, nessun vocabolario da 32.000 voci. Il Perceiver IO può permetterselo perché il costo del cross-attention cresce <em>linearmente</em> con la lunghezza della sequenza.</p>
+          <p class="dataset-use"><strong>Nel progetto:</strong> pre-training del Perceiver IO con <strong>masked language modeling</strong> (15% dei byte, scelti uno per uno; il paper maschera parole intere) — il checkpoint da cui parte il fine-tuning GLUE.</p>
         </div>
         <div class="dataset-card dataset-card--wide">
           <div class="dataset-name">GLUE <span class="dataset-tag">8 task NLU</span></div>
@@ -4975,7 +4976,7 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
             <li><strong>CoLA</strong> — la frase è grammaticalmente accettabile? (2 classi, ma ≈69% sono accettabili: rispondere sempre "sì" dà già ≈69%)</li>
             <li><strong>SST-2</strong> — sentiment di recensioni di film (positivo/negativo, bilanciato → banale ≈50%)</li>
             <li><strong>MRPC</strong> — due frasi sono parafrasi? (2 classi, ≈68% positive)</li>
-            <li><strong>STS-B</strong> — quanto sono simili due frasi? (<strong>regressione</strong> 0–5: si misura con MSE, non con accuracy)</li>
+            <li><strong>STS-B</strong> — quanto sono simili due frasi? (<strong>regressione</strong> 0–5: si misura con la correlazione di Pearson, non con accuracy)</li>
             <li><strong>QQP</strong> — due domande Quora sono duplicate? (2 classi, ≈63% negative)</li>
             <li><strong>MNLI</strong> — entailment / contraddizione / neutro (<strong>3 classi</strong> → banale ≈33%)</li>
             <li><strong>QNLI</strong> — la frase risponde alla domanda? (2 classi bilanciate → banale ≈50%)</li>
@@ -4998,7 +4999,7 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
           <li><code>src/perceiver_io/perceiver_io.py</code> — PerceiverIO: decoder a output query</li>
           <li><code>src/data/{cifar10, modelnet40, wikitext103, glue_tasks}.py</code> — i DataModule per modalità</li>
           <li><code>src/utils/positional_encoding.py</code> — Fourier PE a bande <em>linearmente</em> spaziate</li>
-          <li><code>multitask_glue.py</code> — Perceiver IO multitask sugli 8 task GLUE; <code>baseline_cnn.py</code> — ResNet-18 di riferimento</li>
+          <li><code>multitask_glue.py</code> — Perceiver IO multitask sugli 8 task GLUE; <code>baseline_cnn.py</code> — ResNet-18 di riferimento; <code>baseline_mlm.py</code> — baseline senza rete per l'MLM</li>
           <li><code>check.py</code> e <code>analyze_v2.py</code> — stato delle run e analisi comparativa, entrambi di sola lettura</li>
         </ul>
         <p>Librerie: PyTorch 2.x, einops, torchvision, torch-geometric (ModelNet40), torch-optimizer (LAMB), huggingface/datasets.</p>
@@ -5020,17 +5021,18 @@ python train.py --dataset cifar10 --num_latents 96 --latent_dim 384 \
   --epochs 120 --batch_size_cifar10 64 --val_split 5000 --seed 42
 
 python check.py        # quali run sono fatte, quali mancano
-python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</div>
+python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore
+python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
       </details>
 
       <div class="nota">
         <span class="nota-label">Le fonti dei numeri</span>
-        Ogni cifra di questi tre capitoli viene da <code>logs/&lt;run&gt;/results.json</code>, scritto dal training stesso al termine di ogni run: contiene <code>test_accuracy</code>, <code>val_accuracy</code>, <code>final_val_accuracy</code>, <code>selected_epoch</code>, <code>params</code> e <code>seed</code>. L'architettura viene da <code>logs/&lt;run&gt;/config.txt</code>. <strong>Il numero citato è sempre il <code>test_accuracy</code> all'epoca migliore</strong>, tranne per ModelNet40 e MLM, dove non esiste una split di test separata e si usa la <code>val_accuracy</code> — dove capita è detto esplicitamente. Dove una nostra configurazione diverge da quello che ci si aspetterebbe, è segnalato.
+        Ogni cifra di questi tre capitoli viene da <code>logs/&lt;run&gt;/results.json</code>, scritto dal training stesso al termine di ogni run: contiene <code>test_accuracy</code>, <code>val_accuracy</code>, <code>final_val_accuracy</code>, <code>selected_epoch</code>, <code>params</code> e <code>seed</code>. L'architettura viene da <code>logs/&lt;run&gt;/config.txt</code>. <strong>Il numero citato è sempre il <code>test_accuracy</code> all'epoca migliore</strong>, tranne per ModelNet40 (la validation è il test set stesso, quindi l'epoca è scelta sul test), per l'MLM e per GLUE (dev set ufficiale), dove si usa la <code>val_accuracy</code> — dove capita è detto esplicitamente. Dove una nostra configurazione diverge da quello che ci si aspetterebbe, è segnalato.
       </div>
 
       <div class="idea">
         <div class="idea-label">Dove andiamo</div>
-        <p>Qui la panoramica, le modalità e la banda di rumore. I due capitoli successivi sono separati: prima <strong>Perceiver originale</strong> (le 23 run CIFAR-10 una per una, poi le 3 di ModelNet40), poi <strong>Perceiver IO</strong> (decoder, output queries, il pre-training MLM e cosa manca ancora).</p>
+        <p>Qui la panoramica, le modalità e la banda di rumore. I due capitoli successivi sono separati: prima <strong>Perceiver originale</strong> (le 24 run CIFAR-10 una per una, poi le 3 di ModelNet40), poi <strong>Perceiver IO</strong> (decoder, output queries, il pre-training MLM, GLUE e il multitask).</p>
       </div>
 
       <div class="nav-bar">
@@ -5098,11 +5100,12 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
           <p><strong>Risultato:</strong> <strong>69.87%</strong> (test), epoca migliore <strong>114</strong> su 120, 8.583.714 parametri, seed 42. <strong class="v-in">dentro la banda</strong> (-1.76 punti su ±2,78): <em>non concludente</em></p>
           <p class="dataset-use">Il confronto pulito è con <code>e03</code> (stessa config, senza permutazione): <strong>69,87% contro 71,07%</strong>, cioè <strong>−1,20 punti</strong>, dentro la banda. <strong>Anche la learned PE è invariante alla permutazione.</strong> Conferma sperimentale nostra di quello che il paper dice in Tab. 2: l'invarianza viene dall'<em>attention</em>, non dal tipo di positional encoding.</p>
         </div>
-        <div class="dataset-card dataset-card--wide dataset-card--todo">
-          <div class="dataset-name"><code>e29_no_pe</code> <span class="dataset-tag">⏳ da lanciare</span></div>
+        <div class="dataset-card dataset-card--wide">
+          <div class="dataset-name"><code>e29_no_pe</code> <span class="dataset-tag">nessuna PE</span></div>
           <p><strong>Cosa cambia:</strong> <code>--no_positional_encoding</code>: nessuna informazione di posizione, solo i 3 canali RGB.</p>
           <p><strong>Cosa isola:</strong> il limite inferiore. Senza posizione il modello vede un sacchetto di colori: è la prova che la PE serve davvero.</p>
-          <p class="dataset-use"><strong>Non ancora eseguita.</strong> È la run mancante più preziosa del progetto: una sola, circa 5 ore, e trasforma «la positional encoding serve» da affermazione in misura. Finché manca, quella frase resta un'aspettativa teorica.</p>
+          <p><strong>Risultato:</strong> <strong>32.36%</strong> (test), epoca migliore <strong>98</strong> su 120, 9.505.594 parametri, seed 42. <strong class="v-out">fuori banda</strong> (-39.27 punti, la banda è ±2,78)</p>
+          <p class="dataset-use"><strong>L'effetto più grande del progetto.</strong> Permutare i pixel (<code>e02</code>) costa 2,68 punti, dentro la banda; togliere le coordinate ne costa 39,27. Il contrasto è la vera evidenza: la posizione entra <em>solo</em> dall'encoding, mai dalla griglia. Anche le mappe d'attenzione lo mostrano: senza PE l'attenzione segue i confini di colore e resta quasi uniforme (9,83 bit contro i 5,84 di <code>e01</code>, su un massimo di 10).</p>
         </div>
       </div>
 
@@ -5168,21 +5171,21 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
           <p><strong>Cosa cambia:</strong> 2 cross-attention consecutive all'inizio, poi solo blocchi transformer.</p>
           <p><strong>Cosa isola:</strong> la disposizione, a T=2.</p>
           <p><strong>Risultato:</strong> <strong>68.45%</strong> (test), epoca migliore <strong>103</strong> su 120, 10.175.362 parametri, seed 42. <strong class="v-out">fuori banda</strong> (-3.18 punti, la banda è ±2,78)</p>
-          <p class="dataset-use">68,45% contro i 66,23% dell'alternato: <strong>+2,22 punti a favore di «tutto all'inizio»</strong>, ma dentro la banda. Indizio, non prova.</p>
+          <p class="dataset-use">68,45% contro i 66,23% dell'alternato: <strong>+2,22 punti a favore di «tutto all'inizio»</strong>, ma dentro la banda. Indizio, non prova. E il «fuori banda» rispetto a <code>e01</code> è al limite: misurato dalla media dei tre seed (70,48%) lo scarto è −2,03, dentro la banda.</p>
         </div>
         <div class="dataset-card dataset-card--wide">
           <div class="dataset-name"><code>e13_T4_at_start</code> <span class="dataset-tag">T=4 · at_start</span></div>
           <p><strong>Cosa cambia:</strong> le 4 cross-attention del baseline, ma tutte in testa invece che alternate.</p>
           <p><strong>Cosa isola:</strong> la disposizione a parità esatta di tutto il resto — <strong>è il confronto più pulito dei due assi</strong>, perché <code>e01</code> ha la stessa T=4 alternata.</p>
           <p><strong>Risultato:</strong> <strong>67.19%</strong> (test), epoca migliore <strong>100</strong> su 120, 10.175.362 parametri, seed 42. <strong class="v-out">fuori banda</strong> (-4.44 punti, la banda è ±2,78)</p>
-          <p class="dataset-use">67,19% contro 71,63%: <strong>−4,44 punti, fuori banda</strong>. È l'unico confronto di disposizione che esce dal rumore, e dice che <strong>alternare è meglio che accumulare in testa</strong>. Ha senso: alternare fa rileggere l'input <em>dopo</em> che i latenti sono stati elaborati, e ogni rilettura può quindi cercare qualcosa di diverso.</p>
+          <p class="dataset-use">67,19% contro 71,63%: <strong>−4,44 punti, fuori banda</strong> — e resta fuori anche misurato dalla media dei tre seed (−3,29). È l'unico confronto di disposizione che esce dal rumore, e dice che <strong>alternare è meglio che accumulare in testa</strong>. Ha senso: alternare fa rileggere l'input <em>dopo</em> che i latenti sono stati elaborati, e ogni rilettura può quindi cercare qualcosa di diverso.</p>
         </div>
         <div class="dataset-card dataset-card--wide">
           <div class="dataset-name"><code>e14_T8_at_start</code> <span class="dataset-tag">T=8 · at_start</span></div>
           <p><strong>Cosa cambia:</strong> 8 cross-attention consecutive in apertura.</p>
           <p><strong>Cosa isola:</strong> il caso estremo della disposizione in testa.</p>
           <p><strong>Risultato:</strong> <strong>68.04%</strong> (test), epoca migliore <strong>87</strong> su 120, 10.175.362 parametri, seed 42. <strong class="v-out">fuori banda</strong> (-3.59 punti, la banda è ±2,78)</p>
-          <p class="dataset-use">68,04%, fuori banda rispetto al baseline ma <strong>2,41 punti meglio dell'alternato a T=8</strong>. Quando le letture sono tante, metterle in fila fa meno danno che spargerle.</p>
+          <p class="dataset-use">68,04%, fuori banda rispetto al baseline ma <strong>2,41 punti meglio dell'alternato a T=8</strong>. Quando le letture sono tante, metterle in fila fa meno danno che spargerle. Anche qui il «fuori banda» è al limite: dalla media dei tre seed lo scarto è −2,44, dentro la banda.</p>
         </div>
       </div>
 
@@ -5329,7 +5332,7 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
           <div class="dataset-name"><code>e31_baseline_seed1</code> <span class="dataset-tag">replica, seed 1</span></div>
           <p><strong>Cosa cambia:</strong> <code>--seed 1</code>. Nient'altro: architettura, dati, iperparametri identici a <code>e01</code>.</p>
           <p><strong>Cosa isola:</strong> la varianza dovuta al solo seed.</p>
-          <p><strong>Risultato:</strong> <strong>68.85%</strong> (test), epoca migliore <strong>101</strong> su 120, 10.175.362 parametri, seed 1. <strong class="v-out">fuori banda</strong> (-2.78 punti, la banda è ±2,78)</p>
+          <p><strong>Risultato:</strong> <strong>68.85%</strong> (test), epoca migliore <strong>101</strong> su 120, 10.175.362 parametri, seed 1. <strong class="v-in">al limite della banda</strong> (-2.78 punti: è la replica che la definisce, non un effetto)</p>
           <p class="dataset-use">68,85%: <strong>2,78 punti sotto il baseline, a parità assoluta di configurazione.</strong> Questo numero <em>è</em> la banda di rumore.</p>
         </div>
         <div class="dataset-card dataset-card--wide">
@@ -5337,7 +5340,7 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
           <p><strong>Cosa cambia:</strong> <code>--seed 2</code>.</p>
           <p><strong>Cosa isola:</strong> la terza misura della varianza.</p>
           <p><strong>Risultato:</strong> <strong>70.97%</strong> (test), epoca migliore <strong>103</strong> su 120, 10.175.362 parametri, seed 2. <strong class="v-in">dentro la banda</strong> (-0.66 punti su ±2,78): <em>non concludente</em></p>
-          <p class="dataset-use">70,97%. Le tre repliche stanno fra 68,85 e 71,63, media 70,48. Con tre punti la stima della banda è grezza — servirebbero cinque o dieci run per una deviazione standard affidabile — ma è comunque incomparabilmente meglio che non averla.</p>
+          <p class="dataset-use">70,97%. Le tre repliche stanno fra 68,85 e 71,63, media 70,48. Con tre punti la stima della banda è grezza — servirebbero cinque o dieci run per una deviazione standard affidabile — ma è comunque incomparabilmente meglio che non averla. Nota che <code>e01</code>, il riferimento di tutti i confronti, è la più alta delle tre: misurando dalla media, le run fuori banda passano da 12 a 10, perché <code>e12</code> ed <code>e14</code> rientrano.</p>
         </div>
       </div>
 
@@ -5413,12 +5416,12 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
             <td><strong class="v-out">La scala di inizializzazione</strong> — l'unica tendenza monotona e netta</td>
             <td>Fig. 6</td>
           </tr>
-          <tr class="rq-todo">
+          <tr>
             <td>La positional encoding è indispensabile?</td>
-            <td><code>e29_no_pe</code> ⏳ non ancora eseguita</td>
-            <td>—</td>
-            <td><strong>Non misurato.</strong> Una run, ~5 ore, e la domanda si chiude</td>
-            <td>—</td>
+            <td><code>e01</code> 71,63% vs <code>e29</code> 32,36% (nessuna PE)</td>
+            <td>−39,27</td>
+            <td><strong class="v-out">SÌ</strong> — l'effetto più grande del progetto, mentre permutare i pixel non costa nulla</td>
+            <td>Tab. 2: la posizione entra dalla PE</td>
           </tr>
         </tbody>
       </table>
@@ -5426,11 +5429,11 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
 
       <div class="idea">
         <div class="idea-label">Come leggere questa tabella all'orale</div>
-        <p>Quattro verdetti su sette dicono «dentro il rumore», e non è una debolezza del lavoro: è il lavoro. Su CIFAR-10 con una GPU e 120 epoche, le differenze del paper — misurate su ImageNet con 64 TPU — semplicemente <strong>non hanno lo spazio per manifestarsi</strong>. Le due conclusioni che reggono sono quelle con l'effetto grande: <em>dove</em> metti la capacità conta più di <em>quanta</em> ne metti, e la scala di inizializzazione dei latenti può far collassare il modello. La differenza fra un progetto serio e uno che gonfia i risultati sta tutta nel dire quali delle due categorie è ciascun numero.</p>
+        <p>Quattro verdetti su otto dicono «dentro il rumore», e non è una debolezza del lavoro: è il lavoro. Su CIFAR-10 con una GPU e 120 epoche, le differenze del paper — misurate su ImageNet con 64 TPU — semplicemente <strong>non hanno lo spazio per manifestarsi</strong>. Le conclusioni che reggono sono quelle con l'effetto grande: la posizione entra solo dalla positional encoding, <em>dove</em> metti la capacità conta più di <em>quanta</em> ne metti, alternare i cross-attend è meglio che accumularli, e la scala di inizializzazione dei latenti può far collassare il modello. La differenza fra un progetto serio e uno che gonfia i risultati sta tutta nel dire quali delle due categorie è ciascun numero.</p>
       </div>
 
       <h2>ModelNet40: la stessa rete, su nuvole di punti</h2>
-      <p>Questo è il task che mostra meglio il senso del Perceiver: <strong>cambiando solo l'encoding dell'input</strong>, la stessa architettura digerisce point cloud 3D invece di immagini. Nessuna modifica al corpo del modello. Setup: <code>N=128</code> latenti, <code>D=512</code>, 2.048 punti, 2 cross-attend stages, 6 blocchi transformer, cross-attention single-head e self-attention a 8 teste, Fourier 3D a 64 bande con frequenza massima 1120, LAMB lr 1e-3, 120 epoche, batch 32 (il paper usa 512). <strong>23.288.928 parametri</strong>, input da 387 dim per punto.</p>
+      <p>Questo è il task che mostra meglio il senso del Perceiver: <strong>cambiando solo l'encoding dell'input</strong>, la stessa architettura digerisce point cloud 3D invece di immagini. Nessuna modifica al corpo del modello. Setup: <code>N=128</code> latenti, <code>D=512</code>, 2.048 punti, 2 cross-attend stages, 6 blocchi transformer, cross-attention single-head e self-attention a 8 teste, Fourier 3D a 6 bande per asse con frequenza massima 1120 (il paper ne usa 64), LAMB lr 1e-3, 120 epoche, batch 32 (il paper usa 512). <strong>23.288.928 parametri</strong>, input da 42 dim per punto: 3 coordinate + 3·(2·6+1) = 39 canali di Fourier. Le 6 bande non erano una scelta: <code>train.py</code> fissava il numero a mano e ignorava il flag, che diceva 64. Lo mostrano il <code>config.txt</code> della run (<em>Input dimension: 42</em>) e il numero di parametri; ora il registro lo dichiara.</p>
 
       <div class="exp-table-wrap">
       <table>
@@ -5479,12 +5482,14 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
 
       <div class="nota">
         <span class="nota-label">Una nota sulla metrica</span>
-        Per ModelNet40 non esiste una split di test separata: la validation <em>è</em> l'insieme di test standard (2.468 oggetti). Quindi il numero qui è la <code>val_accuracy</code> all'epoca migliore, non il <code>test_accuracy</code> come su CIFAR-10. La banda di rumore misurata su CIFAR non si trasferisce a questo task: qui non abbiamo repliche a seed diverso.
+        Per ModelNet40 non esiste una split di test separata: la validation <em>è</em> l'insieme di test standard (2.468 oggetti). Quindi il numero qui è la <code>val_accuracy</code> all'epoca migliore, non il <code>test_accuracy</code> come su CIFAR-10: l'epoca è scelta guardando il test, ed è leggermente ottimistico. L'ultima epoca, senza alcuna selezione, fa <strong>86,43%</strong>. La banda di rumore misurata su CIFAR non si trasferisce a questo task; una prima stima però c'è, perché <code>mn01</code> e <code>mn03</code> vedono gli stessi dati (vedi sotto) e differiscono di 0,16 punti.
       </div>
 
-      <p><strong>Il baseline supera il paper: 87,36% contro 85,7%</strong>, con un batch sedici volte più piccolo. È la replica meglio riuscita del progetto, e vale la pena dire perché è credibile: ModelNet40 è un dataset piccolo e gli oggetti sono già allineati canonicamente, quindi il vantaggio del batch grande — che su ImageNet è decisivo — qui conta poco.</p>
+      <p><strong>Il baseline supera il paper: 87,36% contro 85,7%</strong>, con un batch sedici volte più piccolo, e resta sopra anche all'ultima epoca (86,43%). È la replica meglio riuscita del progetto, e vale la pena dire perché è credibile: ModelNet40 è un dataset piccolo e gli oggetti sono già allineati canonicamente, quindi il vantaggio del batch grande — che su ImageNet è decisivo — qui conta poco.</p>
 
-      <p>La traslazione non fa praticamente nulla (−0,16 punti), la rotazione <strong>costa 13,29 punti</strong>. È l'effetto più grande misurato in tutto il progetto, ed è teoricamente interessante: il Perceiver <strong>non ha alcun bias induttivo rotazionale</strong>. La Fourier PE 3D codifica la posizione <em>assoluta</em>; ruotare l'oggetto cambia tutte le coordinate e quindi tutte le PE, ma l'etichetta resta la stessa. Il modello deve allora imparare da solo un'invarianza che l'architettura non gli regala — e che in questo task <em>non serve</em>, perché gli oggetti arrivano già orientati. Capacità sprecata, tredici punti persi. La traslazione invece è quasi innocua perché sposta tutte le coordinate della stessa quantità: la struttura relativa fra i punti resta leggibile.</p>
+      <p><strong>Due delle tre run vedono gli stessi dati.</strong> Scala e traslazione sono applicate all'<em>intera</em> nuvola — un fattore e uno spostamento per oggetto — e subito dopo la normalizzazione ricentra la nuvola e la riporta a raggio 1: le annulla esattamente, e il modello non le vede mai. Il paper invece le applica a <em>ogni punto</em>, come un rumore che la normalizzazione non cancella. Per questo <code>mn03_translation</code> è di fatto una replica di <code>mn01_baseline</code>: il −0,16 non è il «costo della traslazione», è varianza.</p>
+
+      <p>La rotazione invece arriva alla rete e <strong>costa 13,29 punti</strong>, il più grande effetto su ModelNet40. È teoricamente interessante: il Perceiver <strong>non ha alcun bias induttivo rotazionale</strong>. La Fourier PE 3D codifica la posizione <em>assoluta</em>; ruotare l'oggetto cambia tutte le coordinate e quindi tutte le PE, ma l'etichetta resta la stessa. Il modello deve allora imparare da solo un'invarianza che l'architettura non gli regala — e che in questo task <em>non serve</em>, perché gli oggetti arrivano già orientati. Qui la rotazione è attorno a un asse 3D qualsiasi e solo in training, mentre gli oggetti di test restano dritti. Capacità sprecata, tredici punti persi. Anche il paper riporta che la rotazione non aiuta.</p>
 
       <div class="nota">
         <span class="nota-label">Il confronto giusto con PointNet++</span>
@@ -5547,16 +5552,18 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
       <ul class="diverg-list">
         <li><strong>Dataset</strong>: paper ImageNet (50.176 px) → noi CIFAR-10 (1.024 px)</li>
         <li><strong>Latent array (CIFAR)</strong>: paper N=512, D=1024 → noi N=96, D=384 (ridotto per la GPU)</li>
-        <li><strong>Iterazioni</strong>: paper T=8 con weight sharing → noi 4 cross-attend stages (e 1 solo in exp2)</li>
-        <li><strong>Teste cross-attention</strong>: paper 1 (single-head) → noi 3 (CIFAR), 8 (ModelNet40)</li>
-        <li><strong>Batch</strong>: paper 1024 (64 TPU) / 512 (ModelNet) → noi 64 / 128 (1 GPU)</li>
-        <li><strong>Dropout</strong>: paper nessuno → noi 0.2 (l'unica aggiunta non presente nel paper)</li>
-        <li><strong>Coerenti col paper</strong>: ottimizzatore LAMB, 120 epoche (CIFAR), Fourier features linearly spaced</li>
+        <li><strong>Iterazioni</strong>: paper T=8 con weight sharing → noi T=4 su CIFAR-10 (T=1 in <code>e03</code>/<code>e04</code> ed <code>e08</code>/<code>e11</code>), T=2 su ModelNet40</li>
+        <li><strong>Teste cross-attention</strong>: paper 1 (single-head) → noi 1, come nel paper; 8 teste nella self-attention</li>
+        <li><strong>Batch</strong>: paper 1024 (64 TPU) / 512 (ModelNet) → noi 64 / 32 (1 GPU)</li>
+        <li><strong>Dropout</strong>: paper nessuno → noi nessuno</li>
+        <li><strong>Fourier su ModelNet40</strong>: paper 64 bande per asse → noi 6 (42 canali per punto)</li>
+        <li><strong>Augmentation su ModelNet40</strong>: paper scala e traslazione per singolo punto → noi sull'intera nuvola, annullate dalla normalizzazione</li>
+        <li><strong>Coerenti col paper</strong>: ottimizzatore LAMB, 120 epoche (CIFAR), Fourier features linearly spaced; su CIFAR-10 anche 64 bande e frequenza massima di Nyquist</li>
       </ul>
 
       <div class="nota">
         <span class="nota-label">Implicazione</span>
-        Le accuracy non vanno lette come replica identica del paper: dataset, scala e hardware sono diversi. Il punto scientifico è che le <strong>relazioni ablative</strong> sono isolate e leggibili — e che sappiamo dire, per ciascuna, se supera o no la banda di rumore. Nota che il dropout è coerente col fatto che il nostro modello, molto più piccolo, non ha il problema di overfitting che nel paper viene risolto dal weight sharing.
+        Le accuracy non vanno lette come replica identica del paper: dataset, scala e hardware sono diversi. Il punto scientifico è che le <strong>relazioni ablative</strong> sono isolate e leggibili — e che sappiamo dire, per ciascuna, se supera o no la banda di rumore. Le due differenze su ModelNet40 (bande e augmentation) non vengono dal budget: sono emerse rileggendo il codice dopo le run. I numeri riportati sono stati prodotti così, e il registro ora lo dichiara.
       </div>
 
       <div class="nav-bar">
@@ -5591,10 +5598,10 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
       <p><strong>Cosa cambia rispetto al Perceiver.</strong> Nient'altro che <em>come si legge l'output</em>. Il Perceiver originale fa un mean-pooling sui 96 latenti e ci mette sopra una testa lineare: schiaccia tutto in un vettore e butta via la struttura. Il Perceiver IO fa invece un <strong>cross-attention di decoding</strong>: una query impara a interrogare l'array latente e produce l'output della forma che serve. Per la classificazione basta una query sola, ma lo stesso meccanismo produce output di dimensione arbitraria — ed è quello che gli permette di fare segmentazione, flusso ottico o linguaggio, dove il Perceiver originale non arrivava.</p>
 
       <div class="dataset-cards">
-        <div class="dataset-card dataset-card--wide dataset-card--todo">
-          <div class="dataset-name"><code>io01_cifar</code> · <code>io02_cifar_seed1</code> <span class="dataset-tag">⏳ da lanciare</span></div>
-          <p><strong>Cosa misureranno:</strong> stesso encoder di <code>e01_baseline</code>, ma con decoder a una output query al posto del mean-pooling. La seconda run è la replica a seed diverso, necessaria per avere una banda di rumore anche su questo confronto.</p>
-          <p><strong>Cosa aspettarsi, onestamente:</strong> poco o niente. Il decoder a query serve quando l'output è <strong>strutturato</strong> — una maschera di segmentazione, un campo di flusso ottico, 1.024 token. Per una singola etichetta fra dieci, interrogare i latenti con una query o farne la media dovrebbe essere equivalente. Il risultato interessante sarebbe proprio <em>nessuna differenza</em>: mostrerebbe che il decoder generalizza l'output senza costare nulla nel caso semplice.</p>
+        <div class="dataset-card dataset-card--wide">
+          <div class="dataset-name"><code>io01_cifar</code> · <code>io02_cifar_seed1</code> <span class="dataset-tag">✅ 71,79% · 71,69%</span></div>
+          <p><strong>Cosa misurano:</strong> stesso encoder di <code>e01_baseline</code>, ma con decoder a una output query al posto del mean-pooling. La seconda run è la replica a seed diverso.</p>
+          <p><strong>Risultato:</strong> <strong>71,79%</strong> e <strong>71,69%</strong> contro il 71,63% del Perceiver: <strong>+0,16 punti</strong>, dentro la banda di 2,78. Nessuna differenza, ed è esattamente l'esito atteso. Il decoder a query serve quando l'output è <strong>strutturato</strong> — una maschera di segmentazione, un campo di flusso ottico, 512 byte. Per una singola etichetta fra dieci, interrogare i latenti con una query o farne la media è equivalente: il decoder generalizza l'output senza costare nulla nel caso semplice.</p>
           <p><strong>Nota sulla ricetta:</strong> queste run usano la ricetta del paper IO (App. A.1) — lr 1e-3 con scheduler cosine — non il multistep del Perceiver v1, che il paper IO dichiara esplicitamente di aver abbandonato.</p>
         </div>
       </div>
@@ -5605,7 +5612,7 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
       </div>
 
       <h2>Esperimento 2 — pre-training MLM byte-level (testo)</h2>
-      <p><strong>Setup:</strong> <code>N=128</code> latenti, <code>D=512</code>, 1 cross-attend stage, 4 blocchi transformer, cross-attention single-head e self-attention a 8 teste, sequenze da <strong>512 byte</strong> (vocabolario 256 + 1 simbolo di mascheramento, nessun tokenizer), Fourier PE 1D con 64 bande a frequenza massima 64, <strong>15% dei byte mascherati</strong>, LAMB lr 1e-3, batch 32, 10 epoche, <strong>18.872.740</strong> parametri, una output query per posizione.</p>
+      <p><strong>Setup:</strong> <code>N=128</code> latenti, <code>D=512</code>, 1 cross-attend stage, 4 blocchi transformer, cross-attention single-head e self-attention a 8 teste, sequenze da <strong>512 byte</strong> (vocabolario 256 + 1 simbolo di mascheramento, nessun tokenizer), Fourier PE 1D a 6 bande con frequenza massima 64 (13 canali: ogni byte entra con 257 + 13 = 270 numeri), <strong>15% dei byte mascherati</strong>, scelti uno per uno (il paper maschera parole intere), LAMB lr 1e-3, batch 32, 10 epoche, <strong>18.872.740</strong> parametri, una output query per posizione.</p>
       <p><strong>Perché i byte grezzi.</strong> Un tokenizer come SentencePiece è un pezzo di ingegneria pre-neurale: va addestrato a parte, è specifico per lingua, introduce un vocabolario da 32.000 voci. Il Perceiver IO può permettersi i byte perché il costo del cross-attention cresce <strong>linearmente</strong> con la lunghezza della sequenza — è O(M·N), con M input e N latenti — invece che quadraticamente come nel Transformer. Passare da 512 token a 2.048 byte costa 16× di attention a BERT, e solo 4× al Perceiver IO.</p>
 
       <div class="exp-table-wrap">
@@ -5613,16 +5620,18 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
         <thead><tr><th>Run</th><th>Cos'è</th><th>Parametri</th><th>Accuratezza sui byte mascherati</th><th>Epoca migliore</th></tr></thead>
         <tbody>
           <tr class="exp-best"><td><code>io_mlm</code></td><td>pre-training su WikiText-103</td><td>18.872.740</td><td><strong>86.68%</strong></td><td>10 su 10</td></tr>
+          <tr><td>—</td><td>tabella dei vicini: il byte più frequente fra quello prima e quello dopo</td><td>—</td><td>42,96%</td><td>—</td></tr>
+          <tr><td>—</td><td>rispondere sempre il byte più frequente (lo spazio)</td><td>—</td><td>19,07%</td><td>—</td></tr>
           <tr><td>—</td><td>rispondere a caso (1 byte su 256)</td><td>—</td><td>0,39%</td><td>—</td></tr>
         </tbody>
       </table>
       </div>
 
-      <p><strong>È il risultato Perceiver IO che abbiamo davvero</strong>, ed è solido: circa <strong>222 volte meglio del caso</strong>, leggendo UTF-8 grezzo senza alcun tokenizer. Il modello ricostruisce quasi nove byte mascherati su dieci. Da questo checkpoint parte tutto il fine-tuning GLUE — motivo per cui era il primo pezzo da far girare.</p>
+      <p><strong>È un risultato solido, ma va letto contro il riferimento giusto.</strong> Il caso uniforme (0,39%) è troppo facile da battere: il testo non è uniforme, e lo spazio da solo è quasi un byte su cinque. Le due righe senza rete vengono da <code>baseline_mlm.py</code>, sugli stessi file e con lo stesso mascheramento. La tabella dei vicini arriva già al 42,96%; la rete fa <strong>44 punti in più</strong>, e quel margine è ciò che il contesto lungo aggiunge. Il modello ricostruisce quasi nove byte mascherati su dieci, leggendo UTF-8 grezzo senza alcun tokenizer. Da questo checkpoint parte tutto il fine-tuning GLUE — motivo per cui era il primo pezzo da far girare.</p>
 
       <div class="nota">
         <span class="nota-label">Attenzione a come si legge questo numero</span>
-        L'accuratezza sui byte mascherati <strong>non è confrontabile</strong> con l'accuratezza di un modello a token: indovinare un byte è un problema più facile che indovinare una parola, perché lo spazio delle possibilità è 256 invece di decine di migliaia, e perché molti byte sono determinati dal contesto ortografico (dopo «att» in italiano le opzioni sono poche). Serve a dire «il pre-training ha funzionato», non a confrontarsi con BERT. Il confronto con BERT si fa su GLUE — e quello ci manca ancora.
+        L'accuratezza sui byte mascherati <strong>non è confrontabile</strong> con l'accuratezza di un modello a token: indovinare un byte è un problema più facile che indovinare una parola, perché lo spazio delle possibilità è 256 invece di decine di migliaia, e perché molti byte sono determinati dal contesto ortografico (dopo «att» in italiano le opzioni sono poche). In più qui si mascherano <strong>byte singoli</strong>, mentre il paper maschera parole intere: un byte nascosto ha quasi sempre i vicini visibili, ed è per questo che la tabella dei vicini arriva al 42,96%. Serve a dire «il pre-training ha funzionato», non a confrontarsi con BERT. Il confronto con BERT si fa su GLUE, qui sotto.
       </div>
 
       <h2>Esperimento 3 — fine-tuning sugli 8 task GLUE (testo)</h2>
@@ -5640,7 +5649,7 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
           <tr><td><code>io_glue_mnli</code></td><td>Implica / contraddice / neutro?</td><td>3</td><td>accuratezza</td><td>35,4%</td><td><strong>65,80%</strong></td><td>+30,4 su tre classi &mdash; il pi&ugrave; netto</td></tr>
           <tr><td><code>io_glue_qnli</code></td><td>La frase risponde alla domanda?</td><td>4</td><td>accuratezza</td><td>50,5%</td><td><strong>80,65%</strong></td><td>+30,2</td></tr>
           <tr><td><code>io_glue_rte</code></td><td>La prima frase implica la seconda?</td><td>23</td><td>accuratezza</td><td>52,7%</td><td>56,68%</td><td><strong>debole</strong>: 157 contro 146, cio&egrave; 11 esempi su 277</td></tr>
-          <tr><td><code>io_glue_sst2_scratch</code></td><td><strong>controllo</strong>: SST-2 <em>senza</em> pre-training</td><td>2</td><td>accuratezza</td><td>50,9%</td><td>59,75%</td><td>il pre-training vale <strong>+20,99</strong></td></tr>
+          <tr><td><code>io_glue_sst2_scratch</code></td><td><strong>controllo</strong>: SST-2 <em>senza</em> pre-training</td><td>2</td><td>accuratezza</td><td>50,9%</td><td>59,75%</td><td>il pre-training vale <strong>+20,98</strong></td></tr>
           <tr><td><code>io_glue_rte_scratch</code></td><td><strong>controllo</strong>: RTE <em>senza</em> pre-training</td><td>1</td><td>accuratezza</td><td>52,7%</td><td>52,71%</td><td>costante; il pre-training vale <strong>+3,97</strong></td></tr>
           <tr><td><code>io_glue_multitask</code></td><td>tutti e 8 insieme, una query per task (Tab. 2 del paper)</td><td>10</td><td>media</td><td>&mdash;</td><td><strong>74,05</strong></td><td>+2,92 sopra gli otto fine-tuning separati</td></tr>
         </tbody>
@@ -5650,7 +5659,7 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
       <div class="idea">
         <div class="idea-label">Perché i due controlli «scratch» valgono quanto gli otto task</div>
         <p>Un fine-tuning che arriva al 61% non dice niente da solo: forse il pre-training è servito, forse quel task si risolve al 61% anche partendo da pesi casuali. <strong>Gli unici due esperimenti che misurano il valore del pre-training sono quelli che lo tolgono.</strong> Sono scelti apposta agli estremi: SST-2 ha 67.000 esempi di training, RTE ne ha 2.500.</p>
-        <p><strong>L'aspettativa era il contrario di quello che è successo.</strong> Ci si aspettava che il transfer contasse pochissimo dove i dati abbondano e moltissimo dove scarseggiano. Misurato: su SST-2, il task ricco, il pre-training vale <strong>+20,99</strong> (59,75% → 80,73%); su RTE, il task povero, vale <strong>+3,97</strong> (52,71% → 56,68%). Esattamente al rovescio.</p>
+        <p><strong>L'aspettativa era il contrario di quello che è successo.</strong> Ci si aspettava che il transfer contasse pochissimo dove i dati abbondano e moltissimo dove scarseggiano. Misurato: su SST-2, il task ricco, il pre-training vale <strong>+20,98</strong> (59,75% → 80,73%); su RTE, il task povero, vale <strong>+3,97</strong> (52,71% → 56,68%). Esattamente al rovescio.</p>
         <p>La spiegazione sta nei numeri assoluti, non nel transfer: RTE <em>senza</em> pre-training fa 52,71%, che è la classe maggioritaria esatta, e <em>con</em> il pre-training fa 56,68%, cioè 11 esempi su 277 sopra la costante. Su RTE questo modello non impara in nessuno dei due casi, quindi la differenza è piccola perché sono piccoli entrambi i termini &mdash; non perché il pre-training sia inutile sui dati scarsi.</p>
       </div>
 
@@ -5681,13 +5690,13 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
 
       <div class="idea">
         <div class="idea-label">L'unico confronto che replica davvero</div>
-        <p>Il paper misura <strong>81,8 in multitask contro 81,0 single-task</strong>, cio&egrave; <strong>+0,80</strong>. Noi misuriamo <strong>74,05 contro 71,13</strong>, cio&egrave; <strong>+2,92</strong>. Il valore assoluto &egrave; ~8 punti sotto e non c'&egrave; modo di colmarlo &mdash; 18,9M parametri pre-addestrati su WikiText-103 per 10 epoche contro 201M su Wikipedia + C4 per 500.000 step. Ma il <em>segno</em> e l'<em>ordine di grandezza</em> dell'effetto si replicano: un decoder generico con una query per task non perde niente rispetto a otto modelli dedicati, e qui guadagna.</p>
+        <p>Il paper misura <strong>81,8 in multitask contro 81,0 single-task</strong>, cio&egrave; <strong>+0,80</strong>. Noi misuriamo <strong>74,05 contro 71,13</strong>, cio&egrave; <strong>+2,92</strong>. Il valore assoluto &egrave; ~8 punti sotto e non c'&egrave; modo di colmarlo &mdash; 18,9M parametri pre-addestrati su WikiText-103 per 10 epoche contro 201M su Wikipedia + C4 per 500.000 step. Ma il <em>segno</em> e l'<em>ordine di grandezza</em> dell'effetto si replicano: un decoder generico con una query per task, in media, non perde niente rispetto a otto modelli dedicati, e qui guadagna.</p>
         <p>C'&egrave; un'asimmetria che rende il risultato pi&ugrave; forte, non pi&ugrave; debole: negli otto fine-tuning separati <strong>ogni task sceglie la sua epoca migliore sul proprio dev set</strong> &mdash; otto selezioni indipendenti, otto occasioni di pescare un picco. Il multitask ne ha <strong>una sola</strong>, sulla media. Vince nonostante lo svantaggio.</p>
       </div>
 
       <div class="nota">
         <span class="nota-label">Dove il guadagno &egrave; vero e dove no</span>
-        Il +2,92 di media nasce quasi tutto da <strong>STS-B (+16,91)</strong> e <strong>RTE (+7,58)</strong>, cio&egrave; i due task pi&ugrave; piccoli: 5.749 e 2.490 esempi di training. Da soli non hanno abbastanza dati, e nel multitask ereditano rappresentazioni costruite anche sugli altri sei &mdash; &egrave; il transfer fra task che il paper vuole mostrare. Sui task grandi succede il contrario, in piccolo: SST-2 &minus;3,56, QQP &minus;2,01, MNLI &minus;1,88 pagano il fatto di condividere la capacit&agrave;. <strong>CoLA fa 69,13% in entrambi i regimi</strong>, cifra per cifra: sono 721 corrette su 1043, la classe maggioritaria esatta. Lo stesso identico numero con due addestramenti completamente diversi non &egrave; una coincidenza &mdash; quel task, a questa scala, non viene imparato in nessuno dei due modi.
+        Il +2,92 di media nasce quasi tutto da <strong>STS-B (+16,91)</strong> e <strong>RTE (+7,58)</strong>, cio&egrave; due dei task pi&ugrave; piccoli: 5.749 e 2.490 esempi di training. Da soli non hanno abbastanza dati, e nel multitask ereditano rappresentazioni costruite anche sugli altri sei &mdash; &egrave; il transfer fra task che il paper vuole mostrare. Lo fanno pur vedendo appena <strong>1,35 passate</strong> sui propri dati contro le 30 epoche dei modelli separati: il tetto di 4.000 step accorcia l'epoca ma non riequilibra i task, e QQP pi&ugrave; MNLI sono l'80% dei batch. Sui task grandi succede il contrario, in piccolo: SST-2 &minus;3,56, QQP &minus;2,01, MNLI &minus;1,88 pagano il fatto di condividere la capacit&agrave;. <strong>CoLA fa 69,13% in entrambi i regimi</strong>, cifra per cifra: sono 721 corrette su 1043, la classe maggioritaria esatta. Lo stesso identico numero con due addestramenti completamente diversi non &egrave; una coincidenza &mdash; quel task, a questa scala, non viene imparato in nessuno dei due modi.
       </div>
 
       <h2>Cosa fa Perceiver IO nel paper, per modalità</h2>
@@ -5848,14 +5857,14 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
 
       <h2>Le tre cose da dire, se ti chiedono «e allora cosa avete dimostrato?»</h2>
       <ul>
-        <li><strong>Dimostrato, con effetto ben oltre il rumore</strong> — (a) la <strong>generalità</strong>: la stessa architettura, cambiando solo l'encoding dell'input, fa <strong>87,36%</strong> su ModelNet40, cioè <em>meglio</em> del paper (85,7%); (b) <strong>dove</strong> metti la capacità conta più di <em>quanta</em> ne metti — togliendo il latent transformer e compensando con più cross-attend, 6,1M → 12,2M → 18,3M parametri danno 68,98% → 67,24% → 67,05%, cioè peggiorano; (c) l'<strong>inizializzazione dei latenti</strong> è l'iperparametro critico: 0.02 → 71,63%, 0.1 → 65,69%, 1.0 → <strong>52,08%</strong>, l'unica tendenza monotona e netta del progetto; (d) <strong>alternare</strong> i cross-attend batte metterli tutti in testa (71,63% contro 67,19%, a parità di T=4); (e) su ModelNet40 l'augmentation <strong>rotazionale costa 13,29 punti</strong> — il Perceiver non ha bias induttivo rotazionale e deve imparare da zero un'invarianza che quel task non richiede.</li>
-        <li><strong>Confermato, ma nella forma debole «nessun danno misurabile»</strong> — la <strong>permutation invariance</strong>: permutando i pixel si passa da 71,63% a 68,95%, un calo <em>dentro</em> la banda di 2,78, e lo stesso vale con la learned PE (71,07% → 69,87%). È la conferma che ci si aspetta, ma va detta così: non abbiamo misurato un danno, non abbiamo dimostrato che il danno sia zero. Stessa categoria il <strong>weight sharing</strong>: toglierlo triplica i parametri (10,2M → 31,5M) e <em>non</em> produce alcun guadagno misurabile — quindi la condivisione è gratis, come dice il paper.</li>
-        <li><strong>Non misurato, e va detto</strong> — quattro cose mancano perché le run non sono state eseguite: il limite inferiore <strong>senza positional encoding</strong> (<code>e29_no_pe</code>), il confronto <strong>Perceiver IO contro Perceiver</strong> su immagini, l'intera <strong>media GLUE</strong> (0 task su 8) e la <strong>baseline convoluzionale</strong>. Su questi il progetto oggi non ha niente da dire, e affermare il contrario sarebbe inventare. L'unico risultato Perceiver IO reale è il pre-training MLM: <strong>86,68%</strong> sui byte mascherati contro lo 0,39% del caso.</li>
+        <li><strong>Dimostrato, con effetto ben oltre il rumore</strong> — (a) la <strong>positional encoding è indispensabile</strong>: senza, il modello crolla da 71,63% a <strong>32,36%</strong>, l'effetto più grande del progetto, mentre permutare i pixel non costa nulla di misurabile; (b) la <strong>generalità</strong>: la stessa architettura, cambiando solo l'encoding dell'input, fa <strong>87,36%</strong> su ModelNet40, cioè <em>meglio</em> del paper (85,7%) anche all'ultima epoca (86,43%); (c) <strong>dove</strong> metti la capacità conta più di <em>quanta</em> ne metti — togliendo il latent transformer e compensando con più cross-attend, 6,1M → 12,2M → 18,3M parametri danno 68,98% → 67,24% → 67,05%, cioè peggiorano; (d) l'<strong>inizializzazione dei latenti</strong> è l'iperparametro critico: 0.02 → 71,63%, 0.1 → 65,69%, 1.0 → <strong>52,08%</strong>, l'unica tendenza monotona e netta del progetto; (e) <strong>alternare</strong> i cross-attend batte metterli tutti in testa (71,63% contro 67,19%, a parità di T=4); (f) su ModelNet40 l'augmentation <strong>rotazionale costa 13,29 punti</strong> — il Perceiver non ha bias induttivo rotazionale e deve imparare da zero un'invarianza che quel task non richiede; (g) il <strong>pre-training trasferisce</strong>: SST-2 passa da 59,75% a 80,73% partendo dal checkpoint MLM, che a sua volta indovina l'86,68% dei byte mascherati, 44 punti sopra una tabella dei byte vicini.</li>
+        <li><strong>Confermato, ma nella forma debole «nessun danno misurabile»</strong> — la <strong>permutation invariance</strong>: permutando i pixel si passa da 71,63% a 68,95%, un calo <em>dentro</em> la banda di 2,78, e lo stesso vale con la learned PE (71,07% → 69,87%). È la conferma che ci si aspetta, ma va detta così: non abbiamo misurato un danno, non abbiamo dimostrato che il danno sia zero. Stessa categoria il <strong>weight sharing</strong>: toglierlo triplica i parametri (10,2M → 31,5M) e <em>non</em> produce alcun guadagno misurabile — quindi la condivisione è gratis, come dice il paper. E il <strong>decoder di Perceiver IO</strong> su immagini: 71,79% contro 71,63%, nessuna differenza, come atteso per un'etichetta sola.</li>
+        <li><strong>Misurato, e non a nostro favore</strong> — una <strong>ResNet-18</strong> alle stesse condizioni fa 93,61% contro 71,63%: a questa scala il prior convoluzionale vale 22 punti. La <strong>media GLUE</strong> è 71,13 contro 81,0 del paper, e due task su otto (CoLA, MRPC) sono la classe maggioritaria. Il <strong>multitask</strong> batte gli otto modelli separati (74,05 contro 71,13) ma solo grazie ai task piccoli. Su ModelNet40 l'epoca è scelta sul test set, e <code>e01</code> è il più fortunato dei tre seed: dalla loro media le run fuori banda sono 10, non 12. Dirlo prima che lo chieda il docente è parte del lavoro.</li>
       </ul>
 
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
-        <p>I numeri assoluti sono più bassi del paper — è il prezzo di 1 GPU contro 64 TPU. Ma il valore del lavoro non sta nei numeri assoluti: sta nell'aver misurato <strong>la banda di rumore</strong> (±3.5 punti, da tre run a config identica) e nell'usarla per separare gli effetti reali dalle coincidenze. All'orale, il punto di forza è questo: <em>ho verificato di persona la teoria, so quali mie conclusioni reggono e quali no, e ho documentato onestamente dove i miei risultati divergono dal paper</em> — il weight sharing, il segno della permutazione, e il confronto Fourier/learned che nel mio setup non discrimina.</p>
+        <p>I numeri assoluti sono più bassi del paper — è il prezzo di 1 GPU contro 64 TPU. Ma il valore del lavoro non sta nei numeri assoluti: sta nell'aver misurato <strong>la banda di rumore</strong> (2,78 punti, da tre run identiche tranne il seed) e nell'usarla per separare gli effetti reali dalle coincidenze. All'orale, il punto di forza è questo: <em>ho verificato di persona la teoria, so quali mie conclusioni reggono e quali no, e ho documentato onestamente dove i miei risultati divergono dal paper</em> — il weight sharing, il segno della permutazione, e il confronto Fourier/learned che nel mio setup non discrimina.</p>
       </div>
 
       <div class="nav-bar">
@@ -5914,7 +5923,7 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
         <li><strong>Riprodurre risultati in forma semplificata → fatto:</strong> stessa architettura su tre modalità — CIFAR-10 (immagini), ModelNet40 (point cloud 3D), testo (MLM su WikiText-103 → fine-tuning GLUE).</li>
         <li><strong>Applicare il metodo a dati/setting diversi → fatto:</strong> tre modalità con un'unica rete sono esattamente il "setting diverso", coerente con l'idea generale del Perceiver.</li>
         <li><strong>Versione coerente con risorse limitate → fatto:</strong> tutto su <strong>1 sola GPU RTX 3080</strong> (il paper usa 64 TPU); numeri assoluti più bassi ma proprietà architetturali confermate.</li>
-        <li><strong>Risultati concreti da mostrare → pronti:</strong> <strong>ModelNet40 87,36%</strong>, che <em>supera</em> il paper (85,7%); CIFAR-10 baseline 71,63%, migliore <strong>72,91%</strong> con un solo cross-attend; permutation invariance confermata (71,63% → 68,95%, calo dentro il rumore); il weight sharing è gratis (31,5M parametri non comprano nulla); l'inizializzazione dei latenti a 1.0 fa <strong>collassare</strong> il modello a 52,08%; pre-training MLM byte-level <strong>86,68%</strong> contro lo 0,39% del caso.</li>
+        <li><strong>Risultati concreti da mostrare → pronti:</strong> <strong>ModelNet40 87,36%</strong>, che <em>supera</em> il paper (85,7%) anche all'ultima epoca (86,43%); CIFAR-10 baseline 71,63%, migliore <strong>72,91%</strong> con un solo cross-attend; permutation invariance confermata (71,63% → 68,95%, calo dentro il rumore); il weight sharing è gratis (31,5M parametri non comprano nulla); l'inizializzazione dei latenti a 1.0 fa <strong>collassare</strong> il modello a 52,08%; senza positional encoding crolla a 32,36%; pre-training MLM byte-level <strong>86,68%</strong>, 44 punti sopra una tabella dei byte vicini; GLUE 71,13 di media, multitask 74,05.</li>
         <li><strong>Lavoro sperimentale serio:</strong> registro dichiarativo di <strong>42 run</strong>, tutte completate; 120 epoche piene senza early stopping, checkpoint scelto sulla <em>validation</em> e test set toccato una volta sola; optimizer <strong>LAMB</strong>, mixed-precision bfloat16; <strong>banda di rumore misurata su tre repliche a seed diverso: 2,78 punti</strong> — ogni confronto è dichiarato concludente o no rispetto a quella soglia.</li>
         <li><strong>Derivazione tecnica → padroneggiata:</strong> latent bottleneck (costo lineare), cross-attention O(M·N), self-attention sui latenti O(N²), Fourier PE → permutation invariance, weight sharing (Perceiver come RNN), Perceiver IO con decoder e output queries.</li>
         <li><strong>Consegna conforme → pronta:</strong> codice + brevi istruzioni e link ai dati (non i dataset), via repo privato Codeberg con invito a <code>dl.unifi</code> oppure email/0x0.st.</li>
@@ -5923,7 +5932,7 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
 
       <h3>Da rifinire prima dell'orale</h3>
       <ul class="exam-check exam-check--todo">
-        <li>Cronometrare la scaletta dei 30' nei tre momenti (motivazione → derivazione → esperimenti/risultati), Q&amp;A incluse: con 3 modalità e 7 esperimenti il rischio è sforare.</li>
+        <li>Cronometrare la scaletta dei 30' nei tre momenti (motivazione → derivazione → esperimenti/risultati), Q&amp;A incluse: con 3 modalità e 42 run il rischio è sforare.</li>
         <li>Saper spiegare con sicurezza il gap col paper (1 GPU vs 64 TPU): perché i numeri assoluti calano ma permutation invariance e scalabilità lineare restano confermate.</li>
         <li>Essere pronto sulle domande facili da incalzare: <strong>weight sharing</strong> (Perceiver come RNN) e perché il <strong>Fourier PE</strong> dà permutation invariance.</li>
       </ul>
@@ -5975,13 +5984,13 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
         <article class="prio-card prio--alta">
           <div class="prio-card-head"><h3>Regolarizzazione e weight sharing</h3><span class="prio-badge prio--alta">Alta</span></div>
           <p class="prio-args">Bias-variance, double descent, vista bayesiana, L1/L2/elastic net, weight decay, dropout, early stopping, weight sharing.</p>
-          <p class="prio-why"><strong>Perché:</strong> usi early stopping (patience 10), weight decay (AdamW/LAMB) e soprattutto <strong>weight sharing</strong> (il Perceiver come RNN srotolato — punto distintivo che il docente può approfondire). Double descent è un bonus teorico apprezzato.</p>
+          <p class="prio-why"><strong>Perché:</strong> nel progetto la regolarizzazione è soprattutto il <strong>weight sharing</strong> (il Perceiver come RNN srotolato — punto distintivo che il docente può approfondire): niente dropout né weight decay nel Perceiver, e niente early stopping di proposito (120 epoche piene, checkpoint scelto sulla validation). Sappi spiegare perché ne fai a meno, e cosa fanno. Double descent è un bonus teorico apprezzato.</p>
           <p class="prio-rev"><strong>Ripassa qui:</strong> Riferimenti → Regolarizzazione L1/L2 (cap.38), Dropout (cap.36); Percorso → Weight sharing (cap.9).</p>
         </article>
         <article class="prio-card prio--alta">
           <div class="prio-card-head"><h3>Normalizzazione e data augmentation</h3><span class="prio-badge prio--alta">Alta</span></div>
           <p class="prio-args">Batch/layer/instance/group normalization, gate; data augmentation.</p>
-          <p class="prio-why"><strong>Perché:</strong> il Perceiver usa <strong>LayerNorm</strong> in pattern pre-norm (residuo pulito per il gradiente) in ogni sottoblocco. Devi distinguere BatchNorm vs LayerNorm e perché nei Transformer si preferisce LayerNorm. La data augmentation (scale+rotation) è decisiva nel tuo ModelNet40 (~83%).</p>
+          <p class="prio-why"><strong>Perché:</strong> il Perceiver usa <strong>LayerNorm</strong> in pattern pre-norm (residuo pulito per il gradiente) in ogni sottoblocco. Devi distinguere BatchNorm vs LayerNorm e perché nei Transformer si preferisce LayerNorm. Sulla data augmentation il tuo ModelNet40 ha una lezione precisa: scala e traslazione dell'intera nuvola vengono annullate dalla normalizzazione, mentre la rotazione arriva alla rete e costa 13,29 punti (87,36% → 74,07%).</p>
           <p class="prio-rev"><strong>Ripassa qui:</strong> Riferimenti → Layer Normalization (cap.22), Data Augmentation (cap.39); Esperimenti (cap.44-46).</p>
         </article>
         <article class="prio-card prio--alta">
@@ -6018,7 +6027,7 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
           <div class="prio-card-head"><h3>Iperparametri e meta-learning</h3><span class="prio-badge prio--bassa">Bassa</span></div>
           <p class="prio-args">Gaussian process, expected improvement, multi-fidelity, successive halving, Hyperband, ASHA, meta-learning, domain adaptation.</p>
           <p class="prio-why"><strong>Perché:</strong> nel programma ma lontani dal progetto (1 GPU, ricerca iperparametri manuale, non Bayesian/ASHA). Ripassali a livello di idea (GP come surrogato, expected improvement come acquisition, successive halving = stop precoce dei run scadenti). Bastano i concetti.</p>
-          <p class="prio-rev"><strong>Ripassa qui:</strong> Approfondimenti corso → <strong>Iperparametri &amp; HPO (X2)</strong>; collega il successive halving al tuo early stopping. Libro [RW06] per i GP.</p>
+          <p class="prio-rev"><strong>Ripassa qui:</strong> Approfondimenti corso → <strong>Iperparametri &amp; HPO (X2)</strong>; collega il successive halving all'early stopping (che nel progetto non usi: ogni run fa 120 epoche piene). Libro [RW06] per i GP.</p>
         </article>
       </div>
 
@@ -6133,7 +6142,7 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
       <div class="study-plan">
         <div class="study-day"><span class="study-day-n">1</span><div><strong>Cuore del progetto: Perceiver e attention</strong><p>Cross-attention (Q latenti, K/V input, O(M·N)) e self-attention sui latenti (O(N²)); il latent bottleneck e il costo lineare. Collega ogni concetto alla tua implementazione. Presentazione: prima bozza di scaletta a 30'.</p></div></div>
         <div class="study-day"><span class="study-day-n">2</span><div><strong>Perceiver IO + proprietà dimostrate</strong><p>Decoder + output queries; dal Perceiver al Perceiver IO. Ripassa permutation invariance (71,63% → 68,95%, calo dentro il rumore) e weight sharing (gratis: 3,1× parametri, nessun guadagno). Presentazione: assegna i minutaggi e prepara figure chiave (mappa forward, schema attention).</p></div></div>
-        <div class="study-day"><span class="study-day-n">3</span><div><strong>Esperimenti e risultati (il tuo valore aggiunto)</strong><p>Numeri a memoria: <strong>banda di rumore 2,78</strong> (è la chiave di lettura di tutto il resto), CIFAR-10 baseline 71,63% e migliore 72,91%, permutazione 71,63% → 68,95%, ModelNet40 <strong>87,36%</strong> con rotazione a 74,07%, init dei latenti 0.02 → 71,63% contro 1.0 → 52,08%, MLM byte-level 86,68%. Contesto hardware (1 RTX 3080 vs 64 TPU) e metodo (LAMB, bfloat16, nessun early stopping, selezione sulla validation). Prima prova a voce cronometrata.</p></div></div>
+        <div class="study-day"><span class="study-day-n">3</span><div><strong>Esperimenti e risultati (il tuo valore aggiunto)</strong><p>Numeri a memoria: <strong>banda di rumore 2,78</strong> (è la chiave di lettura di tutto il resto), CIFAR-10 baseline 71,63% e migliore 72,91%, permutazione 71,63% → 68,95%, ModelNet40 <strong>87,36%</strong> (86,43% all'ultima epoca) con rotazione a 74,07%, init dei latenti 0.02 → 71,63% contro 1.0 → 52,08%, senza positional encoding 32,36%, ResNet-18 93,61%, MLM byte-level 86,68% (tabella dei vicini 42,96%), GLUE 71,13 di media, multitask 74,05. Contesto hardware (1 RTX 3080 vs 64 TPU) e metodo (LAMB, bfloat16, nessun early stopping, selezione sulla validation). Prima prova a voce cronometrata.</p></div></div>
         <div class="study-day"><span class="study-day-n">4</span><div><strong>Riferimenti teorici di contorno</strong><p>Softmax, attivazioni, ottimizzatori, CNN/RNN/LSTM/GRU, Transformer/ViT, dropout, init pesi, regolarizzazione, data augmentation. Modalità testo: MLM su WikiText-103 → GLUE. Seconda prova a voce, rifinendo i punti deboli.</p></div></div>
         <div class="study-day"><span class="study-day-n">5</span><div><strong>Anticipare le domande + prove rifinite</strong><p>Prepara le risposte alle domande probabili (vedi sotto). Prova a voce completa e cronometrata (target 30'), idealmente davanti a qualcuno o registrandoti.</p></div></div>
         <div class="study-day"><span class="study-day-n">6</span><div><strong>Cuscinetto — chiudi i buchi</strong><p>Riprendi [GBC16]/[P24]/[BB24] sui punti ancora incerti; ultima prova integrale della presentazione coi tempi giusti.</p></div></div>
@@ -6153,7 +6162,7 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
           <div class="step-anim-node" data-caption="Introduci e motiva il problema: input eterogenei, una sola rete per 3 modalità. Aggancia subito l'attenzione."><span class="step-anim-n">1</span><span class="step-anim-label">Motiva · 0–3'</span></div>
           <div class="step-anim-node" data-caption="Derivazione tecnica: latent bottleneck, cross/self-attention, Fourier PE, weight sharing. Il cuore tecnico."><span class="step-anim-n">2</span><span class="step-anim-label">Architettura · 3–10'</span></div>
           <div class="step-anim-node" data-caption="Dal Perceiver al Perceiver IO: il decoder e le output queries che permettono output di forma arbitraria."><span class="step-anim-n">3</span><span class="step-anim-label">Perceiver IO · 10–14'</span></div>
-          <div class="step-anim-node" data-caption="Lavoro sperimentale e risultati: 7 run CIFAR-10, permutation invariance, ModelNet40, contesto hardware. Il tuo valore aggiunto."><span class="step-anim-n">4</span><span class="step-anim-label">Esperimenti · 14–24'</span></div>
+          <div class="step-anim-node" data-caption="Lavoro sperimentale e risultati: banda di rumore, 24 run CIFAR-10, permutation invariance, ModelNet40, Perceiver IO su testo, contesto hardware. Il tuo valore aggiunto."><span class="step-anim-n">4</span><span class="step-anim-label">Esperimenti · 14–24'</span></div>
           <div class="step-anim-node" data-caption="Conclusioni: cosa è confermato del paper, limiti dovuti all'hardware. Poi lascia margine per le domande."><span class="step-anim-n">5</span><span class="step-anim-label">Conclusioni + Q&amp;A · 24–30'</span></div>
         </div>
         <div class="step-anim-progress"><span></span></div>
@@ -6168,7 +6177,7 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
             <tr><td>0–3'</td><td>Problema e idea del Perceiver (input eterogenei, una rete per 3 modalità)</td></tr>
             <tr><td>3–10'</td><td>Architettura: latent bottleneck, cross-attention, self-attention, Fourier PE, weight sharing</td></tr>
             <tr><td>10–14'</td><td>Da Perceiver a Perceiver IO (decoder + output queries)</td></tr>
-            <tr class="exp-best"><td>14–24'</td><td>Esperimenti e risultati (7 run CIFAR-10, numeri chiave, permutazione, ModelNet40, hardware)</td></tr>
+            <tr class="exp-best"><td>14–24'</td><td>Esperimenti e risultati (banda di rumore, 24 run CIFAR-10, numeri chiave, permutazione, ModelNet40, MLM e GLUE, hardware)</td></tr>
             <tr><td>24–28'</td><td>Conclusioni (cosa è confermato del paper, limiti dell'hardware)</td></tr>
             <tr><td>28–30'</td><td>Margine per le domande</td></tr>
           </tbody>
@@ -6477,7 +6486,7 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
       </div>
       <p>Il <strong>meta-learning</strong> ("imparare a imparare") impara <em>come</em> adattarsi in fretta a nuovi task da una distribuzione di task affini; per l'HPO serve a fare <em>warm-start</em> con storici di esperimenti. <strong>MAML</strong> cerca un'<em>inizializzazione</em> dei pesi da cui <strong>pochi passi di gradiente</strong> bastano su un nuovo task (few-shot): inner loop (adatta al task) + outer loop (ottimizza l'init).</p>
       <p>Il <strong>mixup</strong> è una regolarizzazione sui <em>dati</em>: crea esempi virtuali come combinazioni convesse <code>x̃ = λ·x_i + (1−λ)·x_j</code>, <code>ỹ = λ·y_i + (1−λ)·y_j</code>, con <code>λ ~ Beta(α,α)</code>. Forza il modello a comportarsi <strong>linearmente tra gli esempi</strong>: predizioni più lisce, meno overfitting e meno overconfidence (etichette soft).</p>
-      <div class="comparison-note"><strong>Legame col progetto:</strong> la tua ricerca di iperparametri è stata <strong>manuale</strong> (7 esperimenti CIFAR-10 scelti a ragionamento): un grid/random artigianale a budget minimo, obbligato da 1 sola RTX 3080 — proprio lo scenario "valutazioni costose" che motiva i metodi automatici. La BO avrebbe scelto la prossima configurazione in modo informato (learning rate di LAMB, weight decay, dropout, n. di latent). Soprattutto, il tuo <strong>early stopping</strong> è il parente del <strong>successive halving</strong>: entrambi tagliano presto i run poco promettenti (l'early stopping ferma <em>un</em> training, SHA confronta e scarta <em>tra più</em> configurazioni). Il <strong>mixup</strong> era applicabile direttamente a CIFAR-10.</div>
+      <div class="comparison-note"><strong>Legame col progetto:</strong> la tua ricerca di iperparametri è stata <strong>manuale</strong> (24 run CIFAR-10 in un registro dichiarativo, una modifica alla volta): un grid artigianale a budget minimo, obbligato da 1 sola RTX 3080 — proprio lo scenario "valutazioni costose" che motiva i metodi automatici. La BO avrebbe scelto la prossima configurazione in modo informato (learning rate di LAMB, numero di latenti, scala di inizializzazione, bande di Fourier). Il <strong>successive halving</strong> è parente dell'<strong>early stopping</strong>: entrambi tagliano presto i run poco promettenti (l'early stopping ferma <em>un</em> training, SHA confronta e scarta <em>tra più</em> configurazioni). Nel progetto l'early stopping non c'è di proposito: ogni run fa 120 epoche piene, così tutte ricevono il decadimento del learning rate alle epoche 84/102/114. Il <strong>mixup</strong> era applicabile direttamente a CIFAR-10.</div>
 
       <h2>Domande d'orale</h2>
       <div class="qa-group">
@@ -6577,7 +6586,7 @@ python analyze_v2.py   # confronto di ogni run col baseline, banda di rumore</di
         <li>Regressione con outlier → Huber/L1; pulita → L2. Classificazione con softmax → cross-entropy; margine → hinge.</li>
         <li>Altre: <strong>KL divergence</strong> (soft label, distillation, VAE) e <strong>focal loss</strong> (cross-entropy ripesata per il class imbalance, pendant della Dice loss della segmentazione).</li>
       </ul>
-      <div class="comparison-note"><strong>Legame col progetto:</strong> il Perceiver/Perceiver IO è un classificatore <strong>discriminativo</strong> (stima <code>p(y|x)</code> con softmax) addestrato per <strong>ERM</strong> minimizzando la <strong>cross-entropy</strong>. Lo schema è identico sulle 3 modalità: CIFAR-10 (10 classi), ModelNet40 (40 classi) con cross-entropy multiclasse, e MLM su WikiText-103 (cross-entropy sul token mascherato). La ricerca manuale degli iperparametri e l'early stopping servono a ridurre il <em>generalization gap</em> tra rischio empirico (train) e rischio vero (validation).</div>
+      <div class="comparison-note"><strong>Legame col progetto:</strong> il Perceiver/Perceiver IO è un classificatore <strong>discriminativo</strong> (stima <code>p(y|x)</code> con softmax) addestrato per <strong>ERM</strong> minimizzando la <strong>cross-entropy</strong>. Lo schema è identico sulle 3 modalità: CIFAR-10 (10 classi), ModelNet40 (40 classi) con cross-entropy multiclasse, e MLM su WikiText-103 (cross-entropy sul token mascherato). La ricerca manuale degli iperparametri e la scelta del checkpoint sulla validation (niente early stopping: 120 epoche piene) servono a tenere sotto controllo il <em>generalization gap</em> tra rischio empirico (train) e rischio vero (validation).</div>
 
       <h2>Domande d'orale</h2>
       <div class="qa-group">

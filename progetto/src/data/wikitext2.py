@@ -50,7 +50,6 @@ class WikiText2PerceiverDataModule:
         num_workers=2,
         seq_len=2048,
         mask_prob=0.15,
-        fourier_dim=64,
         max_frequencies=64.0,
         num_frequency_bands=6,
         wikitext2_zip_path=None,
@@ -61,7 +60,6 @@ class WikiText2PerceiverDataModule:
         self.num_workers = num_workers
         self.seq_len = seq_len
         self.mask_prob = mask_prob
-        self.fourier_dim = fourier_dim
         self.max_frequencies = max_frequencies
         self.num_frequency_bands = num_frequency_bands
         self.wikitext2_zip_path = wikitext2_zip_path
