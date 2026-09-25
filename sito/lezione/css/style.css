@@ -951,9 +951,12 @@
   }
   .comparison-stack {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 26px;
     margin: 24px 0 28px;
   }
+  .comparison-stack > *,
+  .architecture-card { min-width: 0; }
   .comparison-detail {
     border-top: 1px solid var(--border);
     padding-top: 20px;

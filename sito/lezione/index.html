@@ -1390,7 +1390,7 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
           <li>Dopo 4 letture restano 96 latenti da 384 numeri. La media sui 96 dà un vettore h da <strong>384</strong>.</li>
           <li>Linear da 384 a 10 classi: 3.840 pesi + 10 bias = <strong>3.850</strong> parametri.</li>
           <li>Esempio con 3 classi: logit z = (2,0, 1,0, 0,1). Esponenziali: 7,389, 2,718, 1,105. Somma 11,212.</li>
-          <li>Probabilità: <strong>0,659, 0,242, 0,099</strong>. Se la classe giusta è la prima, la loss è −ln 0,659 = 0,417. Se è la terza, −ln 0,099 = 2,317.</li>
+          <li>Probabilità: <strong>0,659, 0,242, 0,099</strong>. Se la classe giusta è la prima, la loss è −ln 0,659 = 0,417. Se è la terza, −ln 0,099 ≈ 2,32.</li>
           <li>All'inizio del training, con 10 classi equiprobabili, p = 0,1 e la loss vale ln 10 = <strong>2,303</strong>. È il valore di partenza atteso.</li>
           <li>Media e Linear sono operazioni lineari e commutano: fare prima la media dà lo stesso risultato, ma proietta un vettore invece di 96.</li>
         </ol>
@@ -2573,6 +2573,14 @@ Y = Y + MLP(LN(Y))</div>
       <div class="chap-meta"><span class="chap-badge">Rif. 1</span><span class="chap-time">~5 min</span></div>
       <h1>Riferimento: Softmax</h1>
       <p class="intro">La softmax trasforma logit arbitrari in una distribuzione di probabilità. Nel Perceiver compare sia dentro l'attention, dove normalizza i pesi, sia alla fine della classificazione.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Softmax: p_i = e^(z_i) ÷ Σ_j e^(z_j). Trasforma numeri qualsiasi in probabilità positive che sommano a 1.</li>
+          <li>La temperatura T divide i logit: T piccola rende la distribuzione netta, T grande la appiattisce.</li>
+          <li>Nel Perceiver compare due volte: su ogni riga dell'attenzione (50.176 pesi per latente) e sui logit delle classi.</li>
+        </ul>
+      </div>
 
       <div class="display-eq">p_i = \frac{e^(z_i)}{Σ_j e^(z_j)}</div>
       <p>Le proprietà da ricordare sono tre: ogni probabilità è positiva, la somma è 1, e l'ordine dei logit viene preservato. Se un logit è più grande, riceve probabilità maggiore.</p>
@@ -2608,9 +2616,38 @@ Y = Y + MLP(LN(Y))</div>
       <div class="display-eq">m = max_j(z_j)
 p_i = \frac{e^(z_i - m)}{Σ_j e^(z_j - m)}</div>
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Tre logit, tre temperature</p>
+        <ol class="passi">
+          <li>Logit z = (2, 1, 0,1). Esponenziali: 7,389, 2,718, 1,105. Somma 11,212.</li>
+          <li>Probabilità con T = 1: <strong>0,659, 0,242, 0,099</strong>.</li>
+          <li>T = 0,5 (logit raddoppiati: 4, 2, 0,2): <strong>0,864, 0,117, 0,019</strong>. Più netta.</li>
+          <li>T = 2 (logit dimezzati: 1, 0,5, 0,05): <strong>0,502, 0,304, 0,194</strong>. Più piatta.</li>
+          <li>Stabilità: con z = (1.000, 999), e^1.000 va in overflow. Si sottrae il massimo: (0, −1) → e^0 = 1 ed e^−1 = 0,368 → p = <strong>0,731, 0,269</strong>. Stesso risultato, nessun overflow.</li>
+          <li>Nell'attenzione la divisione per √d fa da temperatura: con d = 261, √d ≈ 16.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Collegamento al Perceiver</div>
         <p>Nell'attention la softmax trasforma <span class="inline-frac"><span>QK<sup>T</sup></span><span>√d</span></span> in pesi per riga. Nella testa finale trasforma i logit ImageNet in probabilità sulle classi.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>La softmax non è «il massimo»: dà peso anche agli altri elementi. È una versione morbida dell'argmax.</li>
+          <li>Aggiungere la stessa costante a tutti i logit non cambia niente: per questo si può sottrarre il massimo.</li>
+          <li>Nell'attenzione la softmax è su ogni riga, cioè su ogni query, non su tutta la matrice.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Calcola la softmax di (2, 1, 0,1).</summary><p class="qa-a">Esponenziali 7,389, 2,718, 1,105, somma 11,212: p = (0,659, 0,242, 0,099).</p></details>
+        <details class="qa-item"><summary>Cosa fa la temperatura?</summary><p class="qa-a">Divide i logit. T < 1 rende la distribuzione più netta, T > 1 più piatta. Con T → 0 tende all'argmax, con T → ∞ alla distribuzione uniforme.</p></details>
+        <details class="qa-item"><summary>Perché si sottrae il massimo prima di esponenziare?</summary><p class="qa-a">Per evitare overflow: la softmax non cambia se si sottrae la stessa costante a tutti i logit.</p></details>
+        <details class="qa-item"><summary>Dove compare la softmax nel Perceiver?</summary><p class="qa-a">Su ogni riga della matrice di attenzione (cross-attention, self-attention, decoder) e sui logit finali di classificazione.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -2625,6 +2662,14 @@ p_i = \frac{e^(z_i - m)}{Σ_j e^(z_j - m)}</div>
       <div class="chap-meta"><span class="chap-badge">Rif. 2</span><span class="chap-time">~5 min</span></div>
       <h1>Riferimento: Fourier Features e Positional Encoding</h1>
       <p class="intro">L'attention è cieca alla posizione: senza encoding posizionale, una permutazione degli elementi lascia il contenuto indistinguibile. Le Fourier features risolvono questo problema codificando coordinate continue a molte frequenze.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>L'attenzione non vede l'ordine: senza una codifica di posizione, un insieme di pixel o di byte è solo un mucchio.</li>
+          <li>Fourier features: la coordinata più seno e coseno a K frequenze. d · (2K + 1) numeri per elemento.</li>
+          <li>Il Perceiver le concatena all'input; il Transformer di Vaswani le somma agli embedding.</li>
+        </ul>
+      </div>
 
       <h2>Il problema</h2>
       <p>Self-attention e cross-attention operano su insiemi di vettori. Da sole non sanno che un pixel è in alto a sinistra o in basso a destra. Il Perceiver quindi concatena le coordinate codificate all'input.</p>
@@ -2664,9 +2709,38 @@ C_tot = 3 + 2 · (2 · 64 + 1) = 261</div>
       <h2>Perché concatenare e non sommare?</h2>
       <p>La somma mescola colore e posizione nello stesso spazio. La concatenazione conserva separatamente contenuto e coordinate, lasciando alla cross-attention il compito di imparare come combinarli.</p>
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Le posizioni del nostro testo, in numeri</p>
+        <ol class="passi">
+          <li>Nel nostro MLM la posizione del byte i è x = i ÷ 511: da 0 a 1 in 512 passi.</li>
+          <li>6 bande equispaziate da 1 a 64: f = 1, 13,6, 26,2, 38,8, 51,4, 64.</li>
+          <li>Canali: 1 · (2·6 + 1) = <strong>13</strong>. Con i 257 del one-hot: 270 per byte.</li>
+          <li>Byte 0 (x = 0): tutti i seni valgono 0 e tutti i coseni 1.</li>
+          <li>Byte 1 (x = 0,002): banda 1 sin = 0,006 (quasi uguale al byte 0); banda 3 sin = 0,160. Le bande alte separano i vicini.</li>
+          <li>Byte 511 (x = 1): banda 1 sin = 0, cos = −1; banda 2 sin = −0,951. Nessuna coppia di posizioni ha lo stesso vettore completo.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Collegamento al Perceiver</div>
         <p>La permutation invariance del Perceiver su ImageNet permutato dipende proprio da questa scelta: le Fourier features viaggiano insieme al pixel.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Le frequenze del Perceiver sono lineari, quelle di NeRF sono potenze di 2: con 64 bande NeRF arriverebbe a 2⁶⁴.</li>
+          <li>Concatenare aggiunge canali (e parametri nella prima proiezione); sommare no, ma mescola contenuto e posizione.</li>
+          <li>Anche una posizione appresa funziona (70,9% nel paper, 71,07% nel nostro e03), ma non si estende a risoluzioni nuove.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Perché l'attenzione ha bisogno di una codifica di posizione?</summary><p class="qa-a">Perché è una somma pesata su un insieme: se rimescoli gli elementi il risultato non cambia. Senza posizione, nel tuo e29, CIFAR-10 scende al 32,36%.</p></details>
+        <details class="qa-item"><summary>Quanti canali aggiunge la codifica di Fourier con d assi e K bande?</summary><p class="qa-a">d · (2K + 1). Immagini con K = 64: 258; testo nel tuo progetto con K = 6: 13; punti 3D con K = 6: 39.</p></details>
+        <details class="qa-item"><summary>Concatenare o sommare: che differenza c'è?</summary><p class="qa-a">Concatenando, posizione e contenuto stanno in canali separati. Sommando si risparmiano canali ma si mescolano. Il Perceiver concatena, i modelli di linguaggio di solito sommano.</p></details>
+        <details class="qa-item"><summary>Qual è la frequenza massima giusta?</summary><p class="qa-a">Nyquist, cioè metà del numero di campioni per asse: 112 su ImageNet, 16 su CIFAR-10.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -2681,6 +2755,14 @@ C_tot = 3 + 2 · (2 · 64 + 1) = 261</div>
       <div class="chap-meta"><span class="chap-badge">Rif. 3</span><span class="chap-time">~8 min</span></div>
       <h1>Riferimento: Cross-Entropy Loss</h1>
       <p class="intro">La cross-entropy misura quanto la distribuzione predetta si discosta dalla classe corretta. Per classificazione multi-classe è la loss naturale insieme a softmax.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Cross-entropy: ℒ = −log p_c, dove p_c è la probabilità data alla classe giusta.</li>
+          <li>Con C classi equiprobabili vale ln C: 2,303 per 10 classi, 5,545 per 256 byte, 6,908 per 1.000 classi.</li>
+          <li>Con la softmax il gradiente sui logit è semplicemente p − y.</li>
+        </ul>
+      </div>
 
       <div class="display-eq">L = - Σ_i y_i log(p_i)</div>
       <p>Se <code>y</code> è one-hot, resta solo il termine della classe corretta:</p>
@@ -2733,9 +2815,37 @@ Cross-Entropy = -log(p_c)</div>
         <p>Per questo, nelle teste di classificazione del Perceiver, softmax e cross-entropy sono la coppia standard.</p>
       </details>
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Quanto costa sbagliare</p>
+        <ol class="passi">
+          <li>p_c = 0,659 → ℒ = −ln 0,659 = <strong>0,417</strong>.</li>
+          <li>p_c = 0,099 → ℒ ≈ <strong>2,31</strong>. Sbagliare con sicurezza costa molto.</li>
+          <li>Modello che non sa niente, 10 classi (CIFAR-10): p = 0,1 → ℒ = ln 10 = <strong>2,303</strong>.</li>
+          <li>256 byte (il nostro MLM): ln 256 = <strong>5,545</strong>. 1.000 classi (ImageNet): ln 1.000 = <strong>6,908</strong>.</li>
+          <li>Per scendere a ℒ = 0,1 serve p_c = e^−0,1 = 0,905. La loss 0 esatta richiederebbe p_c = 1, impossibile con logit finiti.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Collegamento al Perceiver</div>
         <p>Dopo pooling e classificatore lineare, il Perceiver usa cross-entropy standard. Il gradiente <code>p - y</code> si propaga poi attraverso pooling, latent transformer, cross-attention e input embedding: è il primo segnale numerico che attraversa tutta l'architettura al backward.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>La loss di partenza attesa è ln C, non 0 e non 1: è un controllo utile all'inizio del training.</li>
+          <li>Accuracy e loss non vanno sempre insieme: la loss punisce anche le risposte giuste date con poca sicurezza.</li>
+          <li>Con etichette multiple (AudioSet) si usa una sigmoide per classe, non la softmax (p. 8 del paper).</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Scrivi la cross-entropy per un esempio.</summary><p class="qa-a">ℒ = −log p_c, con p_c la probabilità che il modello dà alla classe giusta.</p></details>
+        <details class="qa-item"><summary>Che loss ti aspetti all'inizio del training su CIFAR-10 e sul tuo MLM?</summary><p class="qa-a">ln 10 ≈ 2,30 e ln 256 ≈ 5,55: il modello dà probabilità uguali a tutte le classi.</p></details>
+        <details class="qa-item"><summary>Perché si usa il logaritmo?</summary><p class="qa-a">Trasforma il prodotto delle probabilità del dataset in una somma, punisce molto gli errori sicuri ed è il negativo della log-verosimiglianza.</p></details>
+        <details class="qa-item"><summary>Qual è il gradiente di softmax + cross-entropy rispetto ai logit?</summary><p class="qa-a">p − y.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -2750,6 +2860,14 @@ Cross-Entropy = -log(p_c)</div>
       <div class="chap-meta"><span class="chap-badge">Rif. 4</span><span class="chap-time">~10 min</span></div>
       <h1>Riferimento: Layer Normalization</h1>
       <p class="intro">LayerNorm normalizza ogni campione lungo le sue feature. È indipendente dalla batch size, quindi è perfetta per Transformer, sequenze e architetture come Perceiver.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>LayerNorm: per ogni riga (un pixel, un latente) sottrae la media, divide per la deviazione standard, poi applica γ e β appresi.</li>
+          <li>Non dipende dal batch: funziona uguale con batch 1 o 1.024.</li>
+          <li>Nel Perceiver è pre-norm: sta prima di attention e MLP, e il residual resta una strada pulita.</li>
+        </ul>
+      </div>
 
       <div class="display-eq">μ = \frac{1}{D} Σ_{j=1}^{D} x_j
 σ = \sqrt{\frac{1}{D} Σ_{j=1}^{D} (x_j - μ)^2 + ε}
@@ -2836,6 +2954,7 @@ Pre-norm:  y = x + f(LN(x))</div>
           </div>
         </div>
 
+        <div class="pn-diagram-wrap">
         <svg class="pn-diagram" viewBox="0 0 720 300" role="img"
              aria-label="Confronto fra pre-norm e post-norm: nel pre-norm la connessione residua va dall'ingresso all'uscita senza attraversare la LayerNorm, nel post-norm la attraversa">
           <title>Pre-norm contro post-norm: il percorso della connessione residua</title>
@@ -2902,6 +3021,7 @@ Pre-norm:  y = x + f(LN(x))</div>
           <text class="pn-note pn-bad" x="480" y="284">il residuo entra nella LayerNorm:</text>
           <text class="pn-note pn-bad" x="480" y="296">ogni blocco moltiplica il gradiente</text>
         </svg>
+        </div>
 
         <div class="pn-controls">
           <label for="pn-depth">Profondità della rete: <output id="pn-depth-out">56</output> blocchi</label>
@@ -2925,6 +3045,18 @@ Pre-norm:  y = x + f(LN(x))</div>
       </div>
 
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">LayerNorm su un vettore, e quanto pesa nel nostro modello</p>
+        <ol class="passi">
+          <li>x = (2, 4, 6, 8). Media 5, varianza (9 + 1 + 1 + 9) ÷ 4 = 5, deviazione standard 2,236.</li>
+          <li>Normalizzato: <strong>(−1,342, −0,447, 0,447, 1,342)</strong>. Media 0, varianza 1.</li>
+          <li>Con γ = 1 e β = 0 resta così; il training impara γ e β per ogni canale.</li>
+          <li>Parametri: 2 per canale. Una LayerNorm su D = 384 ha 768 parametri.</li>
+          <li>Nel nostro e01: 2 cross-attention con 3 LayerNorm (2.058 parametri ciascuna) e 4 blocchi con 2 (1.536 ciascuno). Totale <strong>10.260</strong>, lo 0,1% dei parametri.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Collegamento al Perceiver</div>
         <p>Nel Perceiver ci sono molte LayerNorm: prima dell'attention e prima dell'MLP, sia nel cross-attention block sia nel latent transformer. Negli appunti viene stimato un ordine di circa 112 normalizzazioni/residual sui blocchi completi: senza pre-norm il training profondo sarebbe molto più fragile.</p>
@@ -2945,6 +3077,22 @@ Pre-norm:  y = x + f(LN(x))</div>
         <div class="step-anim-progress"><span></span></div>
         <div class="step-anim-caption"></div>
       </div>
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>LayerNorm normalizza sulle feature di un esempio; BatchNorm su una feature attraverso il batch.</li>
+          <li>Pre-norm e post-norm non sono la stessa cosa: con pre-norm la somma residua non passa mai dentro la normalizzazione.</li>
+          <li>Nella cross-attention ci sono due LayerNorm separate, una per i latenti e una per l'input: hanno dimensioni diverse (D e C_tot).</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Normalizza (2, 4, 6, 8) con LayerNorm, γ = 1 e β = 0.</summary><p class="qa-a">Media 5, deviazione standard 2,236: (−1,342, −0,447, 0,447, 1,342).</p></details>
+        <details class="qa-item"><summary>LayerNorm o BatchNorm nei Transformer? Perché?</summary><p class="qa-a">LayerNorm: non dipende dal batch né dalla lunghezza della sequenza, e si comporta allo stesso modo in training e in inferenza.</p></details>
+        <details class="qa-item"><summary>Cosa vuol dire pre-norm?</summary><p class="qa-a">La normalizzazione sta dentro il ramo: y = x + f(LN(x)). La strada x → y resta un'identità pulita per il gradiente.</p></details>
+        <details class="qa-item"><summary>Quante LayerNorm ha una cross-attention del Perceiver?</summary><p class="qa-a">Tre: sui latenti, sull'input e prima dell'MLP.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-22">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="22"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -2957,6 +3105,14 @@ Pre-norm:  y = x + f(LN(x))</div>
       <div class="chap-meta"><span class="chap-badge">Rif. 5</span><span class="chap-time">~8 min</span></div>
       <h1>Riferimento: Funzioni di Attivazione</h1>
       <p class="intro">Le attivazioni introducono non-linearità. Senza di esse, una rete profonda sarebbe ancora una trasformazione lineare unica.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Senza non-linearità due strati lineari sono uno strato lineare solo: la profondità non servirebbe.</li>
+          <li>ReLU(x) = max(0, x). GELU(x) = x · Φ(x): liscia e con un piccolo passaggio sotto lo zero.</li>
+          <li>Il Perceiver usa GELU negli MLP, come GPT-2.</li>
+        </ul>
+      </div>
 
       <h2>ReLU</h2>
       <div class="display-eq">ReLU(x) = max(0, x)
@@ -3013,9 +3169,37 @@ tanh'(x) = 1 - tanh(x)^2</div>
         </ul>
       </details>
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">GELU e ReLU a confronto, punto per punto</p>
+        <ol class="passi">
+          <li>x = −3: ReLU 0, GELU <strong>−0,004</strong>.</li>
+          <li>x = −1: ReLU 0, GELU <strong>−0,159</strong>. GELU lascia passare un po' di segnale negativo.</li>
+          <li>x = 0,5: ReLU 0,5, GELU <strong>0,346</strong>.</li>
+          <li>x = 2: ReLU 2, GELU <strong>1,954</strong>. Per x grandi coincidono.</li>
+          <li>Sigmoide: la derivata vale al massimo 0,25. Attraverso 10 strati: 0,25¹⁰ ≈ 9,5 × 10⁻⁷. È il vanishing gradient.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Collegamento al Perceiver</div>
         <p>La parte attention sposta informazione; l'MLP con GELU la rielabora localmente su ogni latente. Entrambe servono.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>La ReLU non è derivabile in 0 e ha gradiente zero per tutti gli x negativi: un neurone può «morire».</li>
+          <li>GELU non è una sigmoide: per x grandi si comporta come l'identità.</li>
+          <li>L'attivazione sta nell'MLP, non nell'attenzione: l'attenzione ha già la sua non-linearità, la softmax.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Perché servono le funzioni di attivazione?</summary><p class="qa-a">Senza, una pila di strati lineari collassa in un solo strato lineare.</p></details>
+        <details class="qa-item"><summary>Quanto valgono ReLU e GELU in x = −1 e x = 2?</summary><p class="qa-a">ReLU 0 e 2; GELU −0,159 e 1,954.</p></details>
+        <details class="qa-item"><summary>Perché sigmoide e tanh causano vanishing gradient?</summary><p class="qa-a">La derivata della sigmoide è al massimo 0,25 (quella di tanh al massimo 1, e molto meno lontano da 0): moltiplicata strato dopo strato, tende a zero.</p></details>
+        <details class="qa-item"><summary>Quale attivazione usa il Perceiver e dove?</summary><p class="qa-a">GELU, dentro gli MLP della cross-attention e dei blocchi latenti.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -3030,6 +3214,14 @@ tanh'(x) = 1 - tanh(x)^2</div>
       <div class="chap-meta"><span class="chap-badge">Rif. 6</span><span class="chap-time">~9 min</span></div>
       <h1>Riferimento: Residual Connections</h1>
       <p class="intro">Le residual connections permettono di addestrare reti molto profonde facendo imparare a ogni blocco una correzione rispetto all'identità, non l'intera trasformazione da zero.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Residual: y = x + f(x). Il blocco impara solo una correzione rispetto all'identità.</li>
+          <li>Nel backward: ∂y/∂x = I + ∂f/∂x. Il termine I porta indietro il gradiente anche quando f non aiuta.</li>
+          <li>Nel Perceiver ogni attention e ogni MLP ha il suo residual: 112 somme residue nel modello ImageNet.</li>
+        </ul>
+      </div>
 
       <h2>Residual learning</h2>
       <p>Invece di chiedere al blocco di imparare direttamente la trasformazione desiderata <code>H(x)</code>, gli facciamo imparare il residuo <code>F(x) = H(x) - x</code>. Se il blocco non serve, può imparare quasi zero e lasciare passare l'identità.</p>
@@ -3091,9 +3283,37 @@ MLP block:       y = x + MLP(LN(x))</div>
         <p>Negli appunti il conto porta a un ordine di circa 112 residual connection nei blocchi completi. È uno dei motivi per cui il latent array può essere raffinato molte volte senza perdere il segnale iniziale.</p>
       </details>
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Perché 1 + qualcosa batte qualcosa</p>
+        <ol class="passi">
+          <li>Senza residual, 10 strati con derivata 0,1 ciascuno: 0,1¹⁰ = 10⁻¹⁰. Il gradiente sparisce.</li>
+          <li>Con residual la derivata di ogni strato è 1 + 0,1 = 1,1: dopo 10 strati 1,1¹⁰ = <strong>2,59</strong>.</li>
+          <li>Con derivata −0,1: 0,9¹⁰ = <strong>0,35</strong>. Resta nello stesso ordine di grandezza.</li>
+          <li>Modello ImageNet del paper: 8 cross-attention + 48 blocchi = 56 moduli, ognuno con 2 residual (attention e MLP): <strong>112</strong> somme.</li>
+          <li>Nostro e01: 4 + 16 = 20 moduli, 40 somme residue.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Collegamento al Perceiver</div>
         <p>Il Perceiver è profondo e iterativo: senza residual, i gradienti non raggiungerebbero stabilmente i blocchi iniziali e il latent array sarebbe molto più difficile da addestrare.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Il residual non aggiunge parametri: è una somma.</li>
+          <li>Serve che x e f(x) abbiano la stessa forma: per questo la cross-attention riporta l'uscita da 261 a D canali prima di sommare.</li>
+          <li>Nel decoder di Perceiver IO il residual a volte si toglie (optical flow): sommerebbe la query all'uscita.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Scrivi un blocco residuo e la sua derivata.</summary><p class="qa-a">y = x + f(x); ∂y/∂x = I + ∂f/∂x.</p></details>
+        <details class="qa-item"><summary>Perché i residual permettono reti profonde?</summary><p class="qa-a">Il gradiente ha sempre la strada dell'identità: il prodotto delle derivate resta vicino a 1 invece di sparire.</p></details>
+        <details class="qa-item"><summary>Quante somme residue ha il Perceiver ImageNet?</summary><p class="qa-a">112: 56 moduli (8 cross-attention e 48 blocchi latenti), ognuno con un residual dopo l'attenzione e uno dopo l'MLP.</p></details>
+        <details class="qa-item"><summary>Perché nella cross-attention serve la proiezione W_o?</summary><p class="qa-a">L'uscita dell'attenzione ha 261 canali, i latenti 1.024: W_o la riporta a 1.024 per poterla sommare.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -3108,6 +3328,14 @@ MLP block:       y = x + MLP(LN(x))</div>
       <div class="chap-meta"><span class="chap-badge">Rif. 7</span><span class="chap-time">~14 min</span></div>
       <h1>Riferimento: Ottimizzatori</h1>
       <p class="intro">Gli ottimizzatori trasformano i gradienti in aggiornamenti dei pesi. Per il Perceiver questa parte è importante perché il paper usa LAMB, non un semplice SGD.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>SGD: w ← w − η·g. Il momentum media i gradienti nel tempo. Adam scala il passo di ogni peso con la storia dei suoi gradienti.</li>
+          <li>LAMB prende la direzione di Adam e fissa l'ampiezza del passo per strato: circa η volte la norma dei pesi di quello strato.</li>
+          <li>Il Perceiver usa LAMB con learning rate 0,004; noi lo stesso, con il gradient clipping a 1.</li>
+        </ul>
+      </div>
 
       <h2>SGD (Stochastic Gradient Descent)</h2>
       <div class="display-eq">W_{t+1} = W_t - η ∇W L(W_t)</div>
@@ -3232,6 +3460,19 @@ Cosine:      η_t = η_min + 0.5(η_max - η_min)(1 + cos(\frac{πt}{T_c}))</div
         <tr><td>LAMB</td><td>AdamW + trust ratio per layer</td><td>Sì, per layer/parametro</td><td>Large batch, TPU, Perceiver</td></tr>
       </table>
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Un passo di ogni ottimizzatore sullo stesso peso</p>
+        <ol class="passi">
+          <li>Peso w = 2,0, gradiente g = −0,2.</li>
+          <li>SGD con η = 0,01: w ← 2,0 − 0,01 · (−0,2) = <strong>2,002</strong>.</li>
+          <li>Adam, primo passo (η = 0,001): m̂ = −0,2 e v̂ = 0,04 dopo la correzione del bias. Passo = η · m̂ ÷ √v̂ = 0,001 · (−0,2 ÷ 0,2) → w = <strong>2,001</strong>. Al primo passo Adam si muove di circa η, qualunque sia |g|.</li>
+          <li>LAMB (torch_optimizer, quello del progetto): ogni tensore di pesi si sposta di η · min(‖w‖, 10) nella direzione di Adam.</li>
+          <li>Nostro e01 con η = 0,004: ogni strato cambia di circa lo <strong>0,4%</strong> della sua norma a ogni passo, strati grandi e piccoli allo stesso ritmo.</li>
+          <li>Gradient clipping a 1: se la norma totale del gradiente supera 1 lo si riscala a 1. Senza, nel nostro training la loss andava a nan.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>Per Perceiver e Perceiver IO l'ottimizzatore non è un dettaglio: LAMB aiuta a stabilizzare training grandi, profondi e con batch elevati.</p>
@@ -3240,6 +3481,22 @@ Cosine:      η_t = η_min + 0.5(η_max - η_min)(1 + cos(\frac{πt}{T_c}))</div
       <div class="paper-fig-label">📄 Dal paper originale</div>
       <figure class="paper-fig"><img src="../immagini/papers/adamw_test_error.png" alt="Test error: Adam vs AdamW" loading="lazy"><figcaption>Test error di Adam (rosso) vs AdamW (blu): il weight decay disaccoppiato di AdamW generalizza meglio a parità di learning rate. — «Decoupled Weight Decay Regularization» (Loshchilov &amp; Hutter, 2019, arXiv:1711.05101)</figcaption></figure>
       <figure class="paper-fig"><img src="../immagini/papers/lamb_batchsize.png" alt="LAMB e batch size" loading="lazy"><figcaption>Training di BERT con l'ottimizzatore LAMB a batch crescenti (512→32K): la qualità finale (F1 ~91.5) si mantiene anche con batch enormi — è l'optimizer usato nel progetto. — LAMB (You et al., 2020, arXiv:1904.00962)</figcaption></figure>
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>AdamW non è Adam con L2: il weight decay è applicato ai pesi fuori dal passo adattivo.</li>
+          <li>LAMB non ha bisogno di batch enormi per funzionare: nasce per quelli, ma lo usiamo con batch 64.</li>
+          <li>Nel nostro progetto il weight decay di LAMB è 0 (default di torch_optimizer).</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Scrivi l'aggiornamento di SGD con momentum.</summary><p class="qa-a">v ← β·v + g; w ← w − η·v. Con β = 0,9 il passo medio è circa 10 volte il gradiente medio.</p></details>
+        <details class="qa-item"><summary>Cosa fa Adam in più di SGD?</summary><p class="qa-a">Tiene una media dei gradienti (m) e dei loro quadrati (v), con correzione del bias, e divide per √v: ogni peso ha il suo passo.</p></details>
+        <details class="qa-item"><summary>Cosa aggiunge LAMB ad Adam?</summary><p class="qa-a">Un trust ratio per strato: il passo di ogni tensore di pesi è proporzionale alla norma di quei pesi. Così nessuno strato si muove troppo o troppo poco.</p></details>
+        <details class="qa-item"><summary>Perché nel tuo codice c'è il gradient clipping?</summary><p class="qa-a">Con LAMB a 0,004 il training divergeva (nan). Limitare la norma del gradiente a 1 lo stabilizza.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-25">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="25"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -3252,6 +3509,14 @@ Cosine:      η_t = η_min + 0.5(η_max - η_min)(1 + cos(\frac{πt}{T_c}))</div
       <div class="chap-meta"><span class="chap-badge">Rif. 13</span><span class="chap-time">~16 min</span></div>
       <h1>CNN</h1>
       <p class="intro">Le <strong>reti neurali convoluzionali</strong> sono architetture per dati strutturati a griglia, soprattutto immagini e video. La loro forza è combinare filtri locali, condivisione dei pesi e gerarchia di feature: efficienti e molto efficaci sulle immagini, ma meno generali del Perceiver perché dipendono da località e invarianza alla traslazione.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Una convoluzione fa scorrere lo stesso filtro piccolo su tutta l'immagine: pochi pesi, riusati ovunque.</li>
+          <li>Uscita: (W − K + 2P) ÷ S + 1 per lato. Parametri: K · K · C_in · C_out + C_out.</li>
+          <li>Il prior è forte: località e invarianza per traslazione. Ottimo con pochi dati, ma lega la rete alla griglia.</li>
+        </ul>
+      </div>
 
       <div class="cnn-source-strip">
         <div>
@@ -3551,6 +3816,18 @@ W_out = \left\lfloor\frac{W - k + 2p}{s}\right\rfloor + 1
         </table>
       </details>
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Dimensioni e parametri di un layer convoluzionale</p>
+        <ol class="passi">
+          <li>Immagine 32 × 32, filtro 3 × 3, padding 1, stride 1: (32 − 3 + 2) ÷ 1 + 1 = <strong>32</strong>. Con stride 2: 16.</li>
+          <li>Da 3 a 64 canali: 3 · 3 · 3 · 64 + 64 = <strong>1.792</strong> parametri.</li>
+          <li>LeNet-5, primo strato: 6 filtri 5 × 5 su 1 canale: 5 · 5 · 6 + 6 = <strong>156</strong>.</li>
+          <li>Campo recettivo: 1 strato 3 × 3 vede 3 pixel per lato, 2 strati 5, 3 strati 7.</li>
+          <li>ResNet-50 parte da un filtro 7 × 7: vede 49 pixel. È il «49» della Tab. 2 del Perceiver, dove la permutazione la porta da 73,5 a 39,4.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Collegamento al Perceiver</div>
         <p>Anche con ResNet, una CNN cattura pattern <strong>locali</strong> tramite filtri di dimensione fissa. Per mettere in relazione tutti gli elementi in un singolo passo serve il meccanismo globale dei Transformer; il problema è che la self-attention diretta sull'input costa <code>O(M²)</code>.</p>
@@ -3573,6 +3850,22 @@ W_out = \left\lfloor\frac{W - k + 2p}{s}\right\rfloor + 1
         <div class="step-anim-progress"><span></span></div>
         <div class="step-anim-caption"></div>
       </div>
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Il numero di parametri di una convoluzione non dipende dalla grandezza dell'immagine.</li>
+          <li>Pooling e stride riducono la risoluzione; il padding la conserva.</li>
+          <li>L'invarianza per traslazione aiuta sulle immagini e diventa un limite quando i dati non sono una griglia.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Calcola l'uscita di una conv 3 × 3, padding 1, stride 2, su 32 × 32.</summary><p class="qa-a">(32 − 3 + 2) ÷ 2 + 1 = 16 (con la parte intera).</p></details>
+        <details class="qa-item"><summary>Quanti parametri ha una conv 3 × 3 da 64 a 128 canali?</summary><p class="qa-a">3 · 3 · 64 · 128 + 128 = 73.856.</p></details>
+        <details class="qa-item"><summary>Qual è il prior induttivo di una CNN?</summary><p class="qa-a">Località (ogni neurone guarda un intorno) e condivisione dei pesi, che dà equivarianza per traslazione.</p></details>
+        <details class="qa-item"><summary>Perché una CNN crolla con i pixel permutati?</summary><p class="qa-a">Perché i suoi filtri presuppongono che i vicini sulla griglia siano correlati: ResNet-50 passa da 73,5 a 39,4.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-31">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="31"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -3585,6 +3878,14 @@ W_out = \left\lfloor\frac{W - k + 2p}{s}\right\rfloor + 1
       <div class="chap-meta"><span class="chap-badge">Rif. 14</span><span class="chap-time">~12 min</span></div>
       <h1>Riferimento: ConvNet</h1>
       <p class="intro">Una <strong>ConvNet</strong> è una CNN vista come pipeline completa: non solo il singolo kernel, ma l'intero percorso da immagine a classe. La sequenza mentale da tenere è <strong>Conv → ReLU → Pooling → Flatten → FC</strong>.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Una ConvNet alterna convoluzioni, attivazioni e riduzioni di risoluzione, poi classifica.</li>
+          <li>La condivisione dei pesi la rende efficiente: pochi parametri anche su immagini grandi.</li>
+          <li>Il suo limite è il rovescio del pregio: presuppone una griglia regolare.</li>
+        </ul>
+      </div>
 
       <div class="cnn-source-strip">
         <div>
@@ -3659,6 +3960,17 @@ W_{out} = \left\lfloor\frac{W - k + 2p}{s}\right\rfloor + 1
           <tr><td>Point cloud</td><td>Architetture dedicate</td><td>La griglia regolare non esiste.</td></tr>
         </tbody>
       </table>
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Perché la convoluzione conviene</p>
+        <ol class="passi">
+          <li>Uscita 32 × 32 × 64 con filtri 3 × 3 × 3: 32 · 32 · 64 · 27 = <strong>1.769.472</strong> MAC, con 1.792 parametri.</li>
+          <li>Uno strato completamente connesso fra gli stessi ingressi (3.072) e uscite (65.536) avrebbe <strong>201.326.592</strong> pesi.</li>
+          <li>La convoluzione usa 112.000 volte meno parametri: stesso filtro in ogni posizione.</li>
+          <li>La nostra ResNet-18 su CIFAR-10: 11,2 M di parametri, 93,61%. Il nostro Perceiver: 10,2 M, 71,63%.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Collegamento al Perceiver</div>
         <p>La ConvNet è il riferimento per la scalabilità. Il Perceiver prova a conservarne il vantaggio computazionale, ma rinuncia al vincolo della griglia: usa Fourier features per la posizione e latenti fissi per comprimere l'input.</p>
@@ -3679,6 +3991,22 @@ W_{out} = \left\lfloor\frac{W - k + 2p}{s}\right\rfloor + 1
         <div class="step-anim-progress"><span></span></div>
         <div class="step-anim-caption"></div>
       </div>
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>«Efficiente» qui vuol dire pochi parametri e calcolo locale, non che la rete sia piccola.</li>
+          <li>Con molti dati un modello senza prior (ViT, Perceiver) può raggiungerla; con pochi dati no.</li>
+          <li>Una ConvNet vuole input di forma fissa sulla griglia; il Perceiver accetta qualunque insieme di elementi.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Perché una conv ha pochi parametri?</summary><p class="qa-a">Perché lo stesso filtro piccolo è riusato in tutte le posizioni.</p></details>
+        <details class="qa-item"><summary>Quanti MAC costa una conv 3 × 3 da 3 a 64 canali su 32 × 32 con padding?</summary><p class="qa-a">32 · 32 · 64 · 3 · 3 · 3 = 1.769.472.</p></details>
+        <details class="qa-item"><summary>Perché la tua ResNet-18 batte il tuo Perceiver di 22 punti?</summary><p class="qa-a">Ha il prior convoluzionale, che su 45.000 immagini 32 × 32 vale moltissimo.</p></details>
+        <details class="qa-item"><summary>Qual è il limite principale di una ConvNet?</summary><p class="qa-a">Presuppone una griglia regolare: audio, nuvole di punti o insiemi richiedono architetture diverse.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-32">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="32"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -3691,6 +4019,14 @@ W_{out} = \left\lfloor\frac{W - k + 2p}{s}\right\rfloor + 1
       <div class="chap-meta"><span class="chap-badge">Rif. 15</span><span class="chap-time">~12 min</span></div>
       <h1>Riferimento: ResNet</h1>
       <p class="intro"><strong>ResNet</strong> nasce per addestrare CNN molto profonde. Il blocco non deve imparare direttamente una trasformazione completa: impara una correzione residua e somma l'identità.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>ResNet: blocchi y = x + F(x). La rete impara correzioni, non trasformazioni intere.</li>
+          <li>Il bottleneck 1×1 → 3×3 → 1×1 riduce i canali, fa la conv costosa su pochi canali, poi li riallarga.</li>
+          <li>Con i residual si allenano reti da 50, 101 o 152 strati senza degradazione.</li>
+        </ul>
+      </div>
 
       <div class="cnn-source-strip">
         <div>
@@ -3757,9 +4093,37 @@ F(x) = H(x) - x
           <tr><td>ImageNet top-5 error</td><td>AlexNet 15.3%, VGG 7.3%</td><td>ResNet-50: 3.57%</td></tr>
         </tbody>
       </table>
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Il bottleneck, contato</p>
+        <ol class="passi">
+          <li>Blocco a 256 canali: 1 × 1 da 256 a 64 = <strong>16.384</strong> pesi.</li>
+          <li>3 × 3 da 64 a 64 = <strong>36.864</strong>.</li>
+          <li>1 × 1 da 64 a 256 = 16.384. Totale 69.632.</li>
+          <li>Due conv 3 × 3 da 256 a 256 costerebbero 2 · 589.824 = <strong>1.179.648</strong>: 17 volte di più.</li>
+          <li>Nel Perceiver lo stesso schema residuo è in ogni cross-attention e in ogni blocco latente.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Collegamento al Perceiver</div>
         <p>Il Perceiver usa la stessa filosofia: ogni blocco attention o MLP è circondato da residual connections. I latenti vengono raffinati per correzioni successive, non riscritti da zero.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Il residual non è una scorciatoia che salta il blocco: è una somma, il blocco viene sempre calcolato.</li>
+          <li>Il bottleneck di ResNet riduce i canali; il bottleneck del Perceiver riduce il numero di elementi (da M a N).</li>
+          <li>Senza residual, aggiungere strati può peggiorare anche l'errore di training: è la degradazione.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Cosa impara un blocco residuo?</summary><p class="qa-a">La differenza fra l'uscita desiderata e l'ingresso: F(x) = H(x) − x.</p></details>
+        <details class="qa-item"><summary>Quanti pesi ha un bottleneck 256 → 64 → 64 → 256 (senza bias)?</summary><p class="qa-a">16.384 + 36.864 + 16.384 = 69.632.</p></details>
+        <details class="qa-item"><summary>Cos'è la degradazione?</summary><p class="qa-a">Reti più profonde senza residual hanno errore di training più alto delle stesse reti più corte: non è overfitting, è ottimizzazione.</p></details>
+        <details class="qa-item"><summary>Che differenza c'è fra il bottleneck di ResNet e quello del Perceiver?</summary><p class="qa-a">ResNet riduce i canali dentro un blocco; il Perceiver riduce il numero di elementi, da M input a N latenti.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -3774,6 +4138,14 @@ F(x) = H(x) - x
       <div class="chap-meta"><span class="chap-badge">Rif. 8</span><span class="chap-time">~5 min</span></div>
       <h1>Perceptrone</h1>
       <p class="intro">Il <strong>perceptrone</strong> è il mattone fondamentale di ogni rete neurale: un classificatore lineare binario. Ogni neurone delle architetture successive — fino al Perceiver — ne ricalca la struttura base: <strong>somma ponderata + attivazione</strong>.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Perceptrone: ŷ = 1 se w·x + b > 0, altrimenti 0. Una retta che divide il piano in due.</li>
+          <li>Si allena con w ← w + η(y − ŷ)x: corregge solo quando sbaglia.</li>
+          <li>Non risolve XOR: nessuna retta separa (0,1) e (1,0) da (0,0) e (1,1).</li>
+        </ul>
+      </div>
 
       <h2>Struttura</h2>
       <p>Riceve <code>n</code> input <code>x₁…xₙ</code>, ciascuno moltiplicato per un peso <code>wᵢ</code>, somma il tutto con un bias <code>b</code> e applica una funzione di attivazione a gradino.</p>
@@ -3848,9 +4220,37 @@ b^{new} = b + \lambda (y_i - \hat{y}_i)
         <figcaption>I punti XOR nel piano non sono separabili da una retta (Minsky &amp; Papert, 1969). Servono hidden layer aggiuntivi → reti multi-strato.</figcaption>
       </figure>
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">AND con un perceptrone, a mano</p>
+        <ol class="passi">
+          <li>Pesi w = (1, 1), bias b = −1,5.</li>
+          <li>(0, 0): 0 + 0 − 1,5 = −1,5 → 0.</li>
+          <li>(0, 1) e (1, 0): 1 − 1,5 = −0,5 → 0.</li>
+          <li>(1, 1): 2 − 1,5 = <strong>0,5</strong> → 1. È la funzione AND.</li>
+          <li>Con b = −0,5 diventa OR. Per XOR serve un secondo strato: è il motivo delle reti multistrato.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>Un singolo perceptrone traccia un solo confine lineare. Lo XOR dimostra che serve la profondità: impilando neuroni (hidden layer) si ottengono le reti feed-forward, capaci di confini non lineari.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Il perceptrone usa un gradino, non una sigmoide: non è derivabile, per questo si allena con la sua regola e non con la backprop.</li>
+          <li>Converge solo se i dati sono linearmente separabili.</li>
+          <li>Il nome «Perceiver» richiama il perceptrone, ma l'architettura non ha niente in comune con lui.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Scrivi la regola del perceptrone.</summary><p class="qa-a">ŷ = 1 se w·x + b > 0. Aggiornamento: w ← w + η(y − ŷ)x, b ← b + η(y − ŷ).</p></details>
+        <details class="qa-item"><summary>Trova pesi per AND.</summary><p class="qa-a">w = (1, 1), b = −1,5: solo (1, 1) supera lo zero.</p></details>
+        <details class="qa-item"><summary>Perché XOR non si può fare?</summary><p class="qa-a">Non è linearmente separabile: nessuna retta divide {(0,1), (1,0)} da {(0,0), (1,1)}.</p></details>
+        <details class="qa-item"><summary>Come si risolve XOR?</summary><p class="qa-a">Con uno strato nascosto: due perceptroni (per esempio OR e NAND) e un AND sopra.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -3865,6 +4265,14 @@ b^{new} = b + \lambda (y_i - \hat{y}_i)
       <div class="chap-meta"><span class="chap-badge">Rif. 9</span><span class="chap-time">~5 min</span></div>
       <h1>Reti Neurali Feed-Forward</h1>
       <p class="intro">Le <strong>reti feed-forward</strong> (multi-layer perceptron, MLP) estendono il perceptrone con strati nascosti. Il loro ciclo di training — forward, loss, backpropagation — è lo <strong>stesso</strong> usato in CNN, Transformer e Perceiver.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Una rete feed-forward alterna strati lineari e attivazioni: h = σ(Wx + b).</li>
+          <li>Forward: si calcola strato dopo strato. Backward: la chain rule porta il gradiente dall'uscita all'ingresso.</li>
+          <li>Gli MLP del Perceiver sono reti feed-forward a 2 strati applicate a ogni latente.</li>
+        </ul>
+      </div>
 
       <div class="nota">
         <span class="nota-label">Teorema dell'approssimatore universale (Cybenko, 1989)</span>
@@ -3932,9 +4340,38 @@ w_{new} = w - \eta \frac{\partial E}{\partial w}
         <p>1 input <code>x = 2</code>, 1 hidden con ReLU, 1 output lineare. Pesi <code>w₁ = 0.5</code>, <code>w₂ = −0.3</code>, target <code>= 1</code>. Forward: <code>z₁ = 1.0</code>, <code>a₁ = 1.0</code>, <code>ŷ = −0.3</code>, loss MSE <code>= 1.69</code>. Backward: <code>∂L/∂ŷ = −2.6</code> → <code>∂L/∂w₂ = −2.6</code>, <code>∂L/∂w₁ = 1.56</code>. Update (η=0.01): <code>w₂ ← −0.274</code>, <code>w₁ ← 0.4844</code>.</p>
       </div>
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Una rete minuscola, avanti e indietro</p>
+        <ol class="passi">
+          <li>Input x = (1, 2). Strato 1: W₁ = [[1, 0], [0, 1], [1, −1]], b₁ = (0, −1, 0). W₁x + b₁ = (1, 1, −1).</li>
+          <li>ReLU: h = <strong>(1, 1, 0)</strong>.</li>
+          <li>Strato 2: W₂ = (2, −1, 3), b₂ = 0,5. y = 2 − 1 + 0 + 0,5 = <strong>1,5</strong>.</li>
+          <li>Loss quadratica con target 2: (1,5 − 2)² = 0,25. ∂ℒ/∂y = 2 · (1,5 − 2) = −1.</li>
+          <li>∂ℒ/∂W₂ = −1 · h = <strong>(−1, −1, 0)</strong>: il terzo peso non riceve gradiente, perché la ReLU ha spento quel neurone.</li>
+          <li>Parametri: 2·3 + 3 + 3·1 + 1 = 13. L'MLP di un blocco del nostro e01 (384 → 1.536 → 384) ne ha 1.181.568.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>Le feed-forward trattano ogni input in modo indipendente, senza nozione di ordine o tempo. Per dati <strong>sequenziali</strong> (testo, audio, serie temporali) servono architetture con memoria: le RNN.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Il bias conta come parametro: per ogni strato sono pesi + uscite.</li>
+          <li>Un neurone con ReLU spenta non passa gradiente: è così che i neuroni «muoiono».</li>
+          <li>Nel Perceiver l'MLP agisce su ogni latente separatamente: non mescola i latenti, lo fa l'attenzione.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Quanti parametri ha una rete 2 → 3 → 1?</summary><p class="qa-a">2·3 + 3 + 3·1 + 1 = 13.</p></details>
+        <details class="qa-item"><summary>Cosa fa la backpropagation?</summary><p class="qa-a">Applica la chain rule dall'uscita all'ingresso, riusando i valori salvati nel forward: un solo passaggio dà il gradiente di tutti i pesi.</p></details>
+        <details class="qa-item"><summary>Perché un peso collegato a un neurone ReLU spento non riceve gradiente?</summary><p class="qa-a">Perché la derivata della ReLU per ingressi negativi è 0 e moltiplica tutta la catena.</p></details>
+        <details class="qa-item"><summary>Dove sono le reti feed-forward nel Perceiver?</summary><p class="qa-a">Negli MLP dopo ogni attenzione: due Linear con GELU, applicati a ogni latente.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -3949,6 +4386,14 @@ w_{new} = w - \eta \frac{\partial E}{\partial w}
       <div class="chap-meta"><span class="chap-badge">Rif. 10</span><span class="chap-time">~5 min</span></div>
       <h1>Reti Neurali Ricorrenti (RNN)</h1>
       <p class="intro">Le <strong>RNN</strong> aggiungono un <strong>loop nello stato nascosto</strong>: l'output di <code>h₍ₜ₋₁₎</code> rientra come input al passo successivo, creando una forma di <strong>memoria</strong>. Adatte a dati sequenziali.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Una RNN aggiorna uno stato con gli stessi pesi a ogni passo: h_t = tanh(W·h_{t−1} + U·x_t + b).</li>
+          <li>Nel backward il gradiente attraversa un fattore per ogni passo: se è minore di 1 svanisce, se è maggiore esplode.</li>
+          <li>Il Perceiver con weight sharing è una RNN nel senso dei pesi: lo stato sono i latenti, e l'input viene riletto intero a ogni passo.</li>
+        </ul>
+      </div>
 
       <h2>Il loop nello stato nascosto</h2>
       <p>I parametri sono tre matrici <strong>condivise a ogni passo</strong>: <code>W</code> (sullo stato precedente), <code>U</code> (sull'input corrente), <code>V</code> (dallo stato all'output).</p>
@@ -4003,9 +4448,37 @@ y_t = V h_t + b_y
       <p>L'exploding gradient si mitiga con il <strong>gradient clipping</strong>: se la norma supera una soglia <code>τ</code>, si riscala.</p>
       <div class="display-eq">g \leftarrow \frac{\tau}{||g||} \cdot g</div>
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Vanishing ed exploding, con i numeri</p>
+        <ol class="passi">
+          <li>Fattore per passo 0,5, per 20 passi: 0,5²⁰ ≈ <strong>9,5 × 10⁻⁷</strong>. Il passato lontano non riceve gradiente.</li>
+          <li>Fattore 1,5, per 20 passi: 1,5²⁰ ≈ <strong>3.325</strong>. Il gradiente esplode.</li>
+          <li>Il gradient clipping risolve l'esplosione (taglia la norma), non il vanishing.</li>
+          <li>Il Perceiver ImageNet fa 8 «passi» (letture), il nostro e01 4: sequenze cortissime rispetto a una RNN sul testo.</li>
+          <li>E ogni passo ha i residual: il fattore resta vicino a 1 (cap. 24).</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>Il vanishing gradient limita la memoria delle RNN a sequenze brevi. Per dipendenze lunghe servono gate espliciti che proteggano l'informazione: LSTM e GRU.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Nel Perceiver non c'è un input diverso a ogni passo: l'intero input viene riletto a ogni lettura.</li>
+          <li>Il clipping cura l'esplosione, non il vanishing: per quello servono gate (LSTM, GRU) o residual.</li>
+          <li>Condividere i pesi nel tempo è ciò che rende la RNN piccola e capace di sequenze di lunghezza qualsiasi.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Scrivi l'aggiornamento di una RNN semplice.</summary><p class="qa-a">h_t = tanh(W·h_{t−1} + U·x_t + b); stessi W e U a ogni passo.</p></details>
+        <details class="qa-item"><summary>Perché nasce il vanishing gradient?</summary><p class="qa-a">Il gradiente verso il passato è un prodotto di un fattore per passo: con fattori minori di 1 tende a zero (0,5²⁰ ≈ 10⁻⁶).</p></details>
+        <details class="qa-item"><summary>In che senso il Perceiver è una RNN?</summary><p class="qa-a">Con il weight sharing applica gli stessi pesi più volte a uno stato, i latenti. A differenza di una RNN, a ogni passo rilegge tutto l'input.</p></details>
+        <details class="qa-item"><summary>Come si combatte l'exploding gradient?</summary><p class="qa-a">Con il gradient clipping: se la norma supera una soglia, si riscala il gradiente.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -4020,6 +4493,14 @@ y_t = V h_t + b_y
       <div class="chap-meta"><span class="chap-badge">Rif. 11</span><span class="chap-time">~5 min</span></div>
       <h1>LSTM (Long Short-Term Memory)</h1>
       <p class="intro">Le <strong>LSTM</strong> (Hochreiter &amp; Schmidhuber, 1997) risolvono il vanishing gradient con una <strong>cella di memoria</strong> <code>C₍ₜ₎</code> protetta da tre porte (gate) che controllano il flusso di informazione.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>La LSTM aggiunge una cella c_t che si aggiorna per somma: c_t = f_t ⊙ c_{t−1} + i_t ⊙ c̃_t.</li>
+          <li>Tre porte (forget, input, output), ognuna una sigmoide fra 0 e 1, decidono cosa tenere, cosa scrivere e cosa mostrare.</li>
+          <li>Con f vicino a 1 il ricordo e il gradiente passano quasi intatti per molti passi.</li>
+        </ul>
+      </div>
 
       <h2>Le 4 equazioni</h2>
       <div class="display-eq">
@@ -4072,9 +4553,36 @@ h_t = o_t \odot \tanh(C_t)
         La cella <code>C₍ₜ₎</code> è un "nastro trasportatore" che porta informazione lungo la sequenza senza degradarla — la stessa intuizione delle <strong>residual connections</strong>, presenti in ogni blocco del Perceiver (112 in totale).
       </div>
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Quanto dura un ricordo</p>
+        <ol class="passi">
+          <li>Forget gate f = 0,9 per 20 passi: resta 0,9²⁰ = <strong>12%</strong> del ricordo iniziale.</li>
+          <li>f = 0,99 per 20 passi: resta <strong>82%</strong>.</li>
+          <li>f = 0,5: 0,5²⁰ ≈ 10⁻⁶. La rete sceglie da sola quanto ricordare, passo per passo.</li>
+          <li>Parametri con stato da 128 e input da 64, un bias per porta: 4 · (128 · (128 + 64) + 128) = <strong>98.816</strong>. Il 4 viene da 3 porte + il candidato c̃.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>Le LSTM funzionano bene ma hanno molti parametri (4 trasformazioni lineari per cella). Una versione semplificata con prestazioni comparabili è la GRU.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>La cella c e lo stato h sono due cose diverse: h = o ⊙ tanh(c).</li>
+          <li>La forget gate a 1 vuol dire ricordare, non dimenticare.</li>
+          <li>Le porte usano la sigmoide perché servono valori fra 0 e 1 da moltiplicare.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Scrivi l'aggiornamento della cella LSTM.</summary><p class="qa-a">c_t = f_t ⊙ c_{t−1} + i_t ⊙ c̃_t; h_t = o_t ⊙ tanh(c_t).</p></details>
+        <details class="qa-item"><summary>Perché la LSTM soffre meno di vanishing gradient?</summary><p class="qa-a">La cella si aggiorna per somma: con f vicino a 1 il gradiente passa quasi intatto (0,99²⁰ ≈ 0,82).</p></details>
+        <details class="qa-item"><summary>Quanti parametri ha una LSTM con stato n e input m?</summary><p class="qa-a">4 · (n · (n + m) + n). Con n = 128 e m = 64: 98.816.</p></details>
+        <details class="qa-item"><summary>A cosa serve la output gate?</summary><p class="qa-a">Decide quanta parte della cella diventa lo stato h mostrato fuori.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -4089,6 +4597,14 @@ h_t = o_t \odot \tanh(C_t)
       <div class="chap-meta"><span class="chap-badge">Rif. 12</span><span class="chap-time">~4 min</span></div>
       <h1>GRU (Gated Recurrent Unit)</h1>
       <p class="intro">La <strong>GRU</strong> (Cho et al., 2014) semplifica la LSTM: fonde cella e stato nascosto e usa solo <strong>2 porte</strong> invece di 3.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>La GRU ha due porte: reset r e update z. Niente cella separata.</li>
+          <li>h_t = (1 − z_t) ⊙ h_{t−1} + z_t ⊙ h̃_t: z decide quanto dello stato nuovo entra.</li>
+          <li>Circa il 25% di parametri in meno di una LSTM, prestazioni spesso simili.</li>
+        </ul>
+      </div>
 
       <h2>Le equazioni</h2>
       <div class="display-eq">
@@ -4144,6 +4660,17 @@ h_t = (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t
         </tbody>
       </table>
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">GRU contro LSTM, in parametri e in un passo</p>
+        <ol class="passi">
+          <li>Stato 128, input 64: 3 · (128 · 192 + 128) = <strong>74.112</strong> parametri, contro 98.816 della LSTM (−25%).</li>
+          <li>Un passo con z = 0,2: h_t = 0,8 · h_{t−1} + 0,2 · h̃_t. Lo stato cambia poco.</li>
+          <li>Con z = 0 lo stato si copia identico: è la strada libera del gradiente, come la forget gate a 1 della LSTM.</li>
+          <li>Con r = 0 il candidato h̃ ignora il passato: la rete «riparte» da ciò che vede ora.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>RNN, LSTM e GRU eccellono sui dati sequenziali, ma restano legate alla nozione di ordine temporale. Per dati a griglia (immagini) servono le CNN; per relazioni globali a costo accettabile, l'attention dei Transformer.</p>
@@ -4151,6 +4678,22 @@ h_t = (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t
 
       <div class="paper-fig-label">📄 Dal paper originale</div>
       <figure class="paper-fig"><img src="../immagini/papers/gru_phrase_embedding.png" alt="Embedding 2D delle frasi" loading="lazy"><figcaption>Spazio di embedding 2D delle frasi appreso dall'RNN Encoder-Decoder: frasi di significato simile si raggruppano. — «RNN Encoder-Decoder»/GRU (Cho et al., 2014, arXiv:1406.1078)</figcaption></figure>
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>In questa convenzione z = 0 vuol dire copiare lo stato vecchio, z = 1 prendere tutto il candidato. Alcuni libri usano la convenzione opposta.</li>
+          <li>La GRU non ha la output gate: lo stato è anche l'uscita.</li>
+          <li>Meno parametri non vuol dire sempre peggio: dipende dal compito.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Scrivi l'aggiornamento della GRU.</summary><p class="qa-a">h_t = (1 − z_t) ⊙ h_{t−1} + z_t ⊙ h̃_t, con h̃_t = tanh(W[r_t ⊙ h_{t−1}, x_t] + b).</p></details>
+        <details class="qa-item"><summary>Quanti parametri in meno della LSTM?</summary><p class="qa-a">Circa il 25%: 3 blocchi di pesi invece di 4 (74.112 contro 98.816 con n = 128, m = 64).</p></details>
+        <details class="qa-item"><summary>Cosa fa la reset gate?</summary><p class="qa-a">Decide quanto del passato usare per costruire il candidato h̃.</p></details>
+        <details class="qa-item"><summary>GRU o LSTM?</summary><p class="qa-a">Spesso equivalenti. La GRU è più leggera; la LSTM, con cella separata, può essere più espressiva su dipendenze lunghe.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-30">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="30"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -4163,6 +4706,14 @@ h_t = (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t
       <div class="chap-meta"><span class="chap-badge">Rif. 16</span><span class="chap-time">~18 min</span></div>
       <h1>Riferimento: Transformer</h1>
       <p class="intro">Le CNN hanno visione locale, le RNN soffrono di vanishing gradient. Il <strong>Transformer</strong> (Vaswani et al., 2017, "Attention Is All You Need") supera entrambi con la <strong>self-attention</strong>: <strong>Transformer: ogni token parla con tutti</strong>, a costo <code>O(M²)</code>.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Il Transformer usa solo attenzione e MLP: ogni token guarda tutti gli altri.</li>
+          <li>Attention(Q, K, V) = softmax(QKᵀ ÷ √d) · V. Con M token la matrice è M × M.</li>
+          <li>Il Perceiver ne eredita i blocchi, ma li fa lavorare sui latenti: N × N invece di M × M.</li>
+        </ul>
+      </div>
 
       <div class="cnn-source-strip">
         <div>
@@ -4568,6 +5119,18 @@ S_{ij} & j \le i \\
           <tr><td>Normalizzazione</td><td>Post-norm (originale)</td><td>Pre-norm</td></tr>
         </tbody>
       </table>
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Un encoder del Transformer originale, contato</p>
+        <ol class="passi">
+          <li>d = 512, 8 teste da 64, FFN 2.048. Attenzione: 4 · 512² + 4 · 512 = <strong>1.050.624</strong> parametri.</li>
+          <li>FFN: 2 · 512 · 2.048 + 2.048 + 512 = <strong>2.099.712</strong>. Due LayerNorm: 2.048.</li>
+          <li>Un layer: <strong>3.152.384</strong> parametri. Sei layer: 18,9 M.</li>
+          <li>Con M = 512 token: 512² = 262.144 punteggi per testa, 2.097.152 con 8 teste.</li>
+          <li>Raddoppiando M a 1.024 i punteggi quadruplicano. È il problema che il Perceiver risolve.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>Il Perceiver <strong>sostituisce la self-attention</strong> <code>O(M²)</code> <strong>con la cross-attention</strong> <code>O(MN)</code> (N≪M), ma <em>eredita</em> dal Transformer tutto il resto: multi-head, FFN, residual, LayerNorm.</p>
@@ -4575,6 +5138,22 @@ S_{ij} & j \le i \\
 
       <div class="paper-fig-label">📄 Dal paper originale</div>
       <figure class="paper-fig"><img src="../immagini/papers/transformer_fig1.png" alt="Architettura del Transformer" loading="lazy"><figcaption>L'architettura del Transformer: encoder (sinistra) e decoder (destra) impilati N×, con multi-head attention, feed-forward, connessioni residue (Add &amp; Norm) e positional encoding. — Fig. 1, «Attention Is All You Need» (Vaswani et al., 2017, arXiv:1706.03762)</figcaption></figure>
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Più teste non vuol dire più calcolo: d viene spartito fra le teste.</li>
+          <li>L'encoder non ha maschera; il decoder sì (causale), per non vedere il futuro.</li>
+          <li>Il Transformer somma la posizione all'embedding; il Perceiver la concatena.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Scrivi la scaled dot-product attention.</summary><p class="qa-a">softmax(QKᵀ ÷ √d_k) · V.</p></details>
+        <details class="qa-item"><summary>Quanti parametri ha un encoder layer con d = 512 e d_ff = 2.048?</summary><p class="qa-a">1.050.624 (attenzione) + 2.099.712 (FFN) + 2.048 (LayerNorm) = 3.152.384.</p></details>
+        <details class="qa-item"><summary>Perché il Transformer costa O(M²)?</summary><p class="qa-a">Ogni token confronta la sua query con le chiavi di tutti gli M token: la matrice è M × M.</p></details>
+        <details class="qa-item"><summary>Cosa prende il Perceiver dal Transformer e cosa cambia?</summary><p class="qa-a">Prende attenzione, MLP, residual e LayerNorm. Cambia chi fa le domande: N latenti invece degli M input.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-34">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="34"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -4587,6 +5166,14 @@ S_{ij} & j \le i \\
       <div class="chap-meta"><span class="chap-badge">Rif. 17</span><span class="chap-time">~7 min</span></div>
       <h1>Riferimento: Vision Transformer (ViT)</h1>
       <p class="intro">Il <strong>ViT</strong> (Dosovitskiy et al., 2021) applica il Transformer alle immagini trattandole come sequenze di <strong>patch</strong>: niente convoluzioni, ma attention globale fin dal primo layer.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Il ViT taglia l'immagine in pezzi 16 × 16, li appiattisce e li tratta come token.</li>
+          <li>Su 224 × 224: 196 pezzi più un token [CLS], 197 token. L'attenzione è 197 × 197.</li>
+          <li>Pochi prior: con tanti dati è ottimo, con pochi serve pre-training.</li>
+        </ul>
+      </div>
 
       <div class="cnn-source-strip">
         <div>
@@ -4648,6 +5235,18 @@ S_{ij} & j \le i \\
         Il ViT riduce <code>M = 50.176</code> pixel a <code>196</code> patch, ma la tokenizzazione resta <strong>domain-specific</strong> (solo immagini). Il Perceiver la elimina del tutto: accetta qualsiasi input grezzo e usa la cross-attention per proiettarlo in un latent array fisso <code>N ≪ M</code>.
       </div>
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Dall'immagine ai token</p>
+        <ol class="passi">
+          <li>224 ÷ 16 = 14 pezzi per lato: 14 · 14 = <strong>196</strong> pezzi.</li>
+          <li>Ogni pezzo ha 16 · 16 · 3 = <strong>768</strong> numeri, proiettati a d = 768 (ViT-Base).</li>
+          <li>Con il token [CLS]: 197 token. Matrice di attenzione 197² = <strong>38.809</strong>, contro 2,5 miliardi sui pixel.</li>
+          <li>ViT-B/16: 86 M parametri, 55,4 miliardi di FLOPs, 77,9% su ImageNet (Tab. 7 di Perceiver IO).</li>
+          <li>Con i pixel permutati (Tab. 2 del Perceiver): 76,7 → 61,7. Dentro un pezzo 16 × 16 conta ancora la griglia.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Idea chiave</div>
         <p>ViT = "tokenizzare l'immagine in patch, poi Transformer standard". È il ponte concettuale tra Transformer testuale e Perceiver: stesso motore di attention, ma il ViT resta legato alla griglia 2D, il Perceiver no.</p>
@@ -4655,6 +5254,22 @@ S_{ij} & j \le i \\
 
             <div class="paper-fig-label">📄 Dal paper originale (ritagliata dal PDF)</div>
       <figure class="paper-fig"><img src="../immagini/papers/vit_fig1.png" alt="Architettura Vision Transformer" loading="lazy"><figcaption>Il Vision Transformer: l'immagine è divisa in patch → proiezione lineare + positional embedding → Transformer Encoder standard → MLP head per la classe. A destra il blocco encoder (Norm → Multi-Head Attention → Norm → MLP, con residui). — Fig. 1, «ViT» (Dosovitskiy et al., 2021, arXiv:2010.11929)</figcaption></figure>
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Il ViT riduce M con i pezzi; il Perceiver riduce il numero di query con i latenti. Sono due soluzioni diverse allo stesso O(M²).</li>
+          <li>Dividere in pezzi è già un prior 2D: per questo la permutazione danneggia anche il ViT.</li>
+          <li>Il [CLS] è dentro la sequenza; la query di classe di Perceiver IO sta fuori.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Quanti token ha un ViT-B/16 su 224 × 224?</summary><p class="qa-a">196 pezzi + 1 [CLS] = 197.</p></details>
+        <details class="qa-item"><summary>Perché il ViT è meno efficiente sui dati di una CNN?</summary><p class="qa-a">Ha pochi prior induttivi: località e invarianza per traslazione deve impararle dai dati.</p></details>
+        <details class="qa-item"><summary>Cosa succede al ViT con i pixel permutati?</summary><p class="qa-a">Perde 15 punti (76,7 → 61,7): dentro ogni pezzo la disposizione dei pixel conta ancora.</p></details>
+        <details class="qa-item"><summary>ViT e Perceiver risolvono lo stesso problema: come?</summary><p class="qa-a">Il ViT accorcia la sequenza raggruppando pixel in pezzi; il Perceiver lascia tutti i pixel e fa leggere l'input a pochi latenti.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-35">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="35"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -4667,6 +5282,14 @@ S_{ij} & j \le i \\
       <div class="chap-meta"><span class="chap-badge">Rif. 18</span><span class="chap-time">~6 min</span></div>
       <h1>Riferimento: Dropout</h1>
       <p class="intro">Il dropout azzera casualmente una frazione di attivazioni durante il training. L'effetto è quello di addestrare implicitamente un ensemble esponenziale di sottoreti, rendendo la rete più robusta.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Dropout: in training azzera ogni attivazione con probabilità p e moltiplica le altre per 1 ÷ (1 − p).</li>
+          <li>In inferenza non si spegne niente: grazie alla divisione il valore atteso resta lo stesso.</li>
+          <li>Il Perceiver non lo usa (peggiorava, p. 17). Nel nostro progetto: 0 su immagini e punti 3D, 0,1 nei modelli di testo.</li>
+        </ul>
+      </div>
 
       <div class="display-eq">\tilde{x}_i = \frac{m_i \cdot x_i}{1-p}, \quad m_i \sim \text{Bernoulli}(1-p)</div>
       <p>La divisione per <code>(1-p)</code> (<em>inverted dropout</em>) mantiene il valore atteso dell'output uguale all'input: <code>E[x̃] = x</code>. A inference si usa l'identità.</p>
@@ -4705,6 +5328,18 @@ S_{ij} & j \le i \\
         <tr><td>Inference</td><td>✗ mai</td><td>identità: il modello usa tutti i neuroni</td></tr>
       </table>
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Dropout con p = 0,1, su un vettore</p>
+        <ol class="passi">
+          <li>Vettore (2, 4, 6, 8), maschera (1, 0, 1, 1): il secondo valore si spegne.</li>
+          <li>Gli altri si dividono per 0,9: <strong>(2,22, 0, 6,67, 8,89)</strong>.</li>
+          <li>Valore atteso di ogni elemento: 0,9 · (x ÷ 0,9) + 0,1 · 0 = x. Train e inferenza tornano in media.</li>
+          <li>Con n neuroni ci sono 2ⁿ sotto-reti possibili: il dropout ne allena implicitamente un ensemble.</li>
+          <li>Nel progetto: dropout 0 nelle run su CIFAR-10 e ModelNet40, 0,1 nel pre-training io_mlm e nei fine-tuning GLUE (dai config.txt delle run).</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Collegamento al Perceiver</div>
         <p>Il Perceiver <strong>non usa dropout</strong>: il weight sharing tra le <em>T</em> iterazioni agisce già da regolarizzatore implicito. Gli autori mostrano che aggiungere dropout non migliora l'accuracy su ImageNet in questa configurazione.</p>
@@ -4712,6 +5347,22 @@ S_{ij} & j \le i \\
 
       <div class="paper-fig-label">📄 Dal paper originale</div>
       <figure class="paper-fig"><img src="../immagini/papers/dropout_features.png" alt="Feature apprese col dropout" loading="lazy"><figcaption>Feature del primo strato apprese con il dropout: rilevatori strutturati e localizzati invece di rumore co-adattato — l'effetto regolarizzante del dropout. — «Dropout» (Srivastava et al., 2014, JMLR v15)</figcaption></figure>
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>In inferenza il dropout si spegne: dimenticare model.eval() dà risultati rumorosi.</li>
+          <li>p è la probabilità di spegnere, non di tenere.</li>
+          <li>Dropout e weight sharing regolarizzano in modi diversi: il paper ha tenuto solo il secondo.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Cosa fa il dropout in training e in inferenza?</summary><p class="qa-a">In training spegne ogni attivazione con probabilità p e scala le altre per 1 ÷ (1 − p). In inferenza lascia tutto acceso.</p></details>
+        <details class="qa-item"><summary>Perché si divide per 1 − p?</summary><p class="qa-a">Per conservare il valore atteso: così in inferenza non serve riscalare niente.</p></details>
+        <details class="qa-item"><summary>Perché il Perceiver non usa dropout?</summary><p class="qa-a">Il paper l'ha provato e peggiorava (p. 17): la regolarizzazione viene già dal collo di bottiglia e dal weight sharing.</p></details>
+        <details class="qa-item"><summary>Dove hai usato dropout nel tuo progetto?</summary><p class="qa-a">Nei modelli di testo (io_mlm e i fine-tuning GLUE), con p = 0,1. Le run su CIFAR-10 e ModelNet40 hanno dropout 0.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-36">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="36"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -4724,6 +5375,14 @@ S_{ij} & j \le i \\
       <div class="chap-meta"><span class="chap-badge">Rif. 19</span><span class="chap-time">~7 min</span></div>
       <h1>Riferimento: Inizializzazione dei Pesi (Xavier / He)</h1>
       <p class="intro">L'inizializzazione dei pesi determina la varianza delle attivazioni al primo forward pass. Se la varianza cresce strato per strato esplode; se decresce svanisce. In entrambi i casi il training non converge.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>L'inizializzazione decide la varianza delle attivazioni al primo passaggio: se cresce strato dopo strato esplode, se cala svanisce.</li>
+          <li>Xavier: Var(w) = 2 ÷ (fan_in + fan_out), per tanh e sigmoide. He: Var(w) = 2 ÷ fan_in, per ReLU.</li>
+          <li>PyTorch di default usa per i Linear un'uniforme con scala 1 ÷ √fan_in. I latenti del Perceiver usano una normale troncata con σ = 0,02.</li>
+        </ul>
+      </div>
 
       <h2>Il problema: propagazione della varianza</h2>
       <p>Per un layer lineare <code>z = Wx</code> con <code>n</code> ingressi e pesi i.i.d. a media zero:</p>
@@ -4761,6 +5420,18 @@ S_{ij} & j \le i \\
         <tr><td>Random grande</td><td>1</td><td>qualsiasi</td><td>exploding 💥</td></tr>
       </table>
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Tre inizializzazioni per lo stesso strato</p>
+        <ol class="passi">
+          <li>Strato da 384 a 1.536 (l'MLP del nostro e01).</li>
+          <li>Xavier: σ = √(2 ÷ 1.920) = <strong>0,0323</strong>.</li>
+          <li>He: σ = √(2 ÷ 384) = <strong>0,0722</strong>.</li>
+          <li>Default di PyTorch (uniforme fra ±1 ÷ √384): σ = 1 ÷ √(3 · 384) = <strong>0,0295</strong>. È quella del nostro codice.</li>
+          <li>Se ogni strato dimezza la varianza, dopo 10 strati resta 0,5¹⁰ ≈ 0,001: il segnale svanisce.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Collegamento al Perceiver</div>
         <p>Il latent array usa <code>N(0, 0.02)</code> troncata — piccolo per non dominare il primo forward. Le proiezioni Q/K/V usano He (GELU nell'MLP). Le proiezioni tra dimensioni diverse (C_tot=261 → D_QKV) usano Xavier.</p>
@@ -4768,6 +5439,22 @@ S_{ij} & j \le i \\
 
       <div class="paper-fig-label">📄 Dal paper originale</div>
       <figure class="paper-fig"><img src="../immagini/papers/glorot_init.png" alt="Inizializzazione e attivazioni" loading="lazy"><figcaption>Test error per diverse attivazioni e inizializzazioni: l'init normalizzata (Xavier/Glorot) raggiunge errori molto più bassi della sigmoide profonda che satura. — «Understanding the difficulty of training deep networks» (Glorot &amp; Bengio, AISTATS 2010)</figcaption></figure>
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Xavier e He differiscono per il fattore: He compensa la metà di attivazioni che la ReLU azzera.</li>
+          <li>I latenti non sono pesi di uno strato: la loro scala (0,02) è una scelta a parte, e conta (e28 con σ = 1: 52,08%).</li>
+          <li>LayerNorm e residual rendono i Transformer meno sensibili all'inizializzazione, non insensibili.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Scrivi Xavier e He.</summary><p class="qa-a">Xavier: Var = 2 ÷ (fan_in + fan_out). He: Var = 2 ÷ fan_in.</p></details>
+        <details class="qa-item"><summary>Quale si usa con la ReLU e perché?</summary><p class="qa-a">He: la ReLU azzera circa metà delle attivazioni e il fattore 2 compensa.</p></details>
+        <details class="qa-item"><summary>Come sono inizializzati i pesi nel tuo codice?</summary><p class="qa-a">Linear con il default di PyTorch (uniforme, scala 1 ÷ √fan_in); latenti con normale troncata σ = 0,02.</p></details>
+        <details class="qa-item"><summary>Cosa succede se la varianza cala del 50% a ogni strato?</summary><p class="qa-a">Dopo 10 strati resta un millesimo: attivazioni e gradienti svaniscono.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-37">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="37"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -4780,6 +5467,14 @@ S_{ij} & j \le i \\
       <div class="chap-meta"><span class="chap-badge">Rif. 20</span><span class="chap-time">~6 min</span></div>
       <h1>Riferimento: Regolarizzazione L1 e L2</h1>
       <p class="intro">La regolarizzazione aggiunge una penalità alla loss per scoraggiare pesi grandi, riducendo l'overfitting a scapito di un leggero aumento del bias.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>L2 aggiunge λ · Σw² alla loss: i pesi grandi costano. L1 aggiunge λ · Σ|w|: molti pesi diventano esattamente 0.</li>
+          <li>Weight decay: w ← w − η·λ·w a ogni passo. In SGD equivale a L2; in Adam no (per questo AdamW).</li>
+          <li>Nel progetto: weight decay 0 con LAMB; 5 × 10⁻⁴ nella ResNet-18. Il paper IO usa 0,01 nel pre-training MLM e 0,1 su ImageNet.</li>
+        </ul>
+      </div>
 
       <h2>L2 (Ridge / Weight Decay)</h2>
       <div class="display-eq">\mathcal{L}_{\text{reg}} = \mathcal{L} + \frac{\lambda}{2}\|\mathbf{w}\|_2^2</div>
@@ -4825,9 +5520,37 @@ S_{ij} & j \le i \\
         <tr><td>LAMB weight decay</td><td>decay separato dal passo adattivo</td><td>✗ no</td><td>✓ sì (λ=0.1)</td></tr>
       </table>
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">L2 e weight decay con i numeri</p>
+        <ol class="passi">
+          <li>Pesi w = (3, −4), λ = 0,01. Penalità L2: 0,01 · (9 + 16) = <strong>0,25</strong>.</li>
+          <li>Gradiente della penalità: 2λw = <strong>(0,06, −0,08)</strong>: spinge i pesi verso 0 in proporzione alla loro grandezza.</li>
+          <li>Weight decay con η · λ = 0,001: a ogni passo ogni peso perde lo 0,1% del suo valore.</li>
+          <li>L1: gradiente λ · segno(w), costante. Un peso piccolo viene spinto fino a 0 esatto: sparsità.</li>
+          <li>Nel Perceiver la regolarizzazione principale non è una penalità: è il weight sharing.</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Collegamento al Perceiver</div>
         <p>Il Perceiver usa <strong>weight decay λ=0.1 via LAMB</strong>. Il decay è separato dal trust ratio per layer, evitando che la scalatura LAMB lo annulli nelle run con large batch.</p>
+      </div>
+
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>In Adam la penalità L2 viene divisa per √v come il resto del gradiente: i pesi con gradienti grandi vengono regolarizzati poco. AdamW lo evita.</li>
+          <li>L1 produce zeri esatti, L2 no: rimpicciolisce ma non azzera.</li>
+          <li>λ troppo grande porta underfitting: la penalità vince sulla loss.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Che differenza c'è fra L1 e L2?</summary><p class="qa-a">L2 penalizza i quadrati e rimpicciolisce tutti i pesi; L1 penalizza i valori assoluti e ne porta molti a zero esatto.</p></details>
+        <details class="qa-item"><summary>Weight decay e L2 sono la stessa cosa?</summary><p class="qa-a">In SGD sì. In Adam no: la penalità passa per il denominatore adattivo. AdamW applica il decay direttamente ai pesi.</p></details>
+        <details class="qa-item"><summary>Calcola la penalità L2 di w = (3, −4) con λ = 0,01.</summary><p class="qa-a">0,01 · (9 + 16) = 0,25.</p></details>
+        <details class="qa-item"><summary>Che regolarizzazione usa il tuo Perceiver?</summary><p class="qa-a">Nessuna penalità (weight decay 0 in LAMB) e niente dropout su CIFAR-10: regolarizzano il collo di bottiglia, il weight sharing e RandAugment.</p></details>
       </div>
 
       <div class="nav-bar">
@@ -4842,6 +5565,14 @@ S_{ij} & j \le i \\
       <div class="chap-meta"><span class="chap-badge">Rif. 21</span><span class="chap-time">~5 min</span></div>
       <h1>Riferimento: Data Augmentation</h1>
       <p class="intro">La data augmentation genera varianti trasformate degli esempi di training per aumentare artificialmente la diversità del dataset, riducendo l'overfitting senza raccogliere nuovi dati.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>L'augmentation crea varianti degli esempi di training: stesso oggetto, pixel diversi.</li>
+          <li>Il paper usa crop Inception-style e RandAugment su ImageNet; noi RandAugment con 2 operazioni a intensità 9 su CIFAR-10.</li>
+          <li>Su ModelNet40 la nostra scala e traslazione sono annullate dalla normalizzazione: arriva solo la rotazione.</li>
+        </ul>
+      </div>
 
       <h2>Pipeline standard ImageNet</h2>
       <ul>
@@ -4880,6 +5611,18 @@ S_{ij} & j \le i \\
         <tr><td><strong>RandAugment</strong></td><td>N trasf. casuali a magnitudine M</td><td>—</td></tr>
       </table>
 
+      <div class="esempio" data-passi>
+        <div class="esempio-label">Con i numeri</div>
+        <p class="esempio-titolo">Le augmentation del progetto, una per una</p>
+        <ol class="passi">
+          <li>CIFAR-10: RandAugment(num_ops = 2, magnitude = 9), poi normalizzazione per canale. Solo sul train.</li>
+          <li>Validation e test: nessuna augmentation, solo la normalizzazione.</li>
+          <li>ModelNet40, mn01: scala dell'intera nuvola, poi ricentratura e raggio 1. La normalizzazione annulla la scala: il modello non la vede.</li>
+          <li>mn03, traslazione: stessa sorte, 87,20% contro 87,36%. mn02, rotazione: arriva davvero, <strong>−13,29</strong> punti.</li>
+          <li>Perceiver IO su ImageNet: RandAugment (4 operazioni, intensità 5), CutMix 0,2 e MixUp, con guadagno solo marginale (p. 18–19).</li>
+        </ol>
+      </div>
+
       <div class="idea">
         <div class="idea-label">Collegamento al Perceiver</div>
         <p>Il Perceiver usa crop + flip + normalization (nessun MixUp). È <strong>più dipendente dall'augmentation</strong> rispetto alle CNN perché non ha inductive bias spaziale: senza crop e flip potrebbe memorizzare le posizioni assolute degli oggetti nel training set. Le Fourier features forniscono la posizione <em>esplicita</em>, ma non l'invarianza a scala e composizione.</p>
@@ -4887,6 +5630,22 @@ S_{ij} & j \le i \\
 
       <div class="paper-fig-label">📄 Dal paper originale</div>
       <figure class="paper-fig"><img src="../immagini/papers/randaugment_magnitude.png" alt="Magnitudine di RandAugment" loading="lazy"><figcaption>Effetto del parametro di magnitudine M di RandAugment: a parità di trasformazioni, M più grande = distorsione più intensa (un solo parametro globale di forza). — Fig. 2, «RandAugment» (Cubuk et al., 2020, arXiv:1909.13719)</figcaption></figure>
+      <div class="trappole">
+        <div class="trappole-label">Errori tipici</div>
+        <ul>
+          <li>Un'augmentation che una trasformazione successiva annulla non fa niente: è il caso della nostra scala su ModelNet40.</li>
+          <li>L'augmentation va solo sul train: sul test cambierebbe il compito.</li>
+          <li>Più augmentation non è sempre meglio: la rotazione arbitraria su ModelNet40 costa 13 punti.</li>
+        </ul>
+      </div>
+      <h2>Autoverifica</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Che augmentation usi su CIFAR-10?</summary><p class="qa-a">RandAugment con 2 operazioni a intensità 9, solo in training.</p></details>
+        <details class="qa-item"><summary>Perché mn03 è di fatto una replica di mn01?</summary><p class="qa-a">Scala e traslazione sono applicate all'intera nuvola e la normalizzazione successiva (ricentra, raggio 1) le annulla.</p></details>
+        <details class="qa-item"><summary>Cosa ha fatto la rotazione su ModelNet40?</summary><p class="qa-a">−13,29 punti (74,07% contro 87,36%): il Perceiver non ha un prior rotazionale e deve impararla dai dati.</p></details>
+        <details class="qa-item"><summary>Come si fa augmentation nel paper?</summary><p class="qa-a">Perceiver: crop Inception-style e RandAugment. Perceiver IO: RandAugment (4, 5), CutMix e MixUp; ModelNet40: scala e traslazione per punto.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-39">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="39"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -5030,6 +5789,14 @@ S_{ij} & j \le i \\
       <div class="chap-meta"><span class="chap-badge">App. 1</span><span class="chap-time">~8 min</span></div>
       <h1>Formulario ragionato</h1>
       <p class="intro">Non è un formulario da imparare a memoria in blocco: è una mappa. Ogni formula va collegata a dove entra nel Perceiver e a quale problema risolve.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Poche formule reggono tutta la lezione: attenzione, C_tot, d_QKV, costo, softmax e cross-entropy.</li>
+          <li>Ognuna va legata a un numero del Perceiver: 261, 512 × 50.176, 44,9 M, 707,2 miliardi.</li>
+          <li>Se sai rifare i conti a mano, sai anche spiegarli.</li>
+        </ul>
+      </div>
 
       <div class="concept-lab formula-spotlight-lab" data-lab="formula-spotlight">
         <div class="lab-head">
@@ -5104,6 +5871,16 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
         <p>Per l'orale parti sempre da: problema risolto → punto del forward/backward → significato dei simboli. La formula da sola vale poco; il collegamento architetturale è quello che fa capire davvero.</p>
       </div>
 
+      <h2>Autoverifica: le formule a mano</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Scrivi la formula dell'attenzione e le forme nella cross-attention ImageNet.</summary><p class="qa-a">softmax(QKᵀ ÷ √d) · V. Q 512 × 261, K e V 50.176 × 261, matrice 512 × 50.176.</p></details>
+        <details class="qa-item"><summary>Scrivi C_tot per un'immagine e fai il conto per ImageNet.</summary><p class="qa-a">C_tot = C + d · (2K + 1) = 3 + 2 · 129 = 261.</p></details>
+        <details class="qa-item"><summary>Scrivi il costo del Perceiver e quello di Perceiver IO.</summary><p class="qa-a">Perceiver: O(MN + LN²). Perceiver IO: O([M + O + LN] · N · F).</p></details>
+        <details class="qa-item"><summary>Scrivi la cross-entropy e il suo gradiente con la softmax.</summary><p class="qa-a">ℒ = −log p_c; ∂ℒ/∂z = p − y.</p></details>
+        <details class="qa-item"><summary>Scrivi l'aggiornamento di LayerNorm.</summary><p class="qa-a">x̂ = (x − μ) ÷ √(σ² + ε), y = γ · x̂ + β, con media e varianza sulle feature della riga.</p></details>
+        <details class="qa-item"><summary>Scrivi un blocco pre-norm completo.</summary><p class="qa-a">x ← x + Attn(LN(x)); x ← x + MLP(LN(x)).</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-41">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="41"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -5116,6 +5893,14 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
       <div class="chap-meta"><span class="chap-badge">App. 2</span><span class="chap-time">~7 min</span></div>
       <h1>Mappa forward interattiva</h1>
       <p class="intro">Questa è la vista compatta del viaggio dei dati: <strong>Input → Fourier → Latenti → Cross-Attention → Latent Transformer → ×T → Pooling/Decoder</strong>. Clicca un blocco per vedere cosa cambia davvero.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Il viaggio dei dati: 50.176 × 261 → 512 × 1.024 → (48 blocchi) → 1.024 → 1.000.</li>
+          <li>Nel nostro e01: 1.024 × 261 → 96 × 384 → (16 blocchi) → 384 → 10.</li>
+          <li>La forma dei latenti non cambia mai dopo la prima lettura: è per questo che il blocco si può ripetere.</li>
+        </ul>
+      </div>
 
       <div class="flow-lab">
         <div class="flow-steps" aria-label="Mappa del forward pass">
@@ -5150,6 +5935,14 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
         </table>
       </div>
 
+      <h2>Autoverifica: le forme</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>Dai la forma dei dati dopo ogni stadio, nel modello ImageNet.</summary><p class="qa-a">Input 50.176 × 3 → con Fourier 50.176 × 261 → latenti 512 × 1.024 dopo ogni lettura e ogni blocco → media 1.024 → logit 1.000.</p></details>
+        <details class="qa-item"><summary>E nel tuo e01?</summary><p class="qa-a">1.024 × 3 → 1.024 × 261 → 96 × 384 → media 384 → 10 logit.</p></details>
+        <details class="qa-item"><summary>Dove compare M nel forward?</summary><p class="qa-a">Solo nelle cross-attention: nelle chiavi, nei valori e nella matrice N × M. Dopo la prima lettura, nei blocchi latenti M non c'è più.</p></details>
+        <details class="qa-item"><summary>E nel forward di Perceiver IO sul testo (tuo io_mlm)?</summary><p class="qa-a">512 × 270 → 128 × 512 → 4 blocchi → decoder con 512 query: 512 × 512 → Linear → 512 × 256 probabilità di byte.</p></details>
+      </div>
+
       <div class="nav-bar">
         <button class="btn btn-secondary" id="prev-42">← Precedente</button>
         <label class="checkbox-done"><input type="checkbox" data-done="42"><span class="check"></span><span class="check-label">Ho capito</span></label>
@@ -5162,6 +5955,14 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
       <div class="chap-meta"><span class="chap-badge">App. 3</span><span class="chap-time">~20 min</span></div>
       <h1>Confronti e specifiche</h1>
       <p class="intro">Qui trovi i confronti da ripetere bene all'esame: non definizioni isolate, ma differenze operative tra scelte architetturali. Leggili come una mappa: prima capisci <strong>che cosa cambia nella struttura</strong>, poi <strong>che costo computazionale produce</strong>, infine <strong>perché quella scelta aiuta il Perceiver</strong>.</p>
+      <div class="in-breve">
+        <div class="in-breve-label">In 30 secondi</div>
+        <ul>
+          <li>Le domande d'esame sono spesso confronti: CNN contro Transformer contro Perceiver, LayerNorm contro BatchNorm, Perceiver contro Perceiver IO.</li>
+          <li>Per ogni confronto: cosa cambia nel meccanismo, cosa costa, cosa si guadagna.</li>
+          <li>Tieni pronti i numeri: O(M²) contro O(MN), 78,0 contro 77,6 e 77,9, 44,9 M contro 326,2 M.</li>
+        </ul>
+      </div>
 
       <div class="concept-lab complexity-race-lab" data-lab="complexity-race">
         <div class="lab-head">
@@ -5408,8 +6209,11 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
         <div><span>Dimensione latente</span><strong>D = 1024</strong></div>
         <div><span>Iterazioni</span><strong>T = 8</strong></div>
         <div><span>Self-attention/block</span><strong>ℓ = 6</strong></div>
-        <div><span>Teste attention</span><strong>H = 8</strong></div>
-        <div><span>Parametri</span><strong>~45M</strong></div>
+        <div><span>Teste</span><strong>1 nella cross-attention; self-attention non dichiarate (8 nelle ablation)</strong></div>
+        <div><span>MLP</span><strong>fattore 1 (hidden = D)</strong></div>
+        <div><span>d_QKV</span><strong>261</strong></div>
+        <div><span>Parametri</span><strong>44,9M (326,2M senza sharing)</strong></div>
+        <div><span>FLOPs</span><strong>707,2 miliardi</strong></div>
         <div><span>Accuratezza</span><strong>78.0%</strong></div>
         <div><span>Ottimizzatore</span><strong>LAMB</strong></div>
       </div>
@@ -5428,6 +6232,15 @@ W_{t+1} = W_t - η · r_t · ΔW_t</div>
       <div class="idea">
         <div class="idea-label">Chiusura</div>
         <p>Se devi sintetizzare tutto in una frase: il Perceiver rende generale il Transformer comprimendo input enormi in latenti fissi, poi usa attention profonda nello spazio piccolo e un decoder/pooling adatto al task.</p>
+      </div>
+
+      <h2>Autoverifica: i confronti</h2>
+      <div class="qa-group">
+        <details class="qa-item"><summary>CNN, Transformer e Perceiver: costo e prior di ciascuno?</summary><p class="qa-a">CNN: costo lineare, prior forte (località, griglia). Transformer: O(M²), quasi nessun prior. Perceiver: O(MN + LN²), nessun prior sulla griglia; la posizione entra dalle Fourier features.</p></details>
+        <details class="qa-item"><summary>Self-attention contro cross-attention?</summary><p class="qa-a">Nella self Q, K e V vengono dallo stesso array (matrice M × M); nella cross Q viene da un altro array, i latenti (matrice N × M).</p></details>
+        <details class="qa-item"><summary>Perceiver contro Perceiver IO?</summary><p class="qa-a">Stesso encoder e processor. Il Perceiver fa media dei latenti e un Linear; Perceiver IO ha un decoder a query che produce O uscite di forma qualsiasi.</p></details>
+        <details class="qa-item"><summary>LayerNorm contro BatchNorm?</summary><p class="qa-a">LayerNorm normalizza le feature di un esempio; BatchNorm una feature sul batch. LayerNorm non dipende dal batch ed è quella dei Transformer.</p></details>
+        <details class="qa-item"><summary>SGD, Adam, LAMB in una riga ciascuno?</summary><p class="qa-a">SGD: passo uguale per tutti. Adam: passo adattivo per peso. LAMB: direzione di Adam, ampiezza proporzionale alla norma di ogni strato.</p></details>
       </div>
 
       <div class="nav-bar">
