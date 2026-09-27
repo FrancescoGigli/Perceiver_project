@@ -91,9 +91,11 @@ def glue_8task():
     ax.set_title("GLUE: eight separate fine-tunings from the byte-level MLM",
                  fontsize=15, fontweight="bold", pad=14)
     ax.yaxis.grid(True, color=GRID)
-    ax.text(-0.6, -13, "grey = majority-class predictor, not learning "
-                       "(CoLA 721/1043, MRPC 288/408)   ·   STS-B is Pearson ×100",
-            fontsize=11, color="#6C757D", style="italic")
+    ax.text(-0.6, -13, "grey = at or near the majority class: CoLA 721/1043 (exactly the majority), "
+                       "MRPC 288/408 (majority 279)\n"
+                       "CoLA scored in accuracy (the paper uses Matthews: our mean would be 62.49)"
+                       "   ·   STS-B is Pearson ×100",
+            fontsize=11, color="#6C757D", style="italic", va="top")
     spine(ax)
     save(fig, "glue_8task_correct.png")
 
@@ -120,8 +122,8 @@ def multitask():
     ax.set_xticklabels([LABEL[t] for t in TASKS])
     ax.set_ylim(0, 95)
     ax.set_ylabel("accuracy (%)")
-    ax.set_title(f"One model with eight output queries beats eight models: "
-                 f"{m_mt:.2f} vs {m_sep:.2f}",
+    ax.set_title(f"One model with eight output queries vs eight models: "
+                 f"{m_mt:.2f} vs {m_sep:.2f} (one run each)",
                  fontsize=15, fontweight="bold", pad=14)
     ax.legend(frameon=False, loc="upper left", fontsize=11.5, ncol=2)
     ax.yaxis.grid(True, color=GRID)
@@ -152,6 +154,8 @@ def valore_pretraining():
     ax.set_title("What the pre-training is worth", fontsize=15,
                  fontweight="bold", pad=14)
     ax.legend(frameon=False, loc="upper right", fontsize=11.5)
+    ax.text(-0.5, -12, "RTE from scratch = majority class (146/277): RTE is not learned well either way",
+            fontsize=10.5, color="#6C757D", style="italic")
     ax.yaxis.grid(True, color=GRID)
     spine(ax)
     save(fig, "pretraining_value_correct.png")
@@ -177,7 +181,7 @@ def cnn_vs_perceiver():
     ax.set_xticks([])
     ax.set_ylim(0, 105)
     ax.set_ylabel("CIFAR-10 test accuracy (%)")
-    ax.set_title("Same data, same split, same epochs, same parameter budget",
+    ax.set_title("Same data, split and epochs; each with its own recipe (LAMB vs SGD)",
                  fontsize=14, fontweight="bold", pad=14)
     ax.yaxis.grid(True, color=GRID)
     spine(ax)
@@ -194,7 +198,7 @@ def perceiver_vs_io():
     fig, ax = plt.subplots(figsize=(9.6, 4.4))
     ax.axhspan(lo, hi, color=BAND, zorder=0)
     ax.text(-0.45, (lo + hi) / 2,
-            f"noise band: three runs that differ\nonly by seed  ({hi - lo:.2f} pp)",
+            f"noise band: three runs that differ\nby seed and split  ({hi - lo:.2f} pp)",
             fontsize=11.5, color="#3D6A8E", ha="left", va="center")
     for i, (nome, v) in enumerate(perc):
         ax.plot(i, v, "o", ms=13, color=BLUE)
@@ -211,7 +215,7 @@ def perceiver_vs_io():
     # Il titolo cita il confronto onesto: 0.16 pp di differenza contro 2.78 pp di
     # escursione fra soli seed. Dire "IO vince" sarebbe leggere rumore.
     ax.set_title(f"Perceiver IO vs Perceiver: {io[0][1] - perc[0][1]:+.2f} pp "
-                 f"against a {hi - lo:.2f} pp seed spread",
+                 f"against a {hi - lo:.2f} pp noise band",
                  fontsize=15, fontweight="bold", pad=14)
     ax.yaxis.grid(True, color=GRID)
     spine(ax)
@@ -223,8 +227,8 @@ def modelnet():
     passava dentro l'etichetta 'paper: 85.7%', che a dimensione slide si leggeva
     come testo doppio. Stessi dati, stessi colori, etichetta sopra la linea.
     La vecchia figura non aveva uno script sorgente: ora ce l'ha."""
-    run = [("mn01_baseline\nscale only", acc("mn01_baseline"), BLUE),
-           ("mn03_translation\n+ translation", acc("mn03_translation"), BLUE),
+    run = [("mn01_baseline\nscale (undone)", acc("mn01_baseline"), BLUE),
+           ("mn03_translation\n+ translation (undone)", acc("mn03_translation"), BLUE),
            ("mn02_rotation\n+ rotation", acc("mn02_rotation"), RED)]
     fig, ax = plt.subplots(figsize=(10.0, 5.4))
     barre = ax.bar(range(3), [v for _, v, _ in run], width=0.62,
@@ -262,7 +266,7 @@ def banda_rumore():
         ax.text(i, v + 0.30, f"{v:.2f}%", ha="center", fontsize=14, fontweight="bold")
     ax.annotate("", xy=(2.62, hi), xytext=(2.62, lo),
                 arrowprops=dict(arrowstyle="<->", color=RED, lw=1.8))
-    ax.text(2.72, (lo + hi) / 2, f"{hi - lo:.2f} pp\nof pure variance",
+    ax.text(2.72, (lo + hi) / 2, f"{hi - lo:.2f} pp\nof seed and split\nvariance",
             fontsize=13.5, fontweight="bold", color=RED, va="center")
     ax.set_xticks([0, 1, 2])
     ax.set_xticklabels([n for n, _ in seed], fontsize=13)
@@ -276,7 +280,67 @@ def banda_rumore():
     save(fig, "noise_band_correct.png")
 
 
+CIFAR_ABLAZIONI = [
+    "e01_baseline", "e02_permuted", "e03_learned_pe", "e04_learned_pe_permuted",
+    "e05_no_latent_T4", "e06_no_latent_T8", "e07_no_latent_T12",
+    "e08_T1_interleaved", "e09_T2_interleaved", "e10_T8_interleaved",
+    "e11_T1_at_start", "e12_T2_at_start", "e13_T4_at_start", "e14_T8_at_start",
+    "e16_no_weight_sharing", "e23_bands_4", "e24_bands_16", "e25_maxfreq_8", "e26_maxfreq_64",
+    "e27_init_scale_0p1", "e28_init_scale_1p0", "e31_baseline_seed1", "e32_baseline_seed2"]
+SEMI = ("e01_baseline", "e31_baseline_seed1", "e32_baseline_seed2")
+# Training instabili (train_stdout.log): e23, e24 ed e28 crollano a meta' e la loro epoca
+# migliore viene prima del crollo (42, 30, 9); e27 crolla e poi recupera (epoca 112).
+INSTABILI = {"e23_bands_4", "e24_bands_16", "e27_init_scale_0p1", "e28_init_scale_1p0"}
+
+
+def ablazioni_cifar():
+    """Le 23 run CIFAR-10 contro la banda di rumore (e29, 32,36%, e' fuori scala: la
+    cita il testo della slide). Fuori banda vuol dire 'piu' grande del rumore di seed
+    e split', non 'effetto reale': quattro run fuori banda hanno un training instabile."""
+    vals = {r: acc(r) for r in CIFAR_ABLAZIONI}
+    base = vals["e01_baseline"]
+    banda = max(vals[s] for s in SEMI) - min(vals[s] for s in SEMI)
+    ordine = sorted(CIFAR_ABLAZIONI, key=lambda r: vals[r])
+    fig, ax = plt.subplots(figsize=(11.5, 8.0))
+    ax.axvspan(base - banda, base + banda, color=BAND, zorder=0)
+    ax.axvline(base, color=BLUE, lw=1.6, zorder=1)
+    for i, r in enumerate(ordine):
+        v = vals[r]
+        ax.plot([50, v], [i, i], color=GRID, lw=1.0, zorder=1)
+        if r in SEMI:
+            ax.plot(v, i, "o", ms=10, color=BLUE, zorder=3)
+        elif abs(v - base) > banda and r in INSTABILI:
+            ax.plot(v, i, "o", ms=9, mfc="white", mec=ORANGE, mew=2.2, zorder=3)
+        elif abs(v - base) > banda:
+            ax.plot(v, i, "o", ms=9, color=ORANGE, zorder=3)
+        else:
+            ax.plot(v, i, "o", ms=9, color=GREY, mec="white", zorder=3)
+        ax.text(v + 0.35, i, f"{v:.2f}", va="center", fontsize=11)
+    ax.set_yticks(range(len(ordine)))
+    ax.set_yticklabels(ordine, fontsize=11, family="monospace")
+    for lab, r in zip(ax.get_yticklabels(), ordine):
+        if r in SEMI:
+            lab.set_color(BLUE)
+            lab.set_fontweight("bold")
+    ax.set_xlim(50, 77)
+    ax.set_ylim(-0.8, len(ordine) - 0.2)
+    ax.set_xlabel("test accuracy at best epoch  (%)")
+    ax.set_title(f"The 23 CIFAR-10 runs against the noise band ({base:.2f} ± {banda:.2f})",
+                 fontsize=15, fontweight="bold", pad=12)
+    marker = dict(ls="none", ms=9)
+    ax.legend(handles=[
+        plt.Line2D([], [], marker="o", color=BLUE, label="seed replicas define the band", **marker),
+        plt.Line2D([], [], marker="o", color=ORANGE, label="outside the band: larger than the noise", **marker),
+        plt.Line2D([], [], marker="o", mfc="white", mec=ORANGE, mew=2.2,
+                   label="outside the band, but the training was unstable", **marker),
+        plt.Line2D([], [], marker="o", color=GREY, label="inside the band: cannot be told from noise", **marker),
+    ], loc="upper left", frameon=False, fontsize=11)
+    spine(ax)
+    save(fig, "cifar10_ablation_correct.png")
+
+
 if __name__ == "__main__":
+    ablazioni_cifar()
     glue_8task()
     multitask()
     valore_pretraining()

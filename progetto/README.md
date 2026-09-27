@@ -8,7 +8,7 @@ Università degli Studi di Firenze — Prof. Paolo Frasconi
 ## Panoramica
 
 Implementazione from-scratch dei modelli **Perceiver** ([Jaegle et al., 2021](https://arxiv.org/abs/2103.03206))
-e **Perceiver IO** ([Jaegle et al., 2021](https://arxiv.org/abs/2107.14795)) in PyTorch,
+e **Perceiver IO** ([Jaegle et al., 2022](https://arxiv.org/abs/2107.14795)) in PyTorch,
 con replica e analisi degli esperimenti del paper su due modalità:
 
 - **Immagini** — classificazione CIFAR-10, con ablation su positional encoding,
@@ -120,7 +120,7 @@ python experiments.py --next                  # riassunto di stato + lancia la p
 | `fig6` | Fig. 6 — bande / freq. max / init scale |
 | `noise` | fuori dal paper — banda di rumore (seed diversi) |
 | `modelnet` | Tab. 4 — ModelNet40 (augmentation) |
-| `io_image` | Perceiver IO su CIFAR-10: decoder a query vs pooling (ricetta di training del paper IO, App. A.1) |
+| `io_image` | Perceiver IO su CIFAR-10: decoder a query vs pooling (lr 1e-3 con cosine; il paper IO, App. A.1, usa 2e-3 piatto per 55 epoche e poi cosine, weight decay 0,1, clipping 10, 110 epoche, batch 1024) |
 | `io_mlm` | Perceiver IO — pre-training MLM byte-level (WikiText-103) |
 | `io_glue` | Perceiver IO — Tab. 1: fine-tuning GLUE (8 task + 2 controlli senza pre-training) e Tab. 2: multitask (`multitask_glue.py`) |
 | `baseline` | ResNet-18 su CIFAR-10 (`baseline_cnn.py`): riferimento non-Perceiver a parità di split/epoche |
@@ -180,14 +180,16 @@ dai paper. Sono dichiarate qui perché i risultati sono stati prodotti così:
 
 - **MLP largo 4 volte D** (il paper: 1, cioè hidden = D, p. 6 e 17). È il
   default dei Transformer (`mlp_ratio=4`). Con fattore 1 le formule del
-  progetto ritrovano i 44,9M e i 326,2M parametri della Tab. 7 del paper;
+  progetto ritrovano 44,9M e 326,1M (326,2M, come in Tab. 7, con i bias su Q, K,
+  V, che il nostro codice non ha);
   e01 avrebbe 4,9M parametri invece di 10,2M.
 - **Profondità che cresce con il numero di letture** nelle run della Tab. 6
   (e08-e14): ogni lettura porta i suoi 4 blocchi latenti, quindi T=1 ha 4
   blocchi e T=8 ne ha 32. Nel paper i blocchi restano 48 qualunque sia T (i
   FLOPs della Tab. 6 tornano solo così). I confronti a pari T sono puliti;
   quelli fra T diversi mescolano letture e profondità.
-- **Fourier a 6 bande su ModelNet40 e sul testo** (il paper: 64). Ogni punto 3D
+- **Fourier a 6 bande su ModelNet40 e sul testo** (il paper: 64 su ModelNet40;
+  sul testo usa una posizione appresa sommata, non Fourier). Ogni punto 3D
   ha 3 + 39 = 42 canali, ogni byte 257 + 13 = 270. Il registro lo dichiara
   esplicitamente (`--modelnet40_fourier_bands 6`, `--text_fourier_bands 6`).
 - **Augmentation di ModelNet40 sull'oggetto intero.** Scala e traslazione
@@ -220,4 +222,4 @@ python -m pytest tests/ -q
 ## Riferimenti
 
 - Jaegle, A., et al. (2021). *Perceiver: General Perception with Iterative Attention.* ICML.
-- Jaegle, A., et al. (2021). *Perceiver IO: A General Architecture for Structured Inputs & Outputs.* ICLR.
+- Jaegle, A., et al. (2022). *Perceiver IO: A General Architecture for Structured Inputs & Outputs.* ICLR.

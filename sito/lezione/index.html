@@ -1613,7 +1613,7 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
           <li>Learning rate 0,004 dall'epoca 0 alla 83: il <strong>70%</strong> del training.</li>
           <li>Epoca 84 → 0,0004. Epoca 102 → 0,00004. Epoca 114 → 0,000004.</li>
           <li>Nostro e01: stessa schedule. CIFAR-10 diviso in 45.000 immagini di train, 5.000 di validation e 10.000 di test. Con batch 64 sono circa <strong>704 passi</strong> per epoca, circa 84.000 in tutto.</li>
-          <li>L'epoca migliore di e01 è la <strong>92</strong>, subito dopo il primo taglio. 21 run CIFAR su 24 toccano il massimo dopo l'epoca 84. Le 3 eccezioni (e23, e24, e28) sono le run instabili.</li>
+          <li>L'epoca migliore di e01 è la <strong>92</strong>, subito dopo il primo taglio. 21 run CIFAR su 24 toccano il massimo dopo l'epoca 84. Le 3 eccezioni (e23, e24, e28) sono training crollati. Anche e27 ha un crollo a metà (25,32% all'epoca 52), ma poi recupera e tocca il massimo all'epoca 112.</li>
           <li>Nel nostro codice serve il gradient clipping a norma 1: senza, LAMB a 0,004 divergeva (loss nan). Il paper non ne parla.</li>
         </ol>
       </div>
@@ -2123,7 +2123,7 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       <h2>Cosa NON memorizzare</h2>
       <p>Le derivazioni dettagliate dei gradienti di:</p>
       <ul>
-        <li>LayerNorm (3 termini: <span class="inline-frac"><span>1</span><span>σ+ε</span></span> volte la media e tutto il calcolo della deviazione)</li>
+        <li>LayerNorm (3 termini: <span class="inline-frac"><span>1</span><span>√(σ²+ε)</span></span> volte la media e tutto il calcolo della deviazione)</li>
         <li>Scaled dot-product attention rispetto a Q, K, V (tre formule lunghe)</li>
         <li>Output projection W_o, MLP W₁, W₂</li>
       </ul>
@@ -2134,8 +2134,8 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
 
       <details class="deep-dive">
         <summary>Backward della LayerNorm</summary>
-        <p>Con <code>Ĥ = (H − μ)/(σ + ε)</code> e <code>H̃ = γ·Ĥ + β</code>, il gradiente verso l'input <code>H</code> di ogni riga (dimensione D) è:</p>
-        <div class="display-eq">∂ℒ/∂H_{ij} = \frac{1}{σ_i + ε}(∂ℒ/∂Ĥ_{ij} − \frac{1}{D} Σ_k ∂ℒ/∂Ĥ_{ik} − Ĥ_{ij} · \frac{1}{D} Σ_k ∂ℒ/∂Ĥ_{ik} · Ĥ_{ik})</div>
+        <p>Con <code>Ĥ = (H − μ)/√(σ² + ε)</code> e <code>H̃ = γ·Ĥ + β</code>, il gradiente verso l'input <code>H</code> di ogni riga (dimensione D) è:</p>
+        <div class="display-eq">∂ℒ/∂H_{ij} = \frac{1}{\sqrt{σ_i^2 + ε}}(∂ℒ/∂Ĥ_{ij} − \frac{1}{D} Σ_k ∂ℒ/∂Ĥ_{ik} − Ĥ_{ij} · \frac{1}{D} Σ_k ∂ℒ/∂Ĥ_{ik} · Ĥ_{ik})</div>
         <p>I due termini sottratti rimuovono la media del gradiente e la sua proiezione su <code>Ĥ</code>: è il "prezzo" dei vincoli media≈0 / varianza≈1 della normalizzazione. I parametri appresi:</p>
         <div class="display-eq">∂ℒ/∂γ_j = Σᵢ ∂ℒ/∂H̃_{ij} · Ĥ_{ij}        ∂ℒ/∂β_j = Σᵢ ∂ℒ/∂H̃_{ij}</div>
       </details>
@@ -5349,7 +5349,7 @@ S_{ij} & j \le i \\
       </div>
 
       <h2>Positional Encoding sinusoidale</h2>
-      <p>L'attention è <strong>invariante per permutazione</strong>: senza posizione non distingue "il gatto mangia il topo" da "il topo mangia il gatto". Il PE sinusoidale risolve:</p>
+      <p>L'attention non vede l'ordine. La self-attention è <strong>equivariante per permutazione</strong>: se mescoli le parole, l'uscita si mescola allo stesso modo. Con query fisse e una media finale, come nel Perceiver, l'uscita resta proprio uguale: è invariante. Senza posizione non distingue "il gatto mangia il topo" da "il topo mangia il gatto". Il PE sinusoidale risolve:</p>
       <div class="display-eq">
 \mathrm{PE}(pos, 2i) = \sin(\frac{pos}{10000^{\frac{2i}{d}}})
 \mathrm{PE}(pos, 2i+1) = \cos(\frac{pos}{10000^{\frac{2i}{d}}})
@@ -7066,7 +7066,7 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
           <p><strong>Cosa cambia:</strong> <code>--use_learned_pe --num_cross_attend_stages 1 --permute_pixels</code>: learned PE <em>e</em> pixel permutati.</p>
           <p><strong>Cosa isola:</strong> se anche la learned PE sopravvive alla permutazione, o se l'invarianza dipende dalla scelta di Fourier.</p>
           <p><strong>Risultato:</strong> <strong>69.87%</strong> (test), epoca migliore <strong>114</strong> su 120, 8.583.714 parametri, seed 42. <strong class="v-in">dentro la banda</strong> (-1.76 punti su ±2,78): <em>non concludente</em></p>
-          <p class="dataset-use">Il confronto pulito è con <code>e03</code> (stessa config, senza permutazione): <strong>69,87% contro 71,07%</strong>, cioè <strong>−1,20 punti</strong>, dentro la banda. <strong>Anche la learned PE è invariante alla permutazione.</strong> Conferma sperimentale nostra di quello che il paper dice in Tab. 2: l'invarianza viene dall'<em>attention</em>, non dal tipo di positional encoding.</p>
+          <p class="dataset-use">Il confronto pulito è con <code>e03</code> (stessa config, senza permutazione): <strong>69,87% contro 71,07%</strong>, cioè <strong>−1,20 punti</strong>, dentro la banda. <strong>Anche con la learned PE il modello è invariante alla permutazione.</strong> Conferma sperimentale nostra di quello che il paper dice in Tab. 2: l'invarianza viene dall'<em>attention</em>, non dal tipo di positional encoding.</p>
         </div>
         <div class="dataset-card dataset-card--wide">
           <div class="dataset-name"><code>e29_no_pe</code> <span class="dataset-tag">nessuna PE</span></div>
@@ -7295,7 +7295,7 @@ python baseline_mlm.py # baseline senza rete per l'MLM (19,07% / 42,96%)</div>
           <p><strong>Cosa cambia:</strong> <code>--latent_init_scale 0.1</code> invece di 0.02: i 96 latenti partono da valori casuali cinque volte più grandi.</p>
           <p><strong>Cosa isola:</strong> quanto conta la scala di inizializzazione dell'array latente.</p>
           <p><strong>Risultato:</strong> <strong>65.69%</strong> (test), epoca migliore <strong>112</strong> su 120, 10.175.362 parametri, seed 42. <strong class="v-out">fuori banda</strong> (-5.94 punti, la banda è ±2,78)</p>
-          <p class="dataset-use">65,69%, fuori banda. Cinque volte la scala costa quasi sei punti.</p>
+          <p class="dataset-use">65,69%, fuori banda. Cinque volte la scala costa quasi sei punti. Anche qui il training è instabile: 65,44% all'epoca 38, 25,32% alla 52, poi recupera fino al 66,74% dell'epoca 112. Le run instabili sono quattro: e23, e24, e27, e28.</p>
         </div>
         <div class="dataset-card dataset-card--wide">
           <div class="dataset-name"><code>e28_init_scale_1p0</code> <span class="dataset-tag">init latenti 1.0</span></div>

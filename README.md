@@ -23,7 +23,7 @@ Pubblicato su GitHub Pages: **https://francescogigli.github.io/Perceiver_project
 
 - **[Lezione interattiva](https://francescogigli.github.io/Perceiver_project/sito/lezione/)** — 52 capitoli, laboratori manipolabili. È il punto di partenza.
 - **[Slide](https://francescogigli.github.io/Perceiver_project/sito/slide/)** — il deck d'esame, 41 pagine
-- **[Dispensa](https://francescogigli.github.io/Perceiver_project/sito/appunti_ml_definitivo.pdf)** — 211 pagine di appunti
+- **[Dispensa](https://francescogigli.github.io/Perceiver_project/sito/appunti_ml_definitivo.pdf)** — 220 pagine di appunti
 
 Le cartelle di figure sono cinque perché hanno origini diverse, non per
 capriccio: chi le usa (la dispensa o la lezione) e da dove vengono (esportate,
@@ -35,14 +35,14 @@ sito/
 │   └── figure_bibliografia/      66 figure dai paper, usate solo dall'atlante
 ├── slide/                      deck d'esame: .tex, PDF (41 pp.), PPTX gemello
 ├── appunti_ml_definitivo.tex   la dispensa, sorgente
-├── appunti_ml_definitivo.pdf   la dispensa compilata, 211 pagine
+├── appunti_ml_definitivo.pdf   la dispensa compilata, 220 pagine
 │
 │   ── figure, per provenienza ──
 ├── immagini/                   usate dalla DISPENSA (85 riferimenti nel .tex)
 │   ├── media/     97 file      esportate da Word: nomi image1.png…, illeggibili
 │   ├── papers/    60 file      ritagli dai paper originali
 │   └── project/   10 file      schermate e diagrammi del progetto
-├── figure_esperimenti/  30     prodotte dalle RUN: attention map, curve, matrici
+├── figure_esperimenti/  33     prodotte dalle RUN: attention map, curve, matrici
 ├── figure_corso/        10     figure di riferimento dal materiale del corso
 └── schemi/              12     SVG disegnati a mano per la lezione (bottleneck…)
 ```
@@ -72,14 +72,15 @@ python -m pytest tests/ -q            # 55 test
 
 > I comandi vanno lanciati con `cwd = progetto/`.
 
-Dataset e checkpoint (~24 GB) non sono nel repo: si scaricano da soli alla prima
-esecuzione.
+Dataset e checkpoint (~24 GB) non sono nel repo: i dataset si scaricano da soli alla
+prima esecuzione, i checkpoint si producono con le run.
 
 ## Come si leggono i risultati
 
 **Prima di ogni confronto viene la banda di rumore.** Tre run identiche in tutto
 tranne il seed danno 71,63% / 68,85% / 70,97%: l'escursione è **2,78 punti
-percentuali**. Qualunque differenza più piccola non è un effetto, è varianza.
+percentuali**. Una differenza più piccola non si distingue dalla varianza (e il seed sposta anche
+le 5.000 immagini di validation).
 
 Delle 24 run su CIFAR-10, **12 escono dalla banda** — le altre sono dichiarate
 non concludenti invece di essere presentate come tendenze. Il riferimento e01
@@ -91,11 +92,11 @@ Risultati principali:
 | | |
 |---|---|
 | ModelNet40 | **87,36%** — sopra il paper (85,7%); epoca scelta sul test, l'ultima fa 86,43% |
-| CIFAR-10, migliore | 72,91% con un solo cross-attend |
+| CIFAR-10, migliore | 72,91% con un solo cross-attend: dentro la banda, con 4 blocchi latenti invece di 16 |
 | CIFAR-10, riferimento | 71,63% |
 | Pre-training MLM byte-level | **86,68%** contro il 42,96% di una tabella dei byte vicini (19,07% rispondendo sempre "spazio") |
-| Perceiver IO vs Perceiver su immagini | 71,79% vs 71,63% — nessuna differenza |
-| GLUE, media sugli 8 task | 71,13 contro 81,0 del paper (due task degeneri, vedi sotto) |
+| Perceiver IO vs Perceiver su immagini | 71,79% vs 71,63% — nessuna differenza misurabile (cambiano decoder e ricetta) |
+| GLUE, media sugli 8 task | 71,13 contro 81,0 del paper; 62,49 con CoLA in Matthews, come nel paper (vedi sotto) |
 | Quanto vale il pre-training MLM | SST-2 59,75% → **80,73%**; RTE 52,71% → 56,68% |
 | **Baseline CNN, stessi dati** | **93,61%** contro 71,63% del Perceiver |
 | Effetto più grande misurato | togliere il positional encoding: **−39,27** |
@@ -107,40 +108,46 @@ permutare i pixel lo lascia dov'era: la posizione entra solo dalla codifica,
 non dalla griglia.
 
 **Il confronto scomodo va detto per primo.** Su ImageNet il paper batte
-ResNet-50 di +4,5 punti (78,0 contro 73,5). Qui, a parità di dati, split,
+la ResNet-50 di +0,4 punti (78,0 contro 77,6) e di +4,5 quella con Fourier
+features (73,5). Qui, a parità di dati, split,
 epoche e quasi di parametri (11,2M contro 10,2M), una ResNet-18 fa **93,61%**
 contro il 71,63% del Perceiver: **−21,98**. Il vantaggio del Perceiver non è
-l'accuratezza, è non avere prior sul dominio — e a questa scala quel prior vale
-22 punti. Il paper mostra che a scala ImageNet smette di servire; a scala
+l'accuratezza, è non avere prior sul dominio — e a questa scala prior e ricetta insieme
+valgono 22 punti (la ResNet usa SGD con cosine e weight decay, il Perceiver LAMB a
+gradini). Il paper mostra che a scala ImageNet smette di servire; a scala
 CIFAR-10 si paga, e questo numero dice quanto.
 
 **Due numeri GLUE non sono apprendimento**, ed è scritto anche sul sito: CoLA
 fa 721 corrette su 1043, cioè esattamente il conteggio della classe
 maggioritaria, e MRPC la supera di 9 esempi su 408. La media di 71,13 poggia
 su sei task, non su otto — e CoLA nel paper è misurata col coefficiente di
-Matthews, che per un predittore costante vale 0.
+Matthews, che per un predittore costante vale 0: con quella metrica le medie
+sarebbero 62,49 (separati) e 65,41 (multitask).
 
 Stato: **42 run su 42**. Il registro è completo.
 
-**Il confronto che replica meglio** non è un valore assoluto ma una relazione, e
+**Il confronto più coerente col paper** non è un valore assoluto ma una relazione, e
 sta nella Tab. 2 del paper: un solo Perceiver IO con una query di output per task
 contro otto fine-tuning separati. Il paper misura 81,8 contro 81,0, cioè **+0,8**;
-qui 74,05 contro 71,13, cioè **+2,92**. Il livello assoluto è ~8 punti sotto e non
+qui 74,05 contro 71,13, cioè **+2,92**. Il livello assoluto è ~8 punti sotto in accuratezza, ~16 con CoLA in Matthews
+(65,41 contro 81,8), e non
 si colma — 18,9M parametri pre-addestrati su WikiText-103 contro 201M su
-Wikipedia + C4 — ma segno e ordine di grandezza dell'effetto tengono, e il
-multitask vince pur avendo una sola selezione dell'epoca contro le otto dei
+Wikipedia + C4 — ma segno e ordine di grandezza dell'effetto tengono (con una run
+per task e senza banda è un indizio), e il multitask sta sopra pur avendo una sola selezione dell'epoca contro le otto dei
 modelli separati. La media però nasconde dove sta il guadagno: tutto nei task
 piccoli (STS-B +16,9, RTE +7,6, MRPC +6,1), mentre i grandi perdono qualcosa
 (SST-2 −3,6, QQP −2,0, MNLI −1,9) e CoLA resta sulla classe maggioritaria anche
 qui. I task piccoli vedono appena 1,35 passate sui propri dati contro le 30
-epoche dei modelli separati: il guadagno viene plausibilmente dai task grandi e
-affini (MNLI per RTE, QQP per MRPC e STS-B).
+epoche dei modelli separati: che il guadagno venga dai task grandi e
+affini non è dimostrato (nel paper STS-B in multitask perde 6,86).
 
-**Quattro differenze dai paper**, oltre alla scala, sono elencate in
+**Sei differenze dai paper**, oltre alla scala, sono elencate in
 [progetto/README.md](progetto/README.md#differenze-note-rispetto-ai-paper):
-Fourier a 6 bande su ModelNet40 e testo (il paper: 64), scala e traslazione di
-ModelNet40 annullate dalla normalizzazione, MLM su byte singoli invece che su
-parole intere, padding GLUE non mascherato.
+MLP largo 4 volte (il paper 1), profondità che cresce con le letture nelle run su
+T, Fourier a 6 bande su ModelNet40 (il paper 64; sul testo il paper usa una
+posizione appresa), scala e traslazione di ModelNet40 annullate dalla
+normalizzazione, MLM su byte singoli invece che su parole intere, padding GLUE non
+mascherato.
 
 ## Riferimenti
 
