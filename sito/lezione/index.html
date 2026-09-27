@@ -1273,7 +1273,7 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       <div class="qa-group">
         <details class="qa-item"><summary>Che forma ha la matrice di attenzione del latent transformer?</summary><p class="qa-a">N × N: 512 × 512 nel paper, 96 × 96 nel tuo e01.</p></details>
         <details class="qa-item"><summary>Perché aggiungere blocchi latenti non costa in funzione di M?</summary><p class="qa-a">Perché lavorano solo sugli N latenti: ogni blocco costa O(N²·D + N·D²). Il primo termine sono punteggi e A·V, il secondo proiezioni e MLP (nel paper la parte più grande: 3,22 dei 3,76 miliardi di MAC). M non compare.</p></details>
-        <details class="qa-item"><summary>Quante teste usa il latent transformer?</summary><p class="qa-a">Il tuo codice ne usa 8 (d_head = 384 ÷ 8 = 48). Il paper non lo dice per il modello principale; il modello delle ablazioni ne usa 8. Attenzione: il config.txt stampa «Number of attention heads: 4». È l'argomento num_heads, che il Perceiver non usa: valgono num_heads_self = 8 e num_heads_cross = 1.</p></details>
+        <details class="qa-item"><summary>Quante teste usa il latent transformer?</summary><p class="qa-a">Il tuo codice ne usa 8 (d_head = 384 ÷ 8 = 48). Il paper non lo dice per il modello principale; il modello delle ablazioni ne usa 8. Attenzione: nel config.txt di e01 c'è scritto «Number of attention heads: 4». È l'argomento num_heads, che il Perceiver non usa: valgono num_heads_cross = 1 e num_heads_self = 8. La stampa è stata corretta dopo le run: ora train.py legge le teste dal modello costruito.</p></details>
         <details class="qa-item"><summary>Quanti parametri ha un blocco latente del tuo e01? Come lo verifichi?</summary><p class="qa-a">1.773.312. e16 ha 12 blocchi in più di e01: 12 × 1.773.312 = 21.279.744, esattamente la differenza fra i due.</p></details>
         <details class="qa-item"><summary>Cosa succede se togli il latent transformer?</summary><p class="qa-a">Nei tuoi e05–e07 (cross-attention non condivise): 68,98%, 67,24% e 67,05% con 4, 8 e 12 letture. e05 è a −2,65 da e01, dentro la banda di rumore; e06 ed e07 sono fuori. Più letture e più parametri non aiutano. Nel paper (Tab. 5) il crollo è molto più forte: 39,4% con 4 letture e 45,3% con 8.</p></details>
       </div>
@@ -1526,7 +1526,7 @@ A = softmax( \frac{QKᵀ}{√d_head} ) ∈ ℝ^(512 × 512)</div>
       <div class="trappole">
         <div class="trappole-label">Errori tipici</div>
         <ul>
-          <li>Il Perceiver non usa un token [CLS]: fa la media dei latenti. Anche il nostro codice fa sempre la media (<code>src/perceiver/perceiver.py</code>). Il flag <code>--output_pooling cls</code> esiste nel parser, ma nessuno lo legge: non cambia niente.</li>
+          <li>Il Perceiver non usa un token [CLS]: fa la media dei latenti. Anche il nostro codice fa sempre la media (<code>src/perceiver/perceiver.py</code>). Il vecchio flag <code>--output_pooling</code> prometteva anche un [CLS], ma nessuno lo leggeva: è stato tolto. Nei config.txt delle run resta la riga «output_pooling: mean», perché sono stati scritti prima.</li>
           <li>La testa è un solo Linear, non un MLP (p. 17).</li>
           <li>Media e proiezione commutano: l'ordine non cambia il risultato, cambia il costo.</li>
         </ul>

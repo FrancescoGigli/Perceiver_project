@@ -110,3 +110,25 @@ class SelfAttention(nn.Module):
         if return_attn_weights:
             return x, attn
         return x
+
+
+def describe_attention_heads(model):
+    """Righe del config.txt sulle teste: una per tipo di attention, lette dai moduli.
+
+    train.py stampava --num_heads, che il Perceiver non usa: il config.txt di e01
+    diceva 4 teste da 96 canali, il modello ne ha 1 da 261 nella cross-attention e
+    8 da 48 nei blocchi latenti. Il decoder del Perceiver IO e' l'attributo ``decoder``.
+    """
+    shapes = {}
+    for name, module in model.named_modules():
+        if isinstance(module, CrossAttention):
+            role = "Decoder cross-attention" if name.startswith("decoder") else "Cross-attention"
+        elif isinstance(module, SelfAttention):
+            role = "Latent self-attention"
+        else:
+            continue
+        shapes.setdefault(role, set()).add((module.num_heads, module.head_dim))
+    return [
+        f"{role} heads: " + ", ".join(f"{h} (head dimension {d})" for h, d in sorted(found))
+        for role, found in shapes.items()
+    ]

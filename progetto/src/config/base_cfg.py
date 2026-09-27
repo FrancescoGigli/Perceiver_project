@@ -41,7 +41,9 @@ def get_base_config():
     parser.add_argument('--latent_dim', type=int, default=512, help='Dimension of the latents') 
     parser.add_argument('--num_transformer_blocks', type=int, default=4, help='Number of latent transformer blocks (4-8 recommended)')
     parser.add_argument('--num_cross_attend_stages', type=int, default=1, help='Number of cross-attend stages')
-    parser.add_argument('--num_heads', type=int, default=4, help='Number of attention heads')
+    parser.add_argument('--num_heads', type=int, default=4,
+                        help='Perceiver IO only: heads of the latent self-attention and of the decoder. '
+                             'The Perceiver ignores it and uses --num_heads_cross / --num_heads_self')
     parser.add_argument('--num_heads_cross', type=int, default=1,
                         help='Attention heads in the cross-attention (paper uses 1)')
     parser.add_argument('--num_heads_self', type=int, default=8,
@@ -69,7 +71,6 @@ def get_base_config():
     parser.add_argument('--use_translation', action='store_true',
                         help='ModelNet40: random shift of the whole cloud (+/-0.02). The re-centring that '
                              'follows undoes it: unlike the per-point jitter of the paper, it never reaches the model')
-    parser.add_argument('--output_pooling', type=str, default='mean', choices=['mean', 'cls'], help='Method to pool latents for classification: mean or cls (CLS token)')
     parser.add_argument('--no_positional_encoding', action='store_true', help='Disable positional encoding, use only RGB patches')
     parser.add_argument('--num_output_queries', type=int, default=1, help='Number of output queries for Perceiver-IO')
     parser.add_argument('--model_task', type=str, default='classification', choices=['classification', 'mlm'],

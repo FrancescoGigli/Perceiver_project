@@ -26,6 +26,7 @@ from src.data.glue_tasks import GLUEPerceiverDataModule, GLUE_TASKS
 # Helper: all GLUE dataset names (excluding sst2 which has its own module)
 GLUE_DATASET_NAMES = [f'glue_{t}' for t in GLUE_TASKS.keys()]
 from src.perceiver.perceiver import Perceiver
+from src.perceiver.attention import describe_attention_heads
 from src.perceiver_io.perceiver_io import PerceiverIO
 from src.utils.scheduler import get_scheduler
 from src.utils.logger import BaseLogger
@@ -231,6 +232,7 @@ def main(args):
             share_cross_attend=not args.no_share_cross_attend,
         ).to(device)
         total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        attention_heads = describe_attention_heads(model)
     elif args.model_type == 'perceiver_io':
         # Temporary model instantiation just to calculate params (on CPU)
         temp_model = PerceiverIO(
@@ -253,6 +255,7 @@ def main(args):
             input_pe=input_pe,
         )
         total_params = sum(p.numel() for p in temp_model.parameters() if p.requires_grad)
+        attention_heads = describe_attention_heads(temp_model)
         del temp_model  # Free up memory
     else:
         raise ValueError(f"Unsupported model_type: {args.model_type}")
@@ -275,8 +278,10 @@ def main(args):
         f.write(f"Latent dimension: {args.latent_dim}\n")
         f.write(f"Number of cross-attention stages: {args.num_cross_attend_stages}\n")
         f.write(f"Number of transformer blocks: {args.num_transformer_blocks}\n")
-        f.write(f"Number of attention heads: {args.num_heads}\n")
-        f.write(f"Head dimension: {head_dim}\n")
+        # Read from the built modules: the plain Perceiver ignores --num_heads
+        # (its heads come from --num_heads_cross and --num_heads_self).
+        for line in attention_heads:
+            f.write(line + "\n")
         f.write(f"MLP ratio: 4\n")
         f.write(f"Weight sharing: {not args.no_weight_sharing}\n")
         if args.model_type == 'perceiver_io':

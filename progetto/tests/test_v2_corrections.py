@@ -708,3 +708,45 @@ def test_la_baseline_mlm_usa_i_vicini_e_il_protocollo_di_mascheramento():
     assert res["uniform"] == pytest.approx(1 / 256)
     assert 0.25 < res["always_most_frequent"] < 0.42
     assert res["neighbours"] > 0.95
+
+
+# --- config.txt: le teste stampate sono quelle che il modello usa ------------
+# Il config.txt stampava --num_heads, che il Perceiver non usa: e01 diceva 4 teste
+# da 96 canali. Ora train.py legge le teste dai moduli costruiti.
+def test_il_config_txt_stampa_le_teste_che_il_modello_usa():
+    from src.perceiver.attention import describe_attention_heads
+    from src.perceiver.input_pe import InputPositionalEncoding
+    from src.perceiver_io.perceiver_io import PerceiverIO
+
+    a = _args_of("e01_baseline")
+    pe = InputPositionalEncoding(grid_size=32, num_bands=a.fourier_num_bands,
+                                 max_freq=a.fourier_max_freq)
+    e01 = Perceiver(token_dim=3, num_classes=10, input_pe=pe,
+                    num_latents=a.num_latents, latent_dim=a.latent_dim,
+                    num_cross_attend_stages=a.num_cross_attend_stages,
+                    num_transformer_blocks=a.num_transformer_blocks,
+                    num_heads_cross=a.num_heads_cross, num_heads_self=a.num_heads_self)
+    assert describe_attention_heads(e01) == [
+        "Cross-attention heads: 1 (head dimension 261)",
+        "Latent self-attention heads: 8 (head dimension 48)",
+    ]
+
+    # io_mlm: 270 canali per byte, latenti da 512; il decoder usa --num_heads.
+    m = _args_of("io_mlm")
+    io = PerceiverIO(input_dim=270, num_classes=2, num_latents=m.num_latents,
+                     latent_dim=m.latent_dim, num_transformer_blocks=m.num_transformer_blocks,
+                     num_heads=m.num_heads)
+    assert describe_attention_heads(io) == [
+        "Cross-attention heads: 1 (head dimension 270)",
+        "Latent self-attention heads: 8 (head dimension 64)",
+        "Decoder cross-attention heads: 8 (head dimension 64)",
+    ]
+
+
+# --- --output_pooling: tolto perche' non faceva niente ------------------------
+# La testa del Perceiver fa sempre la media dei latenti. Il flag prometteva anche
+# un token [CLS], ma nessuno lo leggeva: finiva nel config.txt senza effetto.
+def test_output_pooling_non_esiste_piu():
+    assert not hasattr(get_base_config().parse_args([]), "output_pooling")
+    with pytest.raises(SystemExit):
+        get_base_config().parse_args(["--output_pooling", "cls"])
