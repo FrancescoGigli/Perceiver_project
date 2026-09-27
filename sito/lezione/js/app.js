@@ -331,7 +331,7 @@ const QUICK_LINKS = {
     { chapter: 42, label: "Apri la mappa forward", note: "Le forme, stadio per stadio." }
   ],
   18: [
-    { chapter: 43, label: "Apri confronti e glossario", note: "Le 39 voci e le tabelle di confronto." },
+    { chapter: 43, label: "Apri confronti e glossario", note: "Le 59 voci del glossario e le tabelle di confronto." },
     { chapter: 47, label: "Apri la scheda d'esame", note: "Modalità, priorità di studio, domande probabili." }
   ]
 };
@@ -517,8 +517,8 @@ const GLOSSARY_TERMS = {
     aliases: ["multi-head attention", "multi-head", "heads", "teste"],
     short: "L'attention calcolata in parallelo su più sottospazi, poi riconcatenata.",
     definition: "Invece di una sola attention in dimensione D, il vettore viene tagliato in H pezzi da D/H ciascuno e su ogni pezzo si calcola un'attention indipendente. I risultati vengono riconcatenati e riproiettati.",
-    why: "Non è un moltiplicatore di costo: il totale resta quello di una singola attention in dimensione D, perché le teste si dividono la dimensione invece di duplicarla. Il guadagno è che teste diverse possono specializzarsi su relazioni diverse.",
-    perceiver: "Il latent transformer usa H=8 teste su D=1024, quindi d_head = 128. La matrice di attenzione per testa è 512×512: quadrata, ma piccola grazie al bottleneck."
+    why: "Non moltiplica le moltiplicazioni: le teste si dividono la dimensione invece di duplicarla. Moltiplica però le matrici dei punteggi da tenere in memoria, una per testa. Il guadagno è che teste diverse possono specializzarsi su relazioni diverse.",
+    perceiver: "Nel nostro e01 la self-attention ha 8 teste su D = 384: 48 canali per testa. Il paper non dichiara le teste del modello ImageNet (8 solo nel modello piccolo delle ablazioni). La cross-attention ha una sola testa."
   },
   "pooling": {
     label: "Pooling",
@@ -572,7 +572,7 @@ const GLOSSARY_TERMS = {
     label: "Dropout",
     aliases: ["dropout"],
     short: "Azzerare a caso una frazione delle attivazioni durante il training.",
-    definition: "A ogni passo di training ciascuna attivazione viene messa a zero con probabilità p; a inferenza il dropout è spento e le attivazioni vengono riscalate perché i valori attesi restino coerenti.",
+    definition: "A ogni passo di training ciascuna attivazione va a zero con probabilità p. In PyTorch (inverted dropout) le altre si moltiplicano subito per 1 ÷ (1 − p): così a inferenza il dropout è spento e non serve riscalare nulla. Nel paper originale, invece, si riscalano i pesi a test time.",
     why: "Impedisce al modello di dipendere troppo da singole unità e agisce come un ensemble implicito di sottoreti. È una delle regolarizzazioni più semplici che funzionino.",
     perceiver: "Il Perceiver non usa dropout: il paper riporta che peggiorava i risultati. La regolarizzazione arriva da altro, soprattutto dal weight sharing e dalla data augmentation."
   },
@@ -647,6 +647,166 @@ const GLOSSARY_TERMS = {
     definition: "Learning rate, batch size, numero di layer, numero di latenti: sono decisioni prese dall'esterno. I parametri si aggiornano con la backpropagation, gli iperparametri no — vanno cercati provando.",
     why: "Buona parte della differenza fra un risultato mediocre e uno buono sta qui, non nell'architettura. Ed è anche dove è facile ingannarsi: se scegli l'iperparametro guardando il test set, il risultato non è più onesto.",
     perceiver: "N, D, T e ℓ sono iperparametri architetturali del Perceiver, e il paper ne studia l'effetto negli ablation del Cap. 13."
+  },
+  "vettore": {
+    label: "Vettore",
+    aliases: ["vettore", "vettori"],
+    short: "Una fila ordinata di numeri. Un pixel a colori è un vettore di 3 numeri.",
+    definition: "Un vettore è una lista di numeri, ciascuno in una posizione fissa. Si può immaginare come un punto in uno spazio con tante dimensioni quanti sono i numeri. Una rete neurale trasforma vettori in altri vettori.",
+    why: "In una rete tutto è fatto di vettori: l'input, i latenti, le query, le uscite. Sapere quanti numeri ha ogni vettore è metà della comprensione di un'architettura.",
+    perceiver: "Ogni pixel diventa un vettore di 261 numeri (3 colori + 258 di posizione); ogni latente è un vettore di 1.024 numeri nel paper e di 384 nel nostro e01."
+  },
+  "matrice": {
+    label: "Matrice",
+    aliases: ["matrice", "matrici"],
+    short: "Una tabella di numeri. «M × C» vuol dire M righe e C colonne.",
+    definition: "Una matrice è una tabella rettangolare di numeri, descritta come righe × colonne. Moltiplicare una matrice di dati per una matrice di pesi è l'operazione di base di ogni strato di una rete.",
+    why: "Le forme delle matrici dicono se due pezzi si possono combinare e quanto costa il calcolo: è il primo controllo quando si legge o si scrive un modello.",
+    perceiver: "L'input è una matrice 50.176 × 261, i latenti 512 × 1.024, la matrice di attenzione della cross-attention 512 × 50.176."
+  },
+  "prodotto-scalare": {
+    label: "Prodotto scalare",
+    aliases: ["prodotto scalare", "prodotti scalari"],
+    short: "Si moltiplicano due vettori posizione per posizione e si somma tutto: esce un numero solo.",
+    definition: "Dati a = (a₁, …, a_d) e b = (b₁, …, b_d), il prodotto scalare è a₁·b₁ + … + a_d·b_d. È grande se i due vettori puntano nella stessa direzione, vicino a zero se sono scorrelati, negativo se sono opposti.",
+    why: "È la misura di somiglianza che l'attenzione usa per decidere quanto un elemento conta per un altro.",
+    perceiver: "Ogni punteggio della cross-attention è il prodotto scalare fra la query di un latente e la chiave di un pixel: 261 prodotti sommati, poi divisi per √261 ≈ 16."
+  },
+  "parametro": {
+    label: "Parametro (peso)",
+    aliases: ["parametri", "parametro"],
+    short: "Un numero che la rete impara durante il training. Il modello del paper ne ha 44,9 milioni.",
+    definition: "I parametri, o pesi, sono i numeri dentro le matrici e i vettori della rete che il training modifica per ridurre l'errore. Si distinguono dagli iperparametri, che si scelgono prima e non vengono imparati.",
+    why: "Il numero di parametri dice quanta memoria serve e quanto il modello può memorizzare: troppi parametri per pochi dati portano all'overfitting.",
+    perceiver: "44,9 milioni nel modello ImageNet del paper (326,2 milioni senza weight sharing), 10.175.362 nel nostro e01."
+  },
+  "loss": {
+    label: "Loss (funzione di perdita)",
+    aliases: ["loss", "funzione di perdita"],
+    short: "Un numero che misura quanto sbaglia il modello. Il training lo fa scendere.",
+    definition: "La loss confronta la previsione con la risposta giusta e restituisce un numero: grande se il modello sbaglia, piccolo se indovina con sicurezza. Il training cerca i parametri che la rendono minima.",
+    why: "Tutto l'apprendimento è guidato dalla loss: il gradiente dice come cambiare ogni parametro per farla scendere.",
+    perceiver: "Nel Perceiver è la cross-entropy fra le probabilità previste e la classe giusta. All'inizio del training su CIFAR-10 vale circa ln 10 = 2,30."
+  },
+  "accuratezza": {
+    label: "Accuratezza (accuracy)",
+    aliases: ["accuratezza", "accuracy"],
+    short: "La percentuale di risposte giuste.",
+    definition: "L'accuratezza è il numero di esempi classificati correttamente diviso per il numero totale di esempi. Si misura su dati che il modello non ha usato per imparare.",
+    why: "È il numero più facile da leggere, ma va sempre confrontato con un riferimento: il caso, la classe più frequente, il rumore fra due run identiche.",
+    perceiver: "Il nostro e01 fa 71,63% sul test di CIFAR-10, cioè 7.163 immagini giuste su 10.000. Il paper fa 78,0% su ImageNet."
+  },
+  "validation": {
+    label: "Validation",
+    aliases: ["validation", "validazione", "validation set"],
+    short: "Dati tenuti da parte durante il training per scegliere l'epoca e gli iperparametri, senza toccare il test.",
+    definition: "Il validation set è una parte dei dati che il modello non usa per imparare, ma che si guarda durante il training per decidere: quale epoca tenere, quale configurazione è migliore. Il test resta chiuso fino alla fine.",
+    why: "Se si sceglie guardando il test, il numero finale è ottimista: si è scelto proprio il punto più fortunato del test.",
+    perceiver: "Su CIFAR-10 la validation sono 5.000 immagini tolte dalle 50.000 di training; l'epoca migliore di e01 è la 92. ModelNet40 non ha validation: lì, come nel paper, l'epoca è scelta sul test."
+  },
+  "test-set": {
+    label: "Test set",
+    aliases: ["test set", "insieme di test"],
+    short: "I dati usati una volta sola, alla fine, per misurare davvero il modello.",
+    definition: "Il test set è l'insieme di esempi che il modello non vede mai durante il training e le scelte: serve solo per la misura finale. Usarlo per scegliere qualcosa lo trasforma in un validation set e rende il risultato ottimista.",
+    why: "È la garanzia che il numero riportato valga anche su dati nuovi.",
+    perceiver: "Su CIFAR-10 sono le 10.000 immagini ufficiali di test, toccate una volta alla fine di ogni run."
+  },
+  "transformer": {
+    label: "Transformer",
+    aliases: ["transformer"],
+    short: "Una rete fatta di attenzione e MLP: ogni elemento guarda tutti gli altri.",
+    definition: "Il Transformer (Vaswani et al., 2017) elabora una sequenza di vettori con blocchi di self-attention e MLP, con residual e LayerNorm. Ogni elemento calcola un punteggio con ogni altro: con M elementi servono M × M punteggi.",
+    why: "È l'architettura generale di riferimento: funziona su testo, immagini, audio. Il suo limite è il costo quadratico nella lunghezza dell'input.",
+    perceiver: "Il Perceiver ne riusa i blocchi, ma li fa lavorare su 512 latenti invece che su 50.176 pixel: 512 × 512 punteggi invece di 50.176 × 50.176."
+  },
+  "latent-transformer": {
+    label: "Latent transformer",
+    aliases: ["latent transformer"],
+    short: "I blocchi di self-attention che lavorano solo sui latenti, dopo ogni lettura dell'input.",
+    definition: "Nel Perceiver, dopo ogni cross-attention, una pila di blocchi Transformer fa comunicare i latenti fra loro. Non vede più l'input: lavora sulla matrice N × D dei latenti.",
+    why: "È dove sta la profondità del modello, e costa O(N²) per blocco invece di O(M²): per questo la profondità non dipende dalla grandezza dell'input.",
+    perceiver: "6 blocchi per lettura e 48 in tutto nel paper, con 37,8 dei 44,9 milioni di parametri; 4 blocchi per lettura nel nostro e01."
+  },
+  "cnn": {
+    label: "CNN (rete convoluzionale)",
+    aliases: ["CNN", "rete convoluzionale", "reti convoluzionali"],
+    short: "Una rete che fa scorrere piccoli filtri sull'immagine: pochi pesi, riusati in ogni posizione.",
+    definition: "Una CNN applica lo stesso filtro piccolo (per esempio 3 × 3) a ogni zona dell'immagine, poi riduce la risoluzione e ripete. Presuppone che i pixel vicini siano correlati.",
+    why: "Con pochi dati è molto efficace, perché la località è un buon prior per le immagini. Ma è legata alla griglia: su dati di forma diversa va riprogettata.",
+    perceiver: "Nel paper la ResNet-50 con i pixel permutati crolla da 73,5% a 39,4%; nel nostro progetto una ResNet-18 fa 93,61% su CIFAR-10, contro il 71,63% del Perceiver."
+  },
+  "qkv": {
+    label: "Query, key e value (Q, K, V)",
+    aliases: ["Q, K, V", "Q, K e V", "query, key e value"],
+    short: "Domanda, etichetta e contenuto: le tre proiezioni che l'attenzione confronta e mescola.",
+    definition: "Ogni elemento viene proiettato in tre vettori: la query (cosa cerco), la key (cosa rappresento) e il value (cosa porto). Il prodotto scalare fra query e key dà il peso; la media pesata dei value dà l'uscita.",
+    why: "Separare chi chiede da chi risponde è ciò che permette la cross-attention: le query possono venire da un array diverso dalle key e dai value.",
+    perceiver: "Nella cross-attention Q viene dai 512 latenti, K e V dai 50.176 pixel, tutte con 261 numeri: la matrice dei pesi è 512 × 50.176."
+  },
+  "flops": {
+    label: "FLOPs e MAC",
+    aliases: ["FLOPs", "MAC"],
+    short: "Quante operazioni costa un calcolo. Un MAC è una moltiplicazione più una somma; i paper contano FLOPs = 2 × MAC.",
+    definition: "I FLOPs (floating point operations) contano le operazioni aritmetiche di un passaggio della rete. Un MAC (multiply-accumulate) è una moltiplicazione seguita da una somma: il prodotto di due matrici n × k e k × m costa n·k·m MAC.",
+    why: "Misura il costo del calcolo, indipendente dall'hardware. Due modelli con gli stessi parametri possono costare molto diversamente.",
+    perceiver: "Il modello ImageNet costa 707,2 miliardi di FLOPs per immagine, con o senza weight sharing (Tab. 7). Il nostro e01 costa circa 4,12 miliardi di MAC."
+  },
+  "nyquist": {
+    label: "Frequenza di Nyquist",
+    aliases: ["Nyquist", "frequenza di Nyquist"],
+    short: "La frequenza più alta che una griglia di campioni riesce a rappresentare: metà del numero di campioni.",
+    definition: "Con μ campioni lungo un asse si possono distinguere onde fino a μ/2 oscillazioni. Un'onda più veloce, campionata, sembra un'onda più lenta (aliasing) e non porta informazione nuova.",
+    why: "Dice fin dove ha senso spingere le frequenze di una codifica di posizione.",
+    perceiver: "Le Fourier features vanno da 1 a μ/2: 112 per immagini 224 × 224, 16 per CIFAR-10 (32 × 32)."
+  },
+  "one-hot": {
+    label: "One-hot",
+    aliases: ["one-hot"],
+    short: "Un vettore tutto a zero tranne un 1 nella posizione della categoria.",
+    definition: "Per dare in input una categoria (una lettera, un byte, una classe) si usa un vettore lungo quanto il numero di categorie, con un 1 al posto giusto e 0 altrove. Così nessuna categoria sembra «più grande» di un'altra.",
+    why: "È il modo più semplice di trasformare simboli in numeri che una rete può leggere.",
+    perceiver: "Nel nostro MLM ogni byte è un vettore one-hot lungo 257: 256 valori possibili più il simbolo [MASK]. Con 13 canali di Fourier diventa un vettore di 270."
+  },
+  "pre-training": {
+    label: "Pre-training",
+    aliases: ["pre-training", "pretraining"],
+    short: "Un primo training su tanti dati senza etichette, per imparare una rappresentazione generale.",
+    definition: "Nel pre-training il modello impara un compito costruito dai dati stessi, per esempio indovinare le parti nascoste di un testo. Dopo, i suoi pesi sono il punto di partenza per i compiti veri.",
+    why: "Permette di sfruttare dati senza etichette, che sono molti di più, e aiuta i compiti con pochi esempi.",
+    perceiver: "Nel nostro progetto io_mlm fa il pre-training su WikiText-103; su SST-2 il fine-tuning da quel punto fa 80,73%, da zero 59,75%."
+  },
+  "fine-tuning": {
+    label: "Fine-tuning",
+    aliases: ["fine-tuning", "fine tuning"],
+    short: "Continuare il training di un modello pre-addestrato su un compito specifico, con le sue etichette.",
+    definition: "Si parte dai pesi del pre-training, si aggiunge una testa per il compito (per esempio 2 classi) e si allena ancora, di solito poco e con un learning rate basso.",
+    why: "Serve molto meno dati e tempo che allenare da zero.",
+    perceiver: "I nostri 8 task GLUE partono dall'encoder di io_mlm: media 71,13. Il paper Perceiver IO arriva a 81,0 sui byte."
+  },
+  "seed": {
+    label: "Seed",
+    aliases: ["seed"],
+    short: "Il numero che fissa il caso. Stesso seed, stesso training; seed diverso, pesi iniziali e ordine dei dati diversi.",
+    definition: "Il training usa numeri casuali: l'inizializzazione dei pesi, l'ordine dei dati, l'augmentation. Il seed li rende riproducibili. Cambiare solo il seed misura quanto il risultato dipende dal caso.",
+    why: "Senza più seed non si sa se una differenza fra due configurazioni è un effetto o fortuna.",
+    perceiver: "Il nostro e01 con i seed 42, 1 e 2 fa 71,63, 68,85 e 70,97: la banda di rumore è 2,78 punti."
+  },
+  "banda-rumore": {
+    label: "Banda di rumore",
+    aliases: ["banda di rumore"],
+    short: "Di quanto si muove l'accuratezza cambiando solo il seed. Una differenza più piccola non è un effetto.",
+    definition: "Si allena la stessa configurazione più volte con seed diversi e si guarda la distanza fra il risultato migliore e il peggiore. Qualunque confronto va letto contro questa distanza.",
+    why: "Trasforma «mi sembra meglio» in un criterio: una differenza conta solo se supera il rumore.",
+    perceiver: "Nel nostro CIFAR-10 vale 2,78 punti (71,63 − 68,85). Con questa regola escono dalla banda 12 run su 21."
+  },
+  "mlm": {
+    label: "MLM (masked language modeling)",
+    aliases: ["MLM", "masked language modeling"],
+    short: "Si nasconde una parte del testo e il modello la indovina: il pre-training di BERT.",
+    definition: "Si sostituisce una parte dell'input con un simbolo [MASK] (il 15% dei token in BERT) e si allena il modello a ricostruire l'originale. Non servono etichette: la risposta giusta è nel testo stesso.",
+    why: "È il modo standard di pre-addestrare un encoder di testo.",
+    perceiver: "Il paper Perceiver IO maschera il 15% delle parole su sequenze di 2.048 byte; il nostro io_mlm maschera il 15% dei byte su 512 e ne indovina l'86,68%."
   }
 };
 
@@ -663,7 +823,11 @@ const TERM_CHAPTER = {
   "weight-decay": 38, "warmup": 25, "dropout": 36, "overfitting": 38,
   "attivazione": 23, "convoluzione": 31, "inductive-bias": 31,
   "point-cloud": 12, "ablation": 13, "imagenet": 11,
-  "permutation-invariance": 12, "iperparametro": 49
+  "permutation-invariance": 12, "iperparametro": 49,
+  "vettore": 27, "matrice": 4, "prodotto-scalare": 7, "parametro": 27, "loss": 21,
+  "accuratezza": 44, "validation": 44, "test-set": 44, "transformer": 34, "latent-transformer": 8,
+  "cnn": 31, "qkv": 2, "flops": 3, "nyquist": 5, "one-hot": 4, "pre-training": 48,
+  "fine-tuning": 48, "seed": 44, "banda-rumore": 44, "mlm": 48
 };
 Object.entries(TERM_CHAPTER).forEach(([id, chapter]) => {
   if (GLOSSARY_TERMS[id]) GLOSSARY_TERMS[id].chapter = chapter;
@@ -1094,6 +1258,10 @@ function toTexLine(line) {
 function toTexMath(value) {
   let out = normalizeUnicodeIndexes(value);
   if (isTextFlow(out)) return toTexTextFlow(out);
+  // I comandi TeX già scritti nel testo (\tanh, \sin, \frac...) restano come sono:
+  // le regole qui sotto aggiungerebbero un secondo backslash, cioè un a capo.
+  const protetti = [];
+  out = out.replace(/\\[A-Za-z]+/g, cmd => `\u0000${protetti.push(cmd) - 1}\u0001`);
   out = out.replace(/\b([mv])_hat_([A-Za-z0-9]+)\b/g, "\\hat{$1}_{$2}");
   out = out.replace(/\b([mv])_hat\b/g, "\\hat{$1}");
   out = out.replace(/\|\|([^|]+)\|\|/g, "\\lVert $1 \\rVert");
@@ -1154,6 +1322,7 @@ function toTexMath(value) {
   out = out.replace(/([A-Za-z])_(?!\{)([A-Za-z0-9]+(?:,[A-Za-z0-9]+)?)/g, "$1_{$2}");
   out = out.replace(/\((layer)\)/g, "^{(\\ell)}");
   out = out.replace(/\btrue\b/g, "\\mathrm{true}");
+  out = out.replace(/\u0000(\d+)\u0001/g, (_, i) => protetti[Number(i)]);
   return out;
 }
 

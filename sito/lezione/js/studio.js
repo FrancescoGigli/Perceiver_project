@@ -69,31 +69,70 @@
   };
 
   // ── Con i numeri: passi ─────────────────────────────────────────────────────
+  var riduciMoto = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   function initPassi() {
     document.querySelectorAll(".esempio[data-passi]").forEach(function (box) {
       var passi = Array.prototype.slice.call(box.querySelectorAll(".passi > li"));
       if (passi.length < 2) return;
-      var visibili = 1;
+      var visibili = 1, timer = null;
       var bar = el("div", { class: "passi-bar" });
+      var play = el("button", { type: "button", class: "play", "aria-pressed": "false" }, "▶ Riproduci");
       var avanti = el("button", { type: "button" }, "Passo successivo ›");
       var tutti = el("button", { type: "button" }, "Mostra tutto");
       var daCapo = el("button", { type: "button" }, "Ricomincia");
-      var conta = el("span", { class: "passi-count" });
-      bar.appendChild(avanti); bar.appendChild(tutti); bar.appendChild(daCapo); bar.appendChild(conta);
+      var punti = el("span", { class: "passi-dots", role: "group", "aria-label": "Vai al passo" });
+      var conta = el("span", { class: "passi-count", "aria-live": "polite" });
+      passi.forEach(function (_, i) {
+        var d = el("button", { type: "button", "aria-label": "Passo " + (i + 1) });
+        d.addEventListener("click", function () { ferma(); visibili = i + 1; render(true); });
+        punti.appendChild(d);
+      });
+      [play, avanti, tutti, daCapo, punti, conta].forEach(function (x) { bar.appendChild(x); });
       box.appendChild(bar);
+
       function render(nuovo) {
         passi.forEach(function (p, i) {
           p.classList.toggle("passo-nascosto", i >= visibili);
           p.classList.toggle("passo-nuovo", nuovo && i === visibili - 1);
+          p.classList.toggle("passo-attivo", i === visibili - 1 && visibili < passi.length + 1 && (nuovo || timer !== null));
         });
+        Array.prototype.forEach.call(punti.children, function (d, i) { d.classList.toggle("on", i < visibili); });
         conta.textContent = "Passo " + visibili + " di " + passi.length;
         avanti.disabled = visibili >= passi.length;
         tutti.hidden = visibili >= passi.length;
         daCapo.hidden = visibili < passi.length;
       }
-      avanti.addEventListener("click", function () { visibili = Math.min(passi.length, visibili + 1); render(true); });
-      tutti.addEventListener("click", function () { visibili = passi.length; render(false); });
-      daCapo.addEventListener("click", function () { visibili = 1; render(false); });
+      function inVista(p) {
+        var r = p.getBoundingClientRect();
+        if (r.bottom > window.innerHeight - 24 || r.top < 60) p.scrollIntoView({ block: "center", behavior: riduciMoto ? "auto" : "smooth" });
+      }
+      // Tempo di lettura del passo: più testo, più tempo (fra 2,5 e 7 secondi).
+      function attesa(p) { return Math.max(2500, Math.min(7000, 1800 + 28 * p.textContent.length)); }
+      function ferma() {
+        if (timer) clearTimeout(timer);
+        timer = null;
+        play.textContent = "▶ Riproduci";
+        play.setAttribute("aria-pressed", "false");
+      }
+      function prossimo() {
+        if (box.offsetParent === null) { ferma(); return; }      // capitolo cambiato
+        if (visibili >= passi.length) { ferma(); render(false); return; }
+        visibili++;
+        render(true);
+        inVista(passi[visibili - 1]);
+        timer = setTimeout(prossimo, attesa(passi[visibili - 1]));
+      }
+      play.addEventListener("click", function () {
+        if (timer) { ferma(); render(false); return; }
+        if (visibili >= passi.length) visibili = 0;
+        play.textContent = "❚❚ Pausa";
+        play.setAttribute("aria-pressed", "true");
+        timer = setTimeout(prossimo, visibili === 0 ? 0 : 400);
+      });
+      avanti.addEventListener("click", function () { ferma(); visibili = Math.min(passi.length, visibili + 1); render(true); });
+      tutti.addEventListener("click", function () { ferma(); visibili = passi.length; render(false); });
+      daCapo.addEventListener("click", function () { ferma(); visibili = 1; render(false); });
       render(false);
     });
   }
@@ -462,6 +501,7 @@
       '<div class="calc-field"><label>K · bande: <span class="calc-val" data-v="K"></span></label><input type="range" data-f="K" min="1" max="64" value="64" aria-label="Numero di bande"></div>' +
       '<div class="calc-field"><label>f_max · frequenza massima: <span class="calc-val" data-v="fmax"></span></label><input type="range" data-f="fmax" min="1" max="64" value="16" aria-label="Frequenza massima"></div>' +
       '<div class="calc-field"><label>Banda da disegnare: <span class="calc-val" data-v="k"></span></label><input type="range" data-f="k" min="1" max="64" value="64" aria-label="Banda da disegnare"></div>' +
+      '<div class="calc-field"><button type="button" class="calc-anima" data-a="scorri" aria-pressed="false">▶ Scorri le bande</button></div>' +
       "</div>" +
       '<svg class="fourier-svg" viewBox="0 0 640 180" role="img" aria-label="Onda della banda scelta lungo la riga del pixel"></svg>' +
       '<div class="lab-readout" data-out="nota"></div>' +
@@ -544,6 +584,26 @@
       nota.innerHTML = testo;
     }
     box.querySelectorAll("[data-f]").forEach(function (i) { if (i.dataset.f !== "S") i.addEventListener("input", calcola); });
+    // Animazione: la banda disegnata sale da 1 a K, poi ricomincia. Si vede l'onda accelerare.
+    var scorriBtn = box.querySelector('[data-a="scorri"]'), scorri = null;
+    function fermaScorri() {
+      if (scorri) clearInterval(scorri);
+      scorri = null;
+      scorriBtn.textContent = "▶ Scorri le bande";
+      scorriBtn.setAttribute("aria-pressed", "false");
+    }
+    scorriBtn.addEventListener("click", function () {
+      if (scorri) { fermaScorri(); return; }
+      scorriBtn.textContent = "❚❚ Ferma";
+      scorriBtn.setAttribute("aria-pressed", "true");
+      scorri = setInterval(function () {
+        if (box.offsetParent === null) { fermaScorri(); return; }
+        var k = f("k"), K = Number(f("K").value), v = Number(k.value) + 1;
+        k.value = v > K ? 1 : v;
+        calcola();
+      }, 160);
+    });
+    f("k").addEventListener("pointerdown", fermaScorri);
     // Il capitolo è nascosto finché non lo apri: ridisegna quando l'SVG prende la sua larghezza vera.
     if (window.ResizeObserver) {
       var ultimaW = -1;
@@ -568,6 +628,7 @@
       '<div class="calc-field"><label>Direzione della query del latente 1: <span class="calc-val" data-v="ang"></span></label><input type="range" data-f="ang" min="0" max="359" value="0" aria-label="Direzione della query"></div>' +
       '<div class="calc-field"><label>Lunghezza della query |q|: <span class="calc-val" data-v="len"></span></label><input type="range" data-f="len" min="0" max="60" value="20" aria-label="Lunghezza della query"></div>' +
       '<div class="calc-field"><label class="calc-check"><input type="checkbox" data-f="scala" checked> dividi per √d (qui d = 2)</label></div>' +
+      '<div class="calc-field"><button type="button" class="calc-anima" data-a="gira" aria-pressed="false">▶ Ruota la query</button></div>' +
       '</div><div class="lab-readout" data-out="nota"></div><div class="mat-wrap"></div>');
     var wrap = box.querySelector(".mat-wrap"), nota = box.querySelector('[data-out="nota"]');
     function tab(titolo, righe, colonne, dati, heat) {
@@ -612,6 +673,31 @@
         "Allunga |q|: la softmax diventa più netta. Togli √d: i punteggi crescono e la softmax si satura prima.";
     }
     box.querySelectorAll("[data-f]").forEach(function (i) { i.addEventListener("input", calcola); i.addEventListener("change", calcola); });
+    // Animazione: la query del latente 1 fa un giro completo in circa 7 secondi.
+    var bottone = box.querySelector('[data-a="gira"]'), slider = box.querySelector('[data-f="ang"]');
+    var giro = null, ultimo = 0, angolo = 0;
+    function fermaGiro() {
+      if (giro) cancelAnimationFrame(giro);
+      giro = null;
+      bottone.textContent = "▶ Ruota la query";
+      bottone.setAttribute("aria-pressed", "false");
+    }
+    function gira(t) {
+      if (box.offsetParent === null) { fermaGiro(); return; }
+      angolo = (angolo + (ultimo ? t - ultimo : 16) * 0.05) % 360;
+      ultimo = t;
+      slider.value = Math.round(angolo);
+      calcola();
+      giro = requestAnimationFrame(gira);
+    }
+    bottone.addEventListener("click", function () {
+      if (giro) { fermaGiro(); return; }
+      angolo = Number(slider.value); ultimo = 0;
+      bottone.textContent = "❚❚ Ferma";
+      bottone.setAttribute("aria-pressed", "true");
+      giro = requestAnimationFrame(gira);
+    });
+    slider.addEventListener("pointerdown", fermaGiro);
     calcola();
   }
 

@@ -1946,7 +1946,11 @@ const LAB_SOURCE_REFS = {
       const maxIdx = PALETTE.length - 1, pos = t * maxIdx, lo = Math.floor(pos), hi = Math.min(lo + 1, maxIdx);
       return lerpColor(PALETTE[lo], PALETTE[hi], pos - lo);
     }
-    function freqForBand(i) { return Math.pow(2, i); }
+    // Come nel Perceiver: bande equispaziate fra 1 e una frequenza massima fissa
+    // (qui 8 cicli sul tratto disegnato). NeRF invece le raddoppierebbe: 1, 2, 4, 8.
+    const F_MAX = 8;
+    function freqForBand(i) { return state.k <= 1 ? 1 : 1 + i * (F_MAX - 1) / (state.k - 1); }
+    function fmtFreq(f) { return (Math.round(f * 10) / 10).toString().replace(".", ","); }
 
     function drawGrid() {
       const w = canvas.width, h = canvas.height;
@@ -1979,9 +1983,9 @@ const LAB_SOURCE_REFS = {
     }
     function updateReadout() {
       const k = state.k, labels = [];
-      for (let i = 0; i < k; i++) labels.push(freqForBand(i) + "x");
-      readout.textContent = "K = " + k + " band" + (k === 1 ? "a" : "e") + " · frequenze " + labels.join(", ")
-        + " — basse=globale, alte=dettaglio · (" + (state.mode === "separate" ? "onde separate" : "segnale sommato") + ")";
+      for (let i = 0; i < k; i++) labels.push(fmtFreq(freqForBand(i)));
+      readout.textContent = "K = " + k + " band" + (k === 1 ? "a" : "e") + " · frequenze " + labels.join("; ")
+        + " (equispaziate fino a " + F_MAX + ") — basse = zona, alte = dettaglio · (" + (state.mode === "separate" ? "onde separate" : "segnale sommato") + ")";
     }
     function render(phase) {
       const w = canvas.width, h = canvas.height, k = state.k;

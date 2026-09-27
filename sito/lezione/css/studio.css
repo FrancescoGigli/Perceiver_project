@@ -40,6 +40,14 @@
 .passi-bar button:hover:not(:disabled) { background: #e0f2f1; }
 .passi-bar button:disabled { opacity: 0.45; cursor: default; }
 .passi-bar .passi-count { margin-left: auto; font-size: 12px; color: #00695c; font-weight: 600; }
+.passi-bar button.play { background: #00838f; border-color: #00838f; color: #fff; }
+.passi-bar button.play:hover { background: #00695c; }
+.passi-dots { display: inline-flex; gap: 5px; align-items: center; margin-left: 4px; }
+.passi-dots button { width: 11px; height: 11px; padding: 0; border-radius: 50%; border: 1px solid #80cbc4; background: #fff; cursor: pointer; }
+.passi-dots button.on { background: #00838f; border-color: #00838f; }
+.passi-dots button:hover { transform: scale(1.2); }
+.esempio .passi > li { transition: background-color 500ms var(--ease-out, ease-out); border-radius: 6px; }
+.esempio .passi > li.passo-attivo { background: rgba(255, 255, 255, 0.85); box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.85); }
 
 /* ── Errori tipici ─────────────────────────────────────────────────────────── */
 .trappole {
@@ -115,6 +123,8 @@
 .calc-field .calc-val { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; color: var(--primary); font-weight: 700; }
 .calc-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-soft); }
 .calc-flags { grid-column: span 2; }
+.calc-anima { align-self: flex-start; margin-top: 14px; border: 1px solid var(--primary); background: var(--primary); color: #fff; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.calc-anima[aria-pressed="true"] { background: #fff; color: var(--primary); }
 .calc-presets { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
 .calc-presets button {
   border: 1px solid var(--border); background: var(--card); color: var(--text-soft);
@@ -158,6 +168,48 @@
 .mlm-testo-inline.giusto { background: #e8f5e9; color: #1b5e20; }
 .mlm-testo-inline.sbagliato { background: #ffebee; color: #b71c1c; }
 
+/* ── Parti da qui (cap. 1) ─────────────────────────────────────────────────── */
+.parti-da-qui {
+  border: 2px solid var(--primary); border-radius: 12px; background: var(--primary-softer);
+  padding: 16px 18px 12px; margin: 12px 0 26px;
+}
+.parti-kicker {
+  display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  color: #fff; background: var(--primary); border-radius: 999px; padding: 3px 10px; margin-bottom: 8px;
+}
+.parti-lead { font-size: 15px; line-height: 1.6; color: var(--text); margin: 0 0 10px; }
+.parti-da-qui h3 { font-size: 16px; margin: 16px 0 8px; color: var(--primary); }
+.parti-storia { margin: 0 0 6px 22px; padding: 0; }
+.parti-storia li { margin: 6px 0; line-height: 1.55; color: var(--text); }
+.parti-mappa { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.parti-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.parti-card strong { display: block; color: var(--text); font-size: 14px; margin-bottom: 3px; }
+.parti-card span { display: block; font-size: 13px; color: var(--text-soft); line-height: 1.45; margin-bottom: 6px; }
+.parti-da-qui .deep-dive { margin: 10px 0 4px; background: var(--card); }
+
+/* ── Collegamenti: prima / dopo, sotto «In 30 secondi» ─────────────────────── */
+.collegamenti {
+  display: grid; gap: 6px; margin: -12px 0 24px; padding: 10px 14px;
+  border: 1px dashed var(--border); border-radius: 8px; background: var(--card); font-size: 13.5px;
+}
+.collegamenti-riga { line-height: 2; }
+.collegamenti-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--muted); margin-right: 6px;
+}
+.collegamenti .inline-summary-link, .parti-da-qui .inline-summary-link {
+  text-decoration: none; font-weight: 650; padding: 2px 9px; margin: 2px 4px 2px 0;
+  border-radius: 999px; line-height: 1.5; display: inline-block;
+}
+.parti-storia .inline-summary-link { margin: 0 2px 0 0; }
+.percorso-zero {
+  margin: -14px 0 24px; padding: 8px 12px; border-radius: 8px; font-size: 13.5px; line-height: 2;
+  background: var(--success-soft, #e8f5e9); border: 1px solid #a5d6a7; color: var(--text);
+}
+.percorso-zero strong { color: var(--success, #2e7d32); margin-right: 4px; }
+.percorso-zero .inline-summary-link { text-decoration: none; font-weight: 650; padding: 2px 9px; border-radius: 999px; }
+.parti-card .inline-summary-link { display: block; width: 100%; text-align: left; font-size: 13px; border-radius: 8px; padding: 4px 9px; margin: 4px 0 0; }
+
 @media (max-width: 600px) {
   .qa-verdict { padding-left: 16px; }
   .allena-card { padding: 14px; }
@@ -166,4 +218,12 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .esempio .passi > li.passo-nuovo { animation: none; }
+  .esempio .passi > li, .passi-dots button { transition: none; }
+}
+
+/* Grafici con molte scritte: su schermi stretti scorrono in orizzontale invece di rimpicciolirsi */
+@media (max-width: 700px) {
+  figure.fig-larga { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  figure.fig-larga img { min-width: 620px; max-width: none; }
+  figure.fig-larga figcaption { position: sticky; left: 0; max-width: calc(100vw - 48px); }
 }
