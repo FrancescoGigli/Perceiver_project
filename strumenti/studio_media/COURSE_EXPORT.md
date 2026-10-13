@@ -55,6 +55,10 @@ Si riusano il runtime locale Kokoro già configurato per `neural_tts.py`,
 la rasterizzazione SVG e lo stile usati da `generate_lesson.py`; non viene
 richiamato alcun servizio AI a pagamento. FFmpeg deve essere nel PATH.
 I modelli e le librerie restano nella cartella esterna del runtime.
+Per conservare i simboli delle formule si caricano anche i font Windows
+Segoe UI Symbol e Cambria, insieme a Segoe UI e Consolas.
+L'esportazione segnala sul terminale l'avanzamento delle scene senza aprire
+o riprodurre il file generato.
 
 Le voci sono `im_nicola` e `if_sara`, selezionabili con `--voice`.
 Il testo scritto resta identico alla fonte; `neural_tts.py` espande soltanto

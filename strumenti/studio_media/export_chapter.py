@@ -326,9 +326,10 @@ def render_plan(plan: dict[str, Any], output: Path, runtime: Path, fps: int = 20
     import soundfile as sf
     from neural_tts import synthesize
 
-    fonts = [Path("C:/Windows/Fonts") / name for name in ("segoeui.ttf", "segoeuib.ttf", "consola.ttf")]
+    fonts = [Path("C:/Windows/Fonts") / name for name in
+             ("segoeui.ttf", "segoeuib.ttf", "consola.ttf", "seguisym.ttf", "cambria.ttc")]
     if not all(path.is_file() for path in fonts):
-        raise ValueError("Sono richiesti i font originali Segoe UI e Consolas.")
+        raise ValueError("Sono richiesti Segoe UI, Consolas, Segoe UI Symbol e Cambria per le formule.")
     output.mkdir(parents=True, exist_ok=True)
     rendered = json.loads(json.dumps(plan, ensure_ascii=False))
     with tempfile.TemporaryDirectory(prefix=f"perceiver-{stem}-", dir=runtime) as temporary_name:
@@ -336,6 +337,7 @@ def render_plan(plan: dict[str, Any], output: Path, runtime: Path, fps: int = 20
         samples_list, position, rate = [], 0., 24000
         frames = []
         for index, scene in enumerate(rendered["scenes"]):
+            print(f"Voce e pannelli: scena {index + 1}/{len(rendered['scenes'])}", file=sys.stderr, flush=True)
             scene["start"] = round(position, 3)
             if scene["speechText"]:
                 wav = temporary / f"segment-{index:04}.wav"
@@ -361,6 +363,7 @@ def render_plan(plan: dict[str, Any], output: Path, runtime: Path, fps: int = 20
         temporary_vtt.write_text(vtt, encoding="utf-8")
         temporary_srt.write_text(srt, encoding="utf-8")
         temporary_video = temporary / f"{stem}.mp4"
+        print(f"Codifica MP4: {position:.1f} secondi di lezione", file=sys.stderr, flush=True)
         process = subprocess.Popen(ffmpeg_command(ffmpeg, audio, temporary_srt, temporary_video, fps), stdin=subprocess.PIPE)
         try:
             scene_index = 0
