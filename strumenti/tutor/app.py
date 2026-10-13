@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, RedirectResponse, Response
+from fastapi.responses import JSONResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
@@ -36,6 +36,11 @@ NUM_GPU = int(os.environ.get("TUTOR_NUM_GPU", "33"))
 REMOTE = os.environ.get("TUTOR_REMOTE") == "1"
 LAN = os.environ.get("TUTOR_LAN") == "1"
 TOKEN = os.environ.get("TUTOR_TOKEN", "")
+VIDEO_DIR = Path(os.environ.get("TUTOR_VIDEO_DIR") or str(Path.home() / "Downloads" / "Perceiver-video"))
+MEDIA_COOKIE = "perceiver_media"
+MEDIA_SECRET = secrets.token_bytes(32)
+MEDIA_SESSION_SECONDS = 8 * 60 * 60
+VIDEO_NAME = re.compile(r"cap-(0[1-9]|[1-4][0-9]|5[0-2])(?:\.(mp4|vtt|srt)|-piano\.json)\Z")
 VOICE_CACHE = Path(os.environ.get("LOCALAPPDATA", str(Path.home() / ".cache"))) / "PerceiverTutor"
 DEFAULT_RUNTIME = VOICE_CACHE / "voice"
 try:
@@ -79,8 +84,16 @@ async def local_access(request: Request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "same-origin"
     if request.url.path.startswith("/api/"):
-        response.headers["Cache-Control"] = "no-store"
+        response.headers.setdefault("Cache-Control", "no-store")
     return response
+
+
+def authorize_origin(request: Request):
+    origin = request.headers.get("origin")
+    if origin:
+        from urllib.parse import urlsplit
+        if urlsplit(origin).netloc != request.headers.get("host"):
+            raise TutorError(403, "ORIGIN_DENIED", "Apri il tutor dalla sua piattaforma.")
 
 
 def authorize(request: Request):
@@ -88,11 +101,156 @@ def authorize(request: Request):
         supplied = request.headers.get("x-tutor-token", "")
         if not TOKEN or not hmac.compare_digest(supplied, TOKEN):
             raise TutorError(401, "TOKEN_REQUIRED", "Inserisci il codice di accesso mostrato sul PC.")
-    origin = request.headers.get("origin")
-    if origin:
-        from urllib.parse import urlsplit
-        if urlsplit(origin).netloc != request.headers.get("host"):
-            raise TutorError(403, "ORIGIN_DENIED", "Apri il tutor dalla sua piattaforma.")
+    authorize_origin(request)
+
+
+def media_signature(payload: str) -> str:
+    return hmac.new(MEDIA_SECRET, (payload + "." + TOKEN).encode("utf-8"), "sha256").hexdigest()
+
+
+def valid_media_cookie(value: str) -> bool:
+    parts = value.split(".")
+    if (len(parts) != 3 or not re.fullmatch(r"[0-9]{10,12}", parts[0])
+            or not re.fullmatch(r"[A-Za-z0-9_-]{24}", parts[1]) or not re.fullmatch(r"[a-f0-9]{64}", parts[2])):
+        return False
+    expires = int(parts[0])
+    now = int(time.time())
+    return now < expires <= now + MEDIA_SESSION_SECONDS and hmac.compare_digest(parts[2], media_signature(".".join(parts[:2])))
+
+
+def authorize_media(request: Request):
+    if REMOTE or LAN:
+        supplied = request.headers.get("x-tutor-token", "")
+        header_valid = bool(TOKEN) and hmac.compare_digest(supplied, TOKEN)
+        if not header_valid and not valid_media_cookie(request.cookies.get(MEDIA_COOKIE, "")):
+            raise TutorError(401, "TOKEN_REQUIRED", "Apri il player dal tutor e inserisci il codice di accesso.")
+    authorize_origin(request)
+
+
+@app.post("/api/media-session")
+async def media_session(request: Request):
+    """Il tag video usa un cookie dedicato: il codice di accesso non finisce negli URL."""
+    authorize(request)
+    payload = f"{int(time.time()) + MEDIA_SESSION_SECONDS}.{secrets.token_urlsafe(18)}"
+    response = JSONResponse({"ok": True, "expiresIn": MEDIA_SESSION_SECONDS})
+    response.set_cookie(MEDIA_COOKIE, payload + "." + media_signature(payload), max_age=MEDIA_SESSION_SECONDS,
+                        httponly=True, secure=REMOTE or request.url.scheme == "https", samesite="strict", path="/api/videos")
+    return response
+
+
+@app.delete("/api/media-session")
+async def clear_media_session(request: Request):
+    """Scollega solo il cookie di questo browser, anche se il codice memorizzato è scaduto."""
+    authorize_origin(request)
+    response = JSONResponse({"ok": True})
+    response.delete_cookie(MEDIA_COOKIE, path="/api/videos", httponly=True,
+                           secure=REMOTE or request.url.scheme == "https", samesite="strict")
+    return response
+
+
+def video_file(filename: str) -> Path:
+    """Solo esportazioni note nella cartella dedicata, incluse verifiche dei link simbolici."""
+    if not VIDEO_NAME.fullmatch(filename):
+        raise TutorError(404, "VIDEO_NOT_FOUND", "Questo file video non è disponibile.")
+    try:
+        directory = VIDEO_DIR.resolve()
+        candidate = directory / filename
+        if candidate.is_symlink():
+            raise OSError("Symbolic links are not video exports")
+        path = candidate.resolve(strict=True)
+        if path.parent != directory or not path.is_file():
+            raise OSError("Outside video directory")
+        return path
+    except (OSError, RuntimeError):
+        raise TutorError(404, "VIDEO_NOT_FOUND", "Questo file video non è disponibile.")
+
+
+def video_library() -> list[dict]:
+    videos = []
+    for chapter in range(1, 53):
+        identifier = f"cap-{chapter:02d}"
+        try:
+            video = video_file(identifier + ".mp4")
+            plan_path = video_file(identifier + "-piano.json")
+            if plan_path.stat().st_size > 2 * 1024 * 1024:
+                continue
+            plan = json.loads(plan_path.read_text(encoding="utf-8-sig"))
+            duration = plan.get("duration")
+            if (type(plan.get("chapter")) is not int or plan.get("chapter") != chapter or plan.get("mediaGenerated") is not True
+                    or not isinstance(duration, (int, float)) or isinstance(duration, bool)
+                    or not math.isfinite(duration) or duration <= 0 or not isinstance(plan.get("title"), str)):
+                continue
+            item = {"id": identifier, "chapter": chapter, "title": plan["title"], "duration": duration,
+                    "bytes": video.stat().st_size, "videoUrl": f"/api/videos/{identifier}.mp4",
+                    "planUrl": f"/api/videos/{identifier}-piano.json", "subtitlesUrl": None}
+            try:
+                video_file(identifier + ".vtt")
+                item["subtitlesUrl"] = f"/api/videos/{identifier}.vtt"
+            except TutorError:
+                pass
+            videos.append(item)
+        except (TutorError, OSError, ValueError, AttributeError):
+            continue
+    return videos
+
+
+@app.get("/api/videos")
+async def list_videos(request: Request):
+    authorize(request)
+    return {"videos": await asyncio.to_thread(video_library)}
+
+
+def video_range(value: str, size: int) -> tuple[int, int]:
+    match = re.fullmatch(r"bytes=(\d*)-(\d*)", value.strip())
+    if not match or size <= 0 or not any(match.groups()):
+        raise ValueError("Invalid byte range")
+    first, last = match.groups()
+    if len(first) > 20 or len(last) > 20:
+        raise ValueError("Byte range is too large")
+    if not first:
+        suffix = int(last)
+        if suffix <= 0:
+            raise ValueError("Invalid suffix range")
+        return max(0, size - suffix), size - 1
+    start = int(first)
+    end = min(int(last), size - 1) if last else size - 1
+    if start >= size or end < start:
+        raise ValueError("Unsatisfiable byte range")
+    return start, end
+
+
+def stream_video(path: Path, start: int, length: int):
+    with path.open("rb") as source:
+        source.seek(start)
+        while length:
+            chunk = source.read(min(length, 256 * 1024))
+            if not chunk:
+                break
+            length -= len(chunk)
+            yield chunk
+
+
+@app.api_route("/api/videos/{filename:path}", methods=["GET", "HEAD"])
+async def serve_video(request: Request, filename: str):
+    authorize_media(request)
+    path = video_file(filename)
+    size = path.stat().st_size
+    headers = {"Accept-Ranges": "bytes", "Cache-Control": "private, no-store"}
+    media_type = {".mp4": "video/mp4", ".vtt": "text/vtt; charset=utf-8", ".srt": "application/x-subrip",
+                  ".json": "application/json"}[path.suffix]
+    start, end, status = 0, size - 1, 200
+    if request.headers.get("range"):
+        try:
+            start, end = video_range(request.headers["range"], size)
+        except ValueError:
+            return Response(status_code=416, headers={**headers, "Content-Range": f"bytes */{size}", "Content-Length": "0"})
+        status = 206
+        headers["Content-Range"] = f"bytes {start}-{end}/{size}"
+    length = max(0, end - start + 1)
+    headers["Content-Length"] = str(length)
+    if request.method == "HEAD":
+        return Response(status_code=status, media_type=media_type, headers=headers)
+    return StreamingResponse(stream_video(path, start, length), status_code=status, media_type=media_type, headers=headers)
 
 
 async def bounded_body(request: Request, limit: int) -> bytes:
@@ -980,13 +1138,15 @@ app.mount("/progetto/src", StaticFiles(directory=str(ROOT / "progetto" / "src"))
 
 
 def main():
-    global REMOTE, LAN, TOKEN
+    global REMOTE, LAN, TOKEN, VIDEO_DIR
     parser = argparse.ArgumentParser(description="Avvia il tutor Perceiver gratuito sul PC.")
     parser.add_argument("--lan", action="store_true", help="Consenti dispositivi sulla stessa rete locale (microfono richiede HTTPS).")
     parser.add_argument("--remote", action="store_true", help="Richiedi codice anche da loopback, per un tunnel HTTPS autorizzato.")
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--video-dir", type=Path, default=VIDEO_DIR, help="Cartella dedicata ai video esportati; di default Downloads/Perceiver-video.")
     args = parser.parse_args()
     REMOTE, LAN = args.remote or REMOTE, args.lan or LAN
+    VIDEO_DIR = args.video_dir.expanduser().resolve()
     if REMOTE or LAN:
         TOKEN = TOKEN or secrets.token_urlsafe(24)
         if os.environ.get("TUTOR_QUIET_TOKEN") != "1":

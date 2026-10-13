@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "Perceiver · Il tuo player di studio",
+  "short_name": "Perceiver Video",
+  "description": "Video del tuo progetto, passaggi e controllo vocale con il tutor locale.",
+  "lang": "it",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#1a237e",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

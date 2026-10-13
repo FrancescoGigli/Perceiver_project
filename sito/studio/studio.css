@@ -6,3 +6,5 @@
 @media(max-width:760px){.workspace{display:block;padding:22px 18px}.site-header{padding:19px 18px}.brand{font-size:18px}.original-link{font-size:12px}.tutor{margin-top:28px;padding:21px 17px}.lesson-heading{margin-bottom:17px}.view-switch{margin-bottom:17px}.original-caption{padding:13px 15px;min-height:110px}.original-caption p{font-size:19px}.stage-head{font-size:12px}.play-controls{gap:7px}.play-controls button{font-size:13px}.speed{margin-left:0}.code-line code{font-size:13px}.code-line{gap:8px}.messages{gap:13px}textarea,.connection input{font-size:16px}.suggestions button{font-size:12px}.question-actions button{font-size:13px}.voice-options{gap:9px}footer{padding:20px 18px}.transcript button{font-size:15px}.duration{font-size:12px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 .message-sources a{color:var(--primary)}
+.view-switch .player-link{display:inline-flex;align-items:center;min-height:44px;padding:9px 13px;border:1px solid var(--line);border-radius:7px;background:var(--paper);font-size:13px;text-decoration:none}
+.view-switch .player-link:hover{background:var(--primary-softer)}

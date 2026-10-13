@@ -7,7 +7,7 @@
   },
   "sources": {
     "tokens": ["sito/lezione/css/style.css"],
-    "components": ["sito/lezione/js/interactive-labs.js", "sito/studio/attention-lab.js", "sito/studio/course.js"],
+    "components": ["sito/lezione/js/interactive-labs.js", "sito/studio/attention-lab.js", "sito/studio/course.js", "sito/studio/player/player.js"],
     "assets": ["sito/schemi", "sito/studio/icons.svg", "sito/studio/media"],
     "instructions": []
   },
@@ -30,7 +30,7 @@
     "must": ["Preservare testi originali e stile della lezione", "Video e testo fruibili da telefono", "Tutor locale gratuito con stato veritiero"],
     "avoid": ["Voci Windows SAPI", "Nuovi framework per una pagina statica", "Servizi AI a pagamento"]
   },
-  "decisions": ["Riutilizzare GitHub Pages e la lezione esistente", "Controlli multimediali nativi e SVG locali: le componenti React del catalogo 21st non corrispondono allo stack", "Pubblicare una prima lezione completa Q/K/V e mantenerne la versione guidata con testo e codice accessibili", "Percorso nei 52 capitoli con citazioni originali, codice verificato e riuso dei laboratori tramite vista incorporata; commenti AI sulle risposte aperte e ripasso segnato dallo studente", "Esportazione video predisposta, in modalità piano per impostazione predefinita, senza avvii automatici"],
+  "decisions": ["Riutilizzare GitHub Pages e la lezione esistente", "Controlli multimediali nativi e SVG locali: le componenti React del catalogo 21st non corrispondono allo stack", "Pubblicare una prima lezione completa Q/K/V e mantenerne la versione guidata con testo e codice accessibili", "Percorso nei 52 capitoli con citazioni originali, codice verificato e riuso dei laboratori tramite vista incorporata; commenti AI sulle risposte aperte e ripasso segnato dallo studente", "Esportazione video predisposta, in modalità piano per impostazione predefinita, senza avvii automatici", "Player mobile aggiungibile alla Home con microfono vicino a Play, Whisper sul PC e comandi deterministici; interfaccia offline e file locali, nessun autoplay, media personali fuori Git"],
   "evidence": [],
   "generatedAt": "2026-10-13T11:09:46.517Z"
 }

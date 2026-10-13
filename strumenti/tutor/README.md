@@ -34,6 +34,39 @@ o la riproduzione dei video; l’esportatore usa `--plan` per impostazione prede
 
 ## Cellulare
 
+Il **player vocale** si apre da `/sito/studio/player/`, anche dal link
+**Player vocale** della piattaforma. Mostra soltanto i capitoli già esportati
+in `%USERPROFILE%\Downloads\Perceiver-video`, compreso il capitolo 1 quando
+sono presenti l'MP4 e il suo piano con i tempi effettivi.
+Non genera altri capitoli e non avvia la riproduzione automaticamente.
+
+Dal player puoi usare Play/Pausa, saltare di dieci secondi, tornare al
+passaggio precedente, ripetere una frase, cambiare velocità e attivare i
+sottotitoli. Per la voce premi **Parla**, pronuncia il comando, poi termina
+la registrazione. Il video si ferma durante l'ascolto, così il suo audio
+non viene scambiato per un comando. La registrazione ha un limite breve.
+Whisper riconosce l'italiano sul PC e il player interpreta i comandi senza
+interpellare il modello del tutor. Sono disponibili gli stessi comandi
+anche scritti, usando eventualmente la dettatura della tastiera del telefono.
+
+Puoi aggiungere il player alla schermata Home: su Android dal menu del
+browser, su iPhone da Condividi in Safari. **Ricorda l'accesso su questo
+telefono** è una scelta facoltativa, disattivata inizialmente; conserva
+il codice solo nel browser di quel dispositivo. **Scollega PC** lo elimina.
+Il player conserva la posizione di lettura senza avviare il video al ritorno.
+
+La voce e la libreria dei video sul PC richiedono il collegamento HTTPS
+e il PC acceso. Puoi invece scegliere un MP4 già copiato sul telefono e
+usare i pulsanti offline, dopo aver aperto una volta l'interfaccia online.
+Per ripetere il passaggio preciso di quel file locale importa anche
+`cap-NN-piano.json`; per i sottotitoli nel player importa il relativo VTT.
+I file scelti dal telefono restano sul dispositivo.
+
+Il launcher crea anche `%LOCALAPPDATA%\PerceiverTutor\apri-player.html`
+e `player-qr.png`, fuori dal repository, per aprire direttamente il player
+protetto dal telefono. Il link temporaneo può cambiare dopo un riavvio del
+tunnel: usa il nuovo QR quando accade.
+
 Per usare anche il microfono da qualsiasi rete, senza account Cloudflare:
 
 ```powershell
@@ -105,6 +138,15 @@ Tutte le POST richiedono `X-Tutor-Token` in modalità LAN o remote. Puoi fornire
 il codice iniziale tramite variabile ambiente `TUTOR_TOKEN`, mai nel codice Git.
 
 - `GET /api/status`: `available`, `model`, `auth_required`, `voice`, `transcribe`.
+- `GET /api/videos`: elenco dei video esportati con capitolo, titolo, durata,
+  dimensione e URL di MP4, VTT e piano. Richiede il codice in modalità remote/LAN.
+- `POST /api/media-session`: con `X-Tutor-Token`, crea un cookie HttpOnly
+  limitato ai media per usare il tag video senza inserire codici negli URL.
+  `DELETE /api/media-session` chiude questa sessione del player.
+- `GET` / `HEAD /api/videos/cap-NN.mp4`: media protetti con richieste byte
+  Range per la ricerca nel video. Sono serviti anche `cap-NN.vtt`, `cap-NN.srt`
+  e `cap-NN-piano.json` della stessa cartella dedicata; nessun altro file Downloads.
+  `--video-dir` permette di scegliere un'altra cartella di esportazione.
 - `POST /api/chat`: JSON `{message, scene:"qkv", step:0, session_id?, lab?,
   mode?:"explain"|"quiz"|"feedback", quiz_id?, quiz_answer?, interaction?}`. `lab` contiene
   `query:[q1,q2]`, `keys:[[k11,k12],[k21,k22],[k31,k32]]`,
@@ -145,6 +187,7 @@ Verifica del contratto e delle protezioni con Ollama simulato:
 ```powershell
 py -3.10 -m pip install httpx
 py -3.10 -m unittest discover -s strumenti/tutor -p 'test_*.py' -v
+node --test strumenti/tutor/test_player_commands.cjs
 ```
 
 Il manifest del corso è derivato dalla lezione e dai file Python verificati.

@@ -82,6 +82,13 @@ Il telefono può riceverli come normali file attraverso cavo, cartella
 condivisa o un trasferimento scelto dall'utente. Non serve mantenere il PC
 acceso per riprodurre il file MP4 già copiato.
 
+Il player `/sito/studio/player/` apre i capitoli già esportati dalla cartella
+dedicata del PC e permette i comandi vocali attraverso il collegamento HTTPS
+del tutor. Può anche leggere un MP4 scelto dal telefono: con il relativo
+piano JSON conserva la navigazione tra i passaggi; con il VTT mostra i
+sottotitoli. I comandi vocali richiedono il PC acceso, mentre i pulsanti e
+un file locale si usano anche offline. Non c'è riproduzione automatica.
+
 ## Video e interazione
 
 Il video è lineare: mostra citazioni e codice originali con evidenziazioni

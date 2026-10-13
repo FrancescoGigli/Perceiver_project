@@ -59,13 +59,19 @@ try {
     $safeLink = [System.Net.WebUtility]::HtmlEncode($link)
     $sharePage = '<!doctype html><html lang="it"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Apri il tuo tutor Perceiver</title><style>body{font:18px/1.6 Segoe UI,sans-serif;max-width:680px;margin:40px auto;padding:20px;color:#1a237e}a{overflow-wrap:anywhere}img{max-width:100%;width:320px}</style><h1>Il tuo tutor Perceiver</h1><p>Apri questo link sul cellulare, oppure inquadra il codice QR. Il PC deve restare acceso.</p><p><a href="'+$safeLink+'">'+$safeLink+'</a></p><img src="tutor-qr.png" alt="Codice QR del link protetto"><p>Il link contiene il tuo accesso: condividilo solo con chi vuoi far usare il tutor.</p></html>'
     [IO.File]::WriteAllText((Join-Path $tutorCache 'apri-tutor.html'), $sharePage, [Text.UTF8Encoding]::new($false))
+    $playerLink = $tunnel.Url + '/sito/studio/player/#tutor-token=' + $tutorToken
+    $safePlayerLink = [System.Net.WebUtility]::HtmlEncode($playerLink)
+    $playerPage = '<!doctype html><html lang="it"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Il tuo player Perceiver</title><style>body{font:18px/1.6 Segoe UI,sans-serif;max-width:680px;margin:40px auto;padding:20px;color:#1a237e}a{overflow-wrap:anywhere}img{max-width:100%;width:320px}</style><h1>Il tuo player sul cellulare</h1><p>Inquadra il QR dal telefono per aprire il player con i video generati sul PC. Il video parte solo quando lo chiedi.</p><p><a href="'+$safePlayerLink+'">Apri il player vocale</a></p><img src="player-qr.png" alt="Codice QR del player protetto"><p>Aggiungilo alla schermata Home dal menu del browser. Per conservare l&#8217;accesso nell&#8217;app puoi selezionare Ricorda l&#8217;accesso su questo telefono nel player.</p><p>Per i comandi vocali lascia acceso il PC. Puoi scegliere un MP4 salvato sul telefono per guardarlo offline con i pulsanti.</p></html>'
+    [IO.File]::WriteAllText((Join-Path $tutorCache 'apri-player.html'), $playerPage, [Text.UTF8Encoding]::new($false))
     $voiceConfig = Join-Path $tutorCache 'voice-runtime.json'
     if (Test-Path -LiteralPath $voiceConfig) {
         $voiceRuntime = Get-Content -LiteralPath $voiceConfig -Raw | ConvertFrom-Json
         & $voiceRuntime.python (Join-Path $PSScriptRoot 'crea-qr.py') --session $sessionFile --output $tutorCache
         if ($LASTEXITCODE -ne 0) { Write-Warning 'Codice QR non generato. Il link e disponibile in apri-tutor.html.' }
+        & $voiceRuntime.python (Join-Path $PSScriptRoot 'crea-qr.py') --session $sessionFile --output $tutorCache --player
+        if ($LASTEXITCODE -ne 0) { Write-Warning 'QR player non generato. Il link e disponibile in apri-player.html.' }
     }
-    if ($Quiet) { [pscustomobject]@{Active=$true;Url=$tunnel.Url;LinkFile=(Join-Path $tutorCache 'apri-tutor.html');QRCode=(Join-Path $tutorCache 'tutor-qr.png')} }
+    if ($Quiet) { [pscustomobject]@{Active=$true;Url=$tunnel.Url;LinkFile=(Join-Path $tutorCache 'apri-tutor.html');QRCode=(Join-Path $tutorCache 'tutor-qr.png');PlayerLinkFile=(Join-Path $tutorCache 'apri-player.html');PlayerQRCode=(Join-Path $tutorCache 'player-qr.png')} }
     else { Write-Output "Apri il tutor dal cellulare: $link"; Write-Output ('Pagina con QR: '+(Join-Path $tutorCache 'apri-tutor.html')) }
 } finally {
     Remove-Item Env:TUTOR_TOKEN -ErrorAction SilentlyContinue
