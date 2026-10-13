@@ -1,9 +1,10 @@
 # Tutor Perceiver locale
 
-Il tutor usa Ollama sul PC, estratti dei capitoli 2 e 7 della lezione e il vero
-`CrossAttention` in `attention.py`. La prima lezione animata si apre da
+Il tutor usa Ollama sul PC e cerca le fonti pertinenti nei 52 capitoli della
+lezione, nel codice e nella documentazione degli esperimenti del progetto.
+La prima lezione animata e il laboratorio interattivo si aprono da
 `/sito/studio/`. Le domande restano in memoria: massimo 64 conversazioni,
-12 messaggi e 2.000 caratteri di storia per conversazione, scadenza dopo un'ora.
+12 messaggi e circa 2.400 caratteri di storia per conversazione, scadenza dopo un'ora.
 Registrazioni e audio temporanei vengono cancellati dopo l'elaborazione.
 
 Sul PC già configurato:
@@ -14,7 +15,10 @@ Sul PC già configurato:
 
 Apri <http://localhost:8765/sito/studio/>. Ollama deve essere avviato con il modello
 `qwen35-9b-gpu20:latest`. La prima risposta può richiedere il caricamento del modello.
-Un errore viene mostrato come errore: il server non simula risposte del tutor.
+Un errore viene mostrato come errore: il server non simula risposte dell’AI.
+Il laboratorio propone anche tre esercizi verificabili senza modello: origine
+di Q, peso maggiore e differenza tra pesi e contenuti. Il tutor riceve i numeri
+attuali e può evidenziare Q, K, V, confronti, pesi o lettura nel codice.
 
 ## Cellulare
 
@@ -55,7 +59,8 @@ sul cellulare richiede HTTPS. Per un tunnel HTTPS autorizzato avvia invece con
 `-Remote`: anche le richieste provenienti da loopback richiedono il codice.
 Non inoltrare la porta del router e non esporre Ollama a Internet.
 
-Il sito statico su GitHub Pages riproduce la lezione, ma il tutor richiede questo
+Il sito statico su GitHub Pages riproduce la lezione e calcola il laboratorio,
+con domande e feedback disponibili anche quando il PC è spento. Il tutor AI richiede questo
 server sul PC o il suo collegamento HTTPS: GitHub Pages non esegue Python.
 
 ## Installazione su un altro PC
@@ -64,6 +69,11 @@ Python 3.10+, `pip install -r strumenti/tutor/requirements.txt`, Ollama con un
 modello locale e FFmpeg per Whisper. Whisper usa il modello `small.pt` già presente
 in `~/.cache/whisper/`; se manca, installarlo prima di registrare. Usa CPU per non
 occupare la GPU del tutor. Per cambiare modello imposta `TUTOR_MODEL`.
+Le richieste Ollama usano un contesto di 6144 token, risposte JSON strutturate e
+`TUTOR_NUM_GPU=33` per caricare tutti i layer del modello attuale sulla RTX 3080.
+Il nome del modello resta lo stesso; il parametro supera il vecchio limite di
+20 layer senza modificare il modello salvato. Su altri PC puoi impostare
+`TUTOR_NUM_GPU` in base alla memoria GPU disponibile.
 
 La voce neurale italiana Kokoro usa un ambiente separato, installato fuori dal
 repository dal generatore in `strumenti/studio_media/`. Se il percorso cambia,
@@ -80,8 +90,21 @@ Tutte le POST richiedono `X-Tutor-Token` in modalità LAN o remote. Puoi fornire
 il codice iniziale tramite variabile ambiente `TUTOR_TOKEN`, mai nel codice Git.
 
 - `GET /api/status`: `available`, `model`, `auth_required`, `voice`, `transcribe`.
-- `POST /api/chat`: JSON `{message, scene:"qkv", step:0, session_id?}`. Restituisce
-  `{answer, session_id, sources:[{path,label}], action:null|{scene,step}}`.
+- `POST /api/chat`: JSON `{message, scene:"qkv", step:0, session_id?, lab?,
+  mode?:"explain"|"quiz"|"feedback", quiz_id?, quiz_answer?, interaction?}`. `lab` contiene
+  `query:[q1,q2]`, `keys:[[k11,k12],[k21,k22],[k31,k32]]`,
+  `values:[v1,v2,v3]`, `scale:true`: V è un singolo canale visualizzato.
+  Restituisce `{answer, session_id, sources:[{path,label}],
+  action:null|{scene,step,focus?}, quiz, feedback, engine}`.
+  `focus` può essere `q`, `k`, `v`, `scores`, `weights` o `output`.
+  `engine` distingue `local_model` (risposta AI) da `activity` (azione o esercizio).
+  Un quiz contiene `{id,type,question,options:[{id,label}]}`. Per rispondere usa
+  lo stesso `session_id`, `mode:"feedback"`, il `quiz_id` e l’ID dell’opzione.
+  Il server valuta la risposta rispetto all’esperimento salvato quando ha posto
+  la domanda; non accetta pesi o verdetti calcolati dal client.
+  `interaction` descrive `{stage:0|1|2,focus,finished,lastAnswer}` e la scelta
+  precedente `{selected,correct,attempts}`. Il server ignora `correct` del browser
+  e ricalcola l’esito, così l’AI può spiegare l’errore del passo corrente.
 - `POST /api/transcribe`: corpo audio grezzo con `Content-Type: audio/webm`
   (anche WAV, MP4, Ogg e MP3); risposta `{text}`. Massimo 8 MiB e 90 secondi.
 - `POST /api/tts`: JSON `{text, voice?}`; risposta `audio/wav`, voci italiane

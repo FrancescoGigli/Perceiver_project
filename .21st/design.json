@@ -2,12 +2,12 @@
   "version": 1,
   "project": {
     "name": "Perceiver_project",
-    "productType": "Piattaforma di studio Perceiver con lezioni animate e tutor locale",
+    "productType": "Piattaforma di studio Perceiver con laboratorio interattivo, lezioni animate e tutor locale",
     "stack": ["HTML", "CSS", "JavaScript", "Python FastAPI locale"]
   },
   "sources": {
     "tokens": ["sito/lezione/css/style.css"],
-    "components": ["sito/lezione/js/interactive-labs.js"],
+    "components": ["sito/lezione/js/interactive-labs.js", "sito/studio/attention-lab.js"],
     "assets": ["sito/schemi", "sito/studio/icons.svg", "sito/studio/media"],
     "instructions": []
   },

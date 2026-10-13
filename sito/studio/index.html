@@ -7,8 +7,10 @@
   <meta name="description" content="Studia il tuo Perceiver con una lezione animata, il codice originale e un tutor AI locale con cui parlare.">
   <title>Perceiver · Studio guidato</title>
   <link rel="icon" href="icons.svg#brand" type="image/svg+xml">
-  <link rel="stylesheet" href="studio.css">
-  <script src="studio.js" defer></script>
+  <link rel="stylesheet" href="studio.css?v=interactive-2">
+  <link rel="stylesheet" href="attention-lab.css?v=interactive-2">
+  <script src="attention-lab.js?v=interactive-2" defer></script>
+  <script src="studio.js?v=interactive-2" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#lezione">Vai alla lezione</a>
@@ -20,12 +22,27 @@
     <section class="lesson" id="lezione" aria-labelledby="lesson-title">
       <div class="lesson-heading"><div><p class="eyebrow">Prima lezione · Il tuo codice, passo per passo</p><h1 id="lesson-title">Q, K, V: domanda, etichetta, contenuto</h1></div><span class="duration" id="lesson-duration">Circa un minuto</span></div>
       <nav class="view-switch" aria-label="Come seguire la lezione">
-        <button type="button" data-view="guided" aria-pressed="true">Lezione guidata</button>
+        <button type="button" data-view="lab" aria-pressed="true">Prova tu</button>
+        <button type="button" data-view="guided" aria-pressed="false">Lezione guidata</button>
         <button type="button" data-view="video" aria-pressed="false">Video</button>
         <button type="button" data-view="text" aria-pressed="false">Testo completo</button>
       </nav>
       <div id="load-error" role="alert" hidden></div>
-      <div class="guided-view" id="guided-view">
+      <section id="lab-view" aria-labelledby="lab-title">
+        <div class="lab-heading"><div><p class="eyebrow">Tocca, osserva, rispondi</p><h2 id="lab-title">Fai una domanda all’input</h2></div><button id="lab-reset" type="button">Ricomincia</button></div>
+        <blockquote class="lab-quote">«L'attenzione confronta ogni domanda con tutte le etichette e restituisce una media pesata dei contenuti più pertinenti.»<cite>Le tue parole · cap. 1.2</cite></blockquote>
+        <nav class="lab-focus" aria-label="Esplora il meccanismo"><button type="button" data-focus="q" aria-pressed="true">Q</button><button type="button" data-focus="k" aria-pressed="false">K</button><button type="button" data-focus="v" aria-pressed="false">V</button><button type="button" data-focus="scores" aria-pressed="false">Confronto</button><button type="button" data-focus="weights" aria-pressed="false">Pesi</button><button type="button" data-focus="output" aria-pressed="false">Lettura</button></nav>
+        <p id="lab-focus-note" class="lab-focus-note">Q viene dai latenti: è la domanda che cerca qualcosa nell’input.</p>
+        <div class="lab-machine">
+          <div class="lab-query"><span class="lab-tag">Dai latenti</span><strong>Q · domanda</strong><code id="lab-query-vector">[1, 0]</code><svg class="lab-direction" id="lab-direction" viewBox="0 0 100 100" role="img" aria-label="La query è diretta verso la prima key"></svg></div>
+          <div class="lab-inputs" id="lab-inputs"></div>
+        </div>
+        <fieldset class="lab-query-controls"><legend>Cambia la domanda Q</legend><div><button type="button" data-query="0" aria-pressed="true">Verso K₁</button><button type="button" data-query="1" aria-pressed="false">Verso K₂</button><button type="button" data-query="2" aria-pressed="false">Verso K₃</button></div></fieldset>
+        <div class="lab-result"><div><span>Pesi dell’attenzione</span><code id="lab-weight-sum">La somma è 1</code></div><div><span>Contenuto letto · A·V</span><strong id="lab-output">5,60</strong></div></div>
+        <details class="lab-math"><summary>Guarda il calcolo, un passaggio alla volta</summary><ol><li>Confronto Q·K / √2 <code id="lab-scores"></code></li><li>Softmax → pesi <code id="lab-weights"></code></li><li>Media pesata dei V <code id="lab-readout"></code></li></ol><p>Esempio numerico didattico, dopo le proiezioni: Q e K hanno 2 canali; seguiamo un solo canale di V. Questa lettura precede <code>to_out</code>, residuale e MLP.</p></details>
+        <section class="lab-challenge" aria-labelledby="lab-question"><div class="lab-challenge-head"><span id="lab-progress">Passo 1 di 3</span><span id="lab-challenge-label">Chi fa la domanda?</span></div><h3 id="lab-question">Nel tuo codice, da dove arriva Q?</h3><p id="lab-task-hint"></p><div class="lab-choices" id="lab-choices"></div><p id="lab-feedback" role="status" aria-live="polite"></p><div class="lab-challenge-actions"><button id="lab-next" class="primary-button" type="button" hidden>Continua →</button><button id="lab-ask" type="button" data-question="Aiutami nel passo attuale del laboratorio. Spiega una cosa alla volta, poi fammi una domanda breve." disabled>Spiegamelo, tutor</button><a class="lab-tutor-link" href="#tutor-title">Vai al tutor ↓</a></div></section>
+      </section>
+      <div class="guided-view" id="guided-view" hidden>
         <div class="stage-head"><span id="step-title">Q · la domanda</span><span id="step-count">Caricamento della lezione…</span></div>
         <div class="diagram-stage"><svg id="diagram" role="img" aria-label="Schema animato della cross-attention"></svg></div>
         <p class="diagram-note" id="diagram-note">Schema didattico: pochi elementi rappresentativi.</p>
@@ -54,10 +71,11 @@
     </section>
     <aside class="tutor" aria-labelledby="tutor-title">
       <div class="tutor-heading"><span class="tutor-mark" aria-hidden="true">P</span><div><h2 id="tutor-title">Parliamone insieme</h2><p id="tutor-status" role="status">Controllo il tutor…</p></div></div>
-      <p class="tutor-intro">Chiedi quello che non è chiaro. Il tutor usa i tuoi appunti e il codice del progetto.</p>
+      <p class="tutor-intro">Il tutor vede il tuo esperimento. Può indicare il codice, spiegare cosa è cambiato e farti una domanda alla volta.</p>
       <div class="tutor-context" id="tutor-context">Passaggio corrente · Q, K, V</div>
       <div class="messages" id="messages" role="log" aria-label="Conversazione con il tutor" aria-live="polite"><p class="empty-conversation" id="empty-conversation">Puoi dire «chi produce Q?» oppure «mostramelo nel codice».</p></div>
-      <div class="suggestions"><button type="button" disabled data-question="Rispiegami il passaggio corrente con parole semplici, una cosa alla volta.">Spiegamelo più semplice</button><button type="button" disabled data-question="Fammi una sola domanda su questo passaggio per vedere se ho capito.">Fammi una domanda</button></div>
+      <div class="suggestions"><button type="button" disabled data-question="Rispiegami il passaggio corrente con parole semplici, una cosa alla volta.">Spiegamelo più semplice</button><button type="button" disabled data-mode="quiz" data-question="Fammi una sola domanda sull’esperimento attuale per vedere se ho capito.">Mettimi alla prova</button><button type="button" disabled data-question="Mostrami V nel codice e nel laboratorio.">Mostrami V</button></div>
+      <div id="tutor-quiz" class="tutor-quiz" hidden></div>
       <form id="question-form"><label for="question">La tua domanda</label><textarea id="question" rows="3" maxlength="2000" placeholder="Perché le query vengono dai latenti?"></textarea><div class="question-actions"><button id="send" class="primary-button" type="submit" disabled>Chiedi al tutor</button><button id="microphone" type="button" disabled><svg aria-hidden="true"><use href="icons.svg#mic"></use></svg><span>Parla</span></button><button id="stop-voice" type="button" hidden>Ferma la risposta</button></div></form>
       <p class="voice-state" id="voice-state" role="status"></p>
       <div class="voice-options"><label for="voice">Voce del tutor</label><select id="voice"><option value="im_nicola">Nicola</option><option value="if_sara">Sara</option></select><button id="sample-voice" type="button">Prova la voce</button></div>

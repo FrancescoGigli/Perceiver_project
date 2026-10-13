@@ -5,8 +5,9 @@ const lessonAudio = $("lesson-audio");
 const video = $("lesson-video");
 const tutorAudio = $("tutor-audio");
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-let lesson, currentStep = 0, view = "guided", frame = 0;
+let lesson, currentStep = 0, view = "lab", frame = 0;
 let tutorStatus = null, sessionId = null, asking = false, token = "";
+let activeQuiz = null, quizComplete = false;
 let recorder = null, recordingStream = null, recordingTimer = null;
 let replyBlobUrl = null, speechVersion = 0;
 const mediaPath = name => new URL("media/" + name, document.baseURI).href;
@@ -42,7 +43,7 @@ function setStep(index, seek = false) {
   $("caption").textContent = step.text;
   $("step-title").textContent = labels[step.stage] || "Cross-attention";
   $("step-count").textContent = "Frase " + (currentStep + 1) + " / " + lesson.steps.length;
-  $("tutor-context").textContent = "Passaggio corrente · " + (labels[step.stage] || "Q, K, V");
+  updateTutorContext();
   $("code-lines").replaceChildren(...step.code.map(row => {
     const line = document.createElement("div"); line.className = "code-line";
     const number = document.createElement("span"); number.className = "line-number"; number.textContent = row.line;
@@ -150,11 +151,24 @@ for(const media of [lessonAudio,video]){media.addEventListener("timeupdate",onTi
 document.querySelectorAll("[data-view]").forEach(button=>button.addEventListener("click",()=>{
   pauseLesson();view=button.dataset.view;
   for(const item of document.querySelectorAll("[data-view]"))item.setAttribute("aria-pressed",item===button?"true":"false");
-  for(const name of ["guided","video","text"])$(name+"-view").hidden=view!==name;
+  for(const name of ["lab","guided","video","text"])$(name+"-view").hidden=view!==name;
   if(view==="video"&&lesson&&!video.getAttribute("src")){video.src=mediaPath(lesson.video);video.poster=mediaPath(lesson.poster);const track=document.createElement("track");track.kind="captions";track.label="Italiano";track.srclang="it";track.src=mediaPath(lesson.subtitles);track.default=true;video.append(track);video.currentTime=lesson.steps[currentStep].start;}
-  drawDiagram();updateClock();
+  if(view==="lab")applyLabFocus(window.perceiverLab.describe().focus);
+  drawDiagram();updateClock();updateTutorContext();
 }));
 new ResizeObserver(drawDiagram).observe($("diagram").parentElement);
+
+function updateTutorContext(){
+  if(view==="lab"&&window.perceiverLab){const state=window.perceiverLab.context();$("tutor-context").textContent="Esperimento attuale · Q = ["+state.query.join(", ")+"] · V = ["+state.values.join(", ")+"]";}
+  else if(lesson)$("tutor-context").textContent="Passaggio corrente · "+(labels[lesson.steps[currentStep].stage]||"Q, K, V");
+}
+function applyLabFocus(focus){
+  const steps={q:0,k:1,v:2,scores:3,weights:4,output:4};
+  if(!Object.hasOwn(steps,focus)||!lesson)return;
+  setStep(steps[focus],true);$("code-section").classList.add("highlight");
+}
+document.addEventListener("perceiver:focus",event=>{pauseLesson();applyLabFocus(event.detail.focus);});
+document.addEventListener("perceiver:labchange",updateTutorContext);
 
 function headers(contentType="application/json"){const value={"Content-Type":contentType};if(token)value["X-Tutor-Token"]=token;return value;}
 async function api(path,body,contentType="application/json") {
@@ -164,7 +178,7 @@ async function api(path,body,contentType="application/json") {
 function appendMessage(kind,text,sources=[]) {
   $("empty-conversation").hidden=true;
   const block=document.createElement("div");block.className="message "+kind;block.textContent=text;
-  if(sources.length){const links=document.createElement("div");links.className="message-sources";for(const source of sources){const path=String(source.path||"").replace(/^\//,"");if(!/^((sito\/)?lezione\/|progetto\/src\/)/.test(path))continue;const anchor=document.createElement("a");anchor.textContent=source.label||"Fonte";anchor.href=path.startsWith("progetto/")?sourceBase+path:new URL("../lezione/"+((path.match(/#.*$/)||[])[0]||""),document.baseURI).href;anchor.target="_blank";anchor.rel="noopener";links.append(anchor);}block.append(links);}
+  if(sources.length){const links=document.createElement("div");links.className="message-sources";for(const source of sources){const path=String(source.path||"").replace(/^\//,"");if(!/^((sito\/)?lezione\/|progetto\/|README\.md)/.test(path)||path.includes(".."))continue;const anchor=document.createElement("a");anchor.textContent=source.label||"Fonte";anchor.href=/^(sito\/)?lezione\//.test(path)?new URL("../lezione/"+((path.match(/#.*$/)||[])[0]||""),document.baseURI).href:sourceBase+path;anchor.target="_blank";anchor.rel="noopener";links.append(anchor);}block.append(links);}
   $("messages").append(block);return block;
 }
 function availability() {
@@ -174,6 +188,7 @@ function availability() {
   $("send").disabled=!connected||needToken||asking||recording;
   $("microphone").disabled=!connected||needToken||asking||!(tutorStatus.transcribe&&tutorStatus.transcribe.available);
   document.querySelectorAll("[data-question]").forEach(button=>button.disabled=!connected||needToken||asking||recording);
+  $("tutor-quiz").querySelectorAll("button").forEach(button=>button.disabled=!connected||needToken||asking||recording||quizComplete);
   $("tutor-status").textContent=asking?"Sto preparando una spiegazione…":needToken?"Inserisci il codice di accesso":connected?"Tutor locale collegato":"Tutor del PC non collegato";
   if(needToken)$("connection").open=true;
 }
@@ -189,14 +204,43 @@ async function speakAnswer(text) {
   $("voice-state").textContent="Preparo la risposta vocale…";
   try{const response=await api("tts",{text,voice:$("voice").value});const blob=await response.blob();if(version!==speechVersion)return;replyBlobUrl=URL.createObjectURL(blob);tutorAudio.src=replyBlobUrl;$("stop-voice").hidden=false;$("stop-voice").textContent="Ferma la risposta";try{await tutorAudio.play();$("voice-state").textContent="Il tutor sta parlando. Puoi fermarlo e fare un’altra domanda.";}catch(_){$("voice-state").textContent="La risposta è pronta: premi Ascolta la risposta.";$("stop-voice").textContent="Ascolta la risposta";}}catch(error){if(version===speechVersion)$("voice-state").textContent="La risposta scritta è disponibile. "+error.message;}
 }
-async function ask(message) {
+function showTutorQuiz(answer, mode){
+  if(answer.quiz){
+    activeQuiz=answer.quiz;quizComplete=false;
+    const question=document.createElement("p");question.textContent=activeQuiz.question;
+    const choices=document.createElement("div");choices.className="lab-choices";
+    for(const option of activeQuiz.options){const button=document.createElement("button");button.type="button";button.textContent=option.label;button.addEventListener("click",()=>ask("La mia risposta è: "+option.label,{mode:"feedback",quiz_id:activeQuiz.id,quiz_answer:option.id}));choices.append(button);}
+    const status=document.createElement("p");status.className="quiz-status";status.setAttribute("role","status");status.textContent="Scegli una risposta. La domanda usa l’esperimento al momento in cui è stata posta.";
+    $("tutor-quiz").replaceChildren(question,choices,status);$("tutor-quiz").hidden=false;
+  }else if(mode==="quiz"){$("tutor-quiz").hidden=true;activeQuiz=null;}
+  if(answer.feedback&&activeQuiz){quizComplete=answer.feedback.correct;const status=$("tutor-quiz").querySelector(".quiz-status");if(status){status.textContent=answer.feedback.explanation;status.classList.toggle("lab-feedback-correct",answer.feedback.correct);status.classList.toggle("lab-feedback-retry",!answer.feedback.correct);}}
+}
+async function ask(message, options = {}) {
   if(asking||!message.trim())return;
   if(!tutorStatus||!tutorStatus.available){$("connection").open=true;$("voice-state").textContent="Apri il link del tutor sul PC per fare una domanda.";return;}
-  pauseLesson();stopReply();appendMessage("user",message);asking=true;availability();$("voice-state").textContent="Il primo avvio del modello può richiedere un po’ di tempo.";
-  try{const response=await api("chat",{message,scene:"qkv",step:currentStep,session_id:sessionId});const answer=await response.json();sessionId=answer.session_id;appendMessage("assistant",answer.answer,answer.sources||[]);$("voice-state").textContent="";if(answer.action&&answer.action.scene==="qkv"&&Number.isInteger(answer.action.step)&&lesson.steps[answer.action.step]){setStep(answer.action.step,true);$("code-section").classList.add("highlight");}await speakAnswer(answer.answer);}catch(error){appendMessage("error",error.name==="AbortError"?"Il tutor sta impiegando troppo tempo. Riprova con una domanda più breve.":error.message);$("voice-state").textContent="";}finally{asking=false;availability();}
+  pauseLesson();stopReply();appendMessage("user",message);asking=true;availability();$("voice-state").textContent="Il tutor sta leggendo la domanda e le fonti…";
+  try{
+    const body={message,scene:"qkv",step:currentStep,session_id:sessionId,mode:options.mode||"explain",...options};
+    if(view==="lab"){body.lab=window.perceiverLab.context();body.interaction=window.perceiverLab.describe();}
+    const response=await api("chat",body), answer=await response.json();sessionId=answer.session_id;
+    const block=appendMessage("assistant",answer.answer,answer.sources||[]);$("voice-state").textContent="";
+    if(answer.action&&answer.action.scene==="qkv"&&Number.isInteger(answer.action.step)&&lesson&&lesson.steps[answer.action.step]){
+      setStep(answer.action.step,true);$("code-section").classList.add("highlight");
+      if(answer.action.focus){window.perceiverLab.focus(answer.action.focus,false);if(view==="lab")applyLabFocus(answer.action.focus);}
+      const show=document.createElement("button");show.type="button";show.className="show-tutor-action";show.textContent="Guarda il passaggio ↑";show.addEventListener("click",()=>{document.querySelector('[data-view="lab"]').click();$("lab-view").scrollIntoView({behavior:reducedMotion?"auto":"smooth",block:"start"});});block.append(show);
+    }
+    showTutorQuiz(answer,body.mode);
+    // A prepared voice must not prevent asking the next question or answering a quiz.
+    speakAnswer(answer.answer);
+  }catch(error){appendMessage("error",error.name==="AbortError"?"Il tutor sta impiegando troppo tempo. Riprova con una domanda più breve.":error.message);$("voice-state").textContent="";}finally{asking=false;availability();}
 }
 $("question-form").addEventListener("submit",event=>{event.preventDefault();const value=$("question").value.trim();if(value){$("question").value="";ask(value);}});
-document.querySelectorAll("[data-question]").forEach(button=>button.addEventListener("click",()=>ask(button.dataset.question)));
+document.querySelectorAll("[data-question]").forEach(button=>button.addEventListener("click",()=>{
+  let question=button.dataset.question;
+  if(button.id==="lab-ask"&&window.perceiverLab.describe().lastAnswer?.correct===false)question="Ho appena sbagliato la risposta nel laboratorio. Spiegami quell’errore con una cosa alla volta, poi fammi riprovare con una domanda breve.";
+  ask(question,{mode:button.dataset.mode||"explain"});
+  if(button.id==="lab-ask")$("tutor-title").scrollIntoView({behavior:reducedMotion?"auto":"smooth"});
+}));
 $("question").addEventListener("keydown",event=>{if(event.key==="Enter"&&(event.ctrlKey||event.metaKey))$("question-form").requestSubmit();});
 $("stop-voice").addEventListener("click",()=>{if($("stop-voice").textContent==="Ascolta la risposta"){tutorAudio.play().then(()=>{$("stop-voice").textContent="Ferma la risposta";}).catch(()=>{});}else{stopReply();$("voice-state").textContent="Risposta fermata. Puoi fare un’altra domanda.";}});
 tutorAudio.addEventListener("ended",()=>{$("stop-voice").hidden=true;$("voice-state").textContent="";});
@@ -220,7 +264,7 @@ window.addEventListener("pagehide",()=>{if(recorder&&recorder.state==="recording
 (async()=>{
   try{const response=await fetch("media/lesson-qkv.json");if(!response.ok)throw Error();lesson=await response.json();if(!lesson.steps.length)throw Error();lessonAudio.src=mediaPath(lesson.audio);$("lesson-title").textContent=lesson.title;$("lesson-duration").textContent=clock(lesson.duration)+" · "+lesson.steps.length+" frasi";$("diagram-note").textContent=lesson.diagramNote;$("seek").max=lesson.duration;$("download-video").href=mediaPath(lesson.video);
     $("transcript").replaceChildren(...lesson.steps.map((step,index)=>{const li=document.createElement("li"),button=document.createElement("button"),time=document.createElement("time"),text=document.createElement("span");button.type="button";time.textContent=clock(step.start);text.textContent=step.text;button.append(time,text);button.addEventListener("click",()=>{pauseLesson();setStep(index,true);document.querySelector('[data-view="guided"]').click();$("play").focus();});li.append(button);return li;}));
-    for(const source of lesson.sources){const li=document.createElement("li"),link=document.createElement("a");const path=source.path.startsWith("lezione/")?"sito/"+source.path:source.path;link.href=sourceBase+path+(source.line?"#L"+source.line:"");link.textContent=source.label;link.target="_blank";link.rel="noopener";li.append(link);$("source-list").append(li);}setStep(0);
+    for(const source of lesson.sources){const li=document.createElement("li"),link=document.createElement("a");const path=source.path.startsWith("lezione/")?"sito/"+source.path:source.path;link.href=sourceBase+path+(source.line?"#L"+source.line:"");link.textContent=source.label;link.target="_blank";link.rel="noopener";li.append(link);$("source-list").append(li);}applyLabFocus(window.perceiverLab.describe().focus);
   }catch(_){$("load-error").textContent="Non riesco a caricare la lezione. Aggiorna la pagina o apri la lezione originale.";$("load-error").hidden=false;$("play").disabled=true;}
   await checkTutor();
 })();
