@@ -64,10 +64,10 @@ Per ripetere il passaggio preciso di quel file locale importa anche
 `cap-NN-piano.json`; per i sottotitoli nel player importa il relativo VTT.
 I file scelti dal telefono restano sul dispositivo.
 
-Il launcher crea anche `%LOCALAPPDATA%\PerceiverTutor\apri-player.html`
-e `player-qr.png`, fuori dal repository, per aprire direttamente il player
-protetto dal telefono. Il link temporaneo può cambiare dopo un riavvio del
-tunnel: usa il nuovo QR quando accade.
+Il launcher crea anche `%LOCALAPPDATA%\PerceiverTutor\apri-player.html`,
+fuori dal repository, con un normale link per aprire il player protetto dal
+telefono. Il link temporaneo può cambiare dopo un riavvio del tunnel: usa
+il nuovo collegamento quando accade.
 
 Per usare anche il microfono da qualsiasi rete, senza account Cloudflare:
 
@@ -76,7 +76,7 @@ Per usare anche il microfono da qualsiasi rete, senza account Cloudflare:
 ```
 
 Il comando avvia il tutor con accesso protetto e un collegamento HTTPS temporaneo.
-Salva nella cache utente una pagina con il link e un QR. Inquadra il QR dal telefono;
+Salva nella cache utente una pagina con il link. Apri il collegamento sul telefono;
 il codice di accesso viene letto dal frammento dell'URL, tolto dalla barra e tenuto
 solo nella sessione del browser. Il link contiene l'accesso, quindi va condiviso
 solo con chi deve poter usare il tutor. PC e processo devono restare accesi.
@@ -85,13 +85,13 @@ Per chiudere entrambi: `avvia-cellulare.ps1 -Action Stop`. Per controllarli:
 
 `phone_access.ps1` verifica il download ufficiale di cloudflared mediante SHA256,
 e rifiuta di esporre un backend che non richiede l'accesso. Non modifica il router,
-il firewall o Tailscale. I log non contengono il codice; configurazione e QR sono
+il firewall o Tailscale. I log non contengono il codice; configurazione e link sono
 nella cache personale, fuori dal repository. Quick Tunnel è un servizio gratuito
 temporaneo, senza garanzie di disponibilità: il video pubblicato resta accessibile
 da GitHub Pages anche quando il tutor è spento.
 
-Il generatore QR richiede `qrcode[pil]` nell'ambiente isolato della voce. Modelli
-e ambiente non sono salvati nel Git; `voice-runtime.json` contiene i percorsi locali.
+Modelli e ambiente non sono salvati nel Git; `voice-runtime.json` contiene i
+percorsi locali. Il collegamento non richiede l'ambiente della voce.
 
 Con PC e cellulare nella stessa Wi-Fi:
 
