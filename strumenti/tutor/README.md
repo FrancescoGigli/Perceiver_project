@@ -39,6 +39,8 @@ Il **player vocale** si apre da `/sito/studio/player/`, anche dal link
 in `%USERPROFILE%\Downloads\Perceiver-video`, compreso il capitolo 1 quando
 sono presenti l'MP4 e il suo piano con i tempi effettivi.
 Non genera altri capitoli e non avvia la riproduzione automaticamente.
+La schermata principale mostra il video, **Riproduci** e **Parla**. Capitoli,
+controlli aggiuntivi, file locali e collegamento al PC sono nel menu **Opzioni**.
 
 Dal player puoi usare Play/Pausa, saltare di dieci secondi, tornare al
 passaggio precedente, ripetere una frase, cambiare velocità e attivare i

@@ -42,3 +42,4 @@ Aggiornato per la piattaforma di studio il 13 ottobre 2026.
 - Una prima lezione completa Q/K/V, con modalità guidata, video e testo.
 - Nessun codice a pagamento del catalogo 21st è stato recuperato: i player React cercati non corrispondono allo stack statico del progetto.
 - Player vocale HTML nello stesso stile: microfono vicino a Play sul telefono, Whisper locale e comandi deterministici; installazione Home e interfaccia offline, senza riproduzione automatica.
+- Player essenziale con video, Riproduci e Parla in primo piano; capitoli e controlli avanzati raccolti nel menu Opzioni.

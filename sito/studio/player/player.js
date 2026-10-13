@@ -5,14 +5,6 @@
   const commands = window.PerceiverPlayerCommands;
   const rememberKey = "perceiver-player-remembered-token";
   const sessionKey = "perceiver-tutor-token";
-  const voiceViewport = matchMedia("(max-width: 760px)");
-  function placeVoiceControls() {
-    $("mobile-voice-slot").hidden = !voiceViewport.matches;
-    $(voiceViewport.matches ? "mobile-voice-slot" : "desktop-voice-slot").append($("voice-controls"));
-  }
-  placeVoiceControls();
-  if (voiceViewport.addEventListener) voiceViewport.addEventListener("change", placeVoiceControls);
-  else if (voiceViewport.addListener) voiceViewport.addListener(placeVoiceControls);
   let token = "", catalog = [], activeVideo = null, plan = null, sceneIndex = -1;
   let connected = false, transcribeAvailable = false, checking = false, transcribing = false, requestingMicrophone = false;
   let recorder = null, recordingStream = null, recordingTimer = null, recordingTicker = null;
@@ -128,7 +120,7 @@
   }
   function resetScene() {
     sceneIndex = -1;
-    $("scene-count").textContent = "Passaggi disponibili con il piano del capitolo";
+    $("scene-count").textContent = "";
     $("scene-title").textContent = "Video pronto";
     $("scene-text").textContent = "Apri il piano JSON del capitolo per ripetere le singole spiegazioni.";
     $("scene-code").hidden = true;
@@ -166,7 +158,7 @@
     video.load();
     $("empty-video").hidden = true;
     $("lesson-title").textContent = item.chapter ? "Capitolo " + item.chapter + " · " + item.title : item.title;
-    $("media-state").textContent = "Video pronto. Premi Riproduci quando vuoi iniziare.";
+    $("media-state").textContent = "Video in pausa.";
     $("local-plan").disabled = !item.local;
     $("local-subtitles").disabled = !item.local;
     $("local-plan").value = "";
@@ -214,7 +206,7 @@
       connected = true;
       transcribeAvailable = Boolean(status.transcribe && status.transcribe.available);
       $("connection-state").textContent = "PC collegato" + (transcribeAvailable ? " · Whisper locale pronto." : " · Whisper non è pronto: usa i controlli o i comandi scritti.");
-      $("voice-state").textContent = transcribeAvailable ? "Voce pronta · Whisper italiano sul PC. Tocca Parla al player per un comando." : "Whisper non è disponibile sul PC. Puoi usare i pulsanti o scrivere un comando.";
+      $("voice-state").textContent = transcribeAvailable ? "Tocca Parla, pronuncia un comando, poi Invia comando." : "Voce non disponibile. Usa i pulsanti o un comando scritto in Opzioni.";
       const selected = activeVideo && !activeVideo.local ? activeVideo.id : $("chapter").value;
       $("chapter").replaceChildren();
       if (!catalog.length) {
@@ -230,7 +222,7 @@
       transcribeAvailable = false;
       $("connection-state").textContent = error.message;
       $("catalog-state").textContent = "Catalogo del PC non raggiungibile. Apri il link HTTPS del tutor o scegli un video dal telefono.";
-      $("voice-state").textContent = "Per usare la voce locale, collega il PC. I pulsanti e i comandi scritti funzionano anche con un file sul telefono.";
+      $("voice-state").textContent = "Collega il PC in Opzioni, oppure apri un MP4 sul telefono.";
       if (token || error.message.includes("codice")) $("connection").open = true;
     } finally { checking = false; updateButtons(); }
   }
@@ -292,7 +284,7 @@
     recorder = null; recordingStream = null;
     $("microphone").classList.remove("recording");
     $("microphone").setAttribute("aria-pressed", "false");
-    $("microphone").querySelector("span").textContent = "Parla al player";
+    $("microphone").querySelector("span").textContent = "Parla";
   }
   async function startRecording() {
     if (recorder && recorder.state === "recording") { recorder.stop(); return; }
