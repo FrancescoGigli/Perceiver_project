@@ -22,7 +22,7 @@ cartella di consegna.
 Pubblicato su GitHub Pages: **https://francescogigli.github.io/Perceiver_project/**
 
 - **[Lezione interattiva](https://francescogigli.github.io/Perceiver_project/sito/lezione/)** — 52 capitoli, laboratori manipolabili. È il punto di partenza.
-- **[Studio interattivo](https://francescogigli.github.io/Perceiver_project/sito/studio/)** — laboratorio Q/K/V con valori modificabili, tre prove con feedback, video da 54 secondi, voce neurale italiana e codice originale sincronizzato. Il tutor cerca nei 52 capitoli e nel codice, vede l’esperimento attuale e può indicare i passaggi. Funziona anche dal cellulare; il tutor AI locale richiede il PC acceso e il link HTTPS creato con `strumenti/tutor/avvia-cellulare.ps1`.
+- **[Studio interattivo](https://francescogigli.github.io/Perceiver_project/sito/studio/)** — percorso nei 52 capitoli, testi originali, codice pertinente, laboratori animati e 285 domande aperte con risposte degli appunti. Il tutor locale segue capitolo e passaggio e commenta il ragionamento. Il ripasso si salva nel browser; il laboratorio Q/K/V e il video già disponibile restano accessibili. Funziona anche dal cellulare; per parlare con l’AI lascia acceso il PC e usa il link HTTPS di `strumenti/tutor/avvia-cellulare.ps1`. La [preparazione dei video](strumenti/studio_media/COURSE_EXPORT.md) è separata: la modalità predefinita prepara il copione, senza generare media.
 - **[Slide](https://francescogigli.github.io/Perceiver_project/sito/slide/)** — il deck d'esame, 41 pagine
 - **[Dispensa](https://francescogigli.github.io/Perceiver_project/sito/appunti_ml_definitivo.pdf)** — 220 pagine di appunti
 

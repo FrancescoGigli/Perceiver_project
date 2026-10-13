@@ -5,12 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#1a237e">
   <meta name="description" content="Studia il tuo Perceiver con una lezione animata, il codice originale e un tutor AI locale con cui parlare.">
+  <script>window.MathJax={startup:{typeset:false},tex:{packages:{"[+]": ["ams"]},macros:{RR:"\\mathbb{R}",LN:"\\mathrm{LN}",GELU:"\\mathrm{GELU}",ReLU:"\\mathrm{ReLU}"}},svg:{fontCache:"global"}};</script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js"></script>
   <title>Perceiver · Studio guidato</title>
   <link rel="icon" href="icons.svg#brand" type="image/svg+xml">
-  <link rel="stylesheet" href="studio.css?v=interactive-2">
+  <link rel="stylesheet" href="studio.css?v=course-1">
   <link rel="stylesheet" href="attention-lab.css?v=interactive-2">
   <script src="attention-lab.js?v=interactive-2" defer></script>
-  <script src="studio.js?v=interactive-2" defer></script>
+  <link rel="stylesheet" href="course.css?v=course-1">
+  <script src="course.js?v=course-1" defer></script>
+  <script src="studio.js?v=course-1" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#lezione">Vai alla lezione</a>
@@ -18,17 +22,32 @@
     <a class="brand" href="../../"><span>Perceiver</span><span class="brand-note">Studio guidato</span></a>
     <a class="original-link" href="../lezione/">Lezione originale <span aria-hidden="true">↗</span></a>
   </header>
-  <main class="workspace">
+  <main class="workspace" aria-label="Piattaforma di studio con tutor">
     <section class="lesson" id="lezione" aria-labelledby="lesson-title">
-      <div class="lesson-heading"><div><p class="eyebrow">Prima lezione · Il tuo codice, passo per passo</p><h1 id="lesson-title">Q, K, V: domanda, etichetta, contenuto</h1></div><span class="duration" id="lesson-duration">Circa un minuto</span></div>
+      <div class="lesson-heading"><div><p class="eyebrow">Il tuo codice e le tue spiegazioni · Un concetto alla volta</p><h1 id="lesson-title">Il tuo progetto, capitolo per capitolo</h1></div><span class="duration" id="lesson-duration">52 capitoli</span></div>
       <nav class="view-switch" aria-label="Come seguire la lezione">
-        <button type="button" data-view="lab" aria-pressed="true">Prova tu</button>
+        <button type="button" data-view="course" aria-pressed="true">Percorso completo</button>
+        <button type="button" data-view="lab" aria-pressed="false">Laboratorio Q/K/V</button>
         <button type="button" data-view="guided" aria-pressed="false">Lezione guidata</button>
         <button type="button" data-view="video" aria-pressed="false">Video</button>
         <button type="button" data-view="text" aria-pressed="false">Testo completo</button>
       </nav>
       <div id="load-error" role="alert" hidden></div>
-      <section id="lab-view" aria-labelledby="lab-title">
+      <section id="course-view" aria-label="Percorso dei capitoli">
+        <div class="course-navigator"><label for="course-chapter">Scegli il capitolo</label><select id="course-chapter" disabled><option>Caricamento dei tuoi appunti…</option></select><label for="course-topic">Vai a una sezione</label><select id="course-topic" disabled><option>Caricamento…</option></select><div class="course-nav-row"><button id="course-prev-chapter" type="button" disabled>← Capitolo</button><span id="course-progress" role="status">Riprendi da dove eri rimasto</span><button id="course-next-chapter" type="button" disabled>Capitolo →</button></div></div>
+        <p class="course-step-count" id="course-step-count"></p>
+        <h2 id="course-step-title">Caricamento del percorso…</h2>
+        <div class="course-quote"><span class="caption-label">Le tue parole</span><p id="course-quote"></p><div id="course-links" class="course-links"></div><a id="course-original" target="_blank" rel="noopener">Apri questo capitolo negli appunti ↗</a></div>
+        <div class="course-step-controls"><button id="course-prev-step" type="button" disabled>← Un passo indietro</button><button id="course-next-step" class="primary-button" type="button" disabled>Il prossimo concetto →</button></div>
+        <div class="course-help"><button id="course-guide" type="button" data-question="Guidami nel passaggio attuale del capitolo, una cosa alla volta. Poi fammi una domanda breve." disabled>Guidami, tutor</button><button type="button" data-mode="quiz" data-question="Fammi una domanda originale del capitolo per capire se ho capito." disabled>Fammi una domanda</button><a href="#tutor-title">Vai al tutor ↓</a></div>
+        <div id="course-animation" class="course-animation" hidden><div class="section-heading"><h3 id="course-animation-title">Schema dei tuoi appunti</h3><button id="course-toggle-animation" type="button" aria-expanded="true">Nascondi lo schema</button></div><label for="course-lab" id="course-lab-label" hidden>Esplora un’animazione del capitolo</label><select id="course-lab" hidden><option value="">Schema del passaggio</option></select><div id="course-animation-content"></div><p id="course-animation-note"></p></div>
+        <p id="course-code-note" class="course-review-note" hidden></p><details id="course-code-section" class="course-code-section" hidden><summary id="course-code-title">Nel tuo codice</summary><div id="course-code"></div></details>
+        <section class="course-practice" aria-labelledby="course-practice-title"><div class="section-heading"><h3 id="course-practice-title">Prova a dirlo con parole tue</h3><span id="course-question-count"></span></div><p id="course-question"></p><label for="course-answer">La tua risposta</label><textarea id="course-answer" rows="3" maxlength="1800" placeholder="Scrivi come lo spiegheresti a un amico…"></textarea><div class="course-practice-actions"><button id="course-review" type="button" disabled data-question="Valuta la mia risposta alla domanda originale del capitolo." >Chiedi un commento al tutor</button><button id="course-show-solution" type="button" aria-expanded="false">Confronta con i tuoi appunti</button><button id="course-next-question" type="button">Un’altra domanda</button></div><div id="course-solution" hidden><span class="caption-label">La risposta nei tuoi appunti</span><p id="course-solution-text"></p><p class="course-review-note">Confronta il ragionamento: le domande sono aperte. Il tutor dà un commento, il ripasso lo segni tu.</p></div><p id="course-practice-status" role="status"></p></section>
+        <div class="course-completion"><label><input id="course-done" type="checkbox">Ho ripassato questo capitolo</label><span id="course-completed-count"></span></div>
+        <details class="course-export"><summary>Video per il cellulare</summary><p>Puoi preparare un video MP4 per ciascun capitolo, con testo, codice e domande di ripasso. La conversazione con il bot resta nella piattaforma.</p><p>La generazione è da avviare sul PC quando vorrai. Ora puoi scaricare il copione: questo pulsante non genera né riproduce un video.</p><button id="course-download-plan" type="button">Scarica il copione del capitolo (.json)</button><p id="course-export-state" role="status"></p><a href="https://github.com/FrancescoGigli/Perceiver_project/blob/main/strumenti/studio_media/COURSE_EXPORT.md" target="_blank" rel="noopener">Come esportare il video sul PC ↗</a></details>
+        <p id="course-error" role="alert" hidden></p>
+      </section>
+      <section id="lab-view" aria-labelledby="lab-title" hidden>
         <div class="lab-heading"><div><p class="eyebrow">Tocca, osserva, rispondi</p><h2 id="lab-title">Fai una domanda all’input</h2></div><button id="lab-reset" type="button">Ricomincia</button></div>
         <blockquote class="lab-quote">«L'attenzione confronta ogni domanda con tutte le etichette e restituisce una media pesata dei contenuti più pertinenti.»<cite>Le tue parole · cap. 1.2</cite></blockquote>
         <nav class="lab-focus" aria-label="Esplora il meccanismo"><button type="button" data-focus="q" aria-pressed="true">Q</button><button type="button" data-focus="k" aria-pressed="false">K</button><button type="button" data-focus="v" aria-pressed="false">V</button><button type="button" data-focus="scores" aria-pressed="false">Confronto</button><button type="button" data-focus="weights" aria-pressed="false">Pesi</button><button type="button" data-focus="output" aria-pressed="false">Lettura</button></nav>
@@ -74,9 +93,9 @@
       <p class="tutor-intro">Il tutor vede il tuo esperimento. Può indicare il codice, spiegare cosa è cambiato e farti una domanda alla volta.</p>
       <div class="tutor-context" id="tutor-context">Passaggio corrente · Q, K, V</div>
       <div class="messages" id="messages" role="log" aria-label="Conversazione con il tutor" aria-live="polite"><p class="empty-conversation" id="empty-conversation">Puoi dire «chi produce Q?» oppure «mostramelo nel codice».</p></div>
-      <div class="suggestions"><button type="button" disabled data-question="Rispiegami il passaggio corrente con parole semplici, una cosa alla volta.">Spiegamelo più semplice</button><button type="button" disabled data-mode="quiz" data-question="Fammi una sola domanda sull’esperimento attuale per vedere se ho capito.">Mettimi alla prova</button><button type="button" disabled data-question="Mostrami V nel codice e nel laboratorio.">Mostrami V</button></div>
+      <div class="suggestions"><button type="button" disabled data-question="Rispiegami il passaggio corrente con parole semplici, una cosa alla volta.">Spiegamelo più semplice</button><button type="button" disabled data-mode="quiz" data-question="Fammi una domanda sul passaggio che sto studiando.">Mettimi alla prova</button><button id="tutor-guide" type="button" disabled data-question="Guidami nel passaggio attuale del capitolo.">Guidami qui</button></div>
       <div id="tutor-quiz" class="tutor-quiz" hidden></div>
-      <form id="question-form"><label for="question">La tua domanda</label><textarea id="question" rows="3" maxlength="2000" placeholder="Perché le query vengono dai latenti?"></textarea><div class="question-actions"><button id="send" class="primary-button" type="submit" disabled>Chiedi al tutor</button><button id="microphone" type="button" disabled><svg aria-hidden="true"><use href="icons.svg#mic"></use></svg><span>Parla</span></button><button id="stop-voice" type="button" hidden>Ferma la risposta</button></div></form>
+      <form id="question-form"><label for="question">La tua domanda</label><textarea id="question" rows="3" maxlength="1800" placeholder="Spiegami questo passaggio con un esempio…"></textarea><div class="question-actions"><button id="send" class="primary-button" type="submit" disabled>Chiedi al tutor</button><button id="microphone" type="button" disabled><svg aria-hidden="true"><use href="icons.svg#mic"></use></svg><span>Parla</span></button><button id="stop-voice" type="button" hidden>Ferma la risposta</button></div></form>
       <p class="voice-state" id="voice-state" role="status"></p>
       <div class="voice-options"><label for="voice">Voce del tutor</label><select id="voice"><option value="im_nicola">Nicola</option><option value="if_sara">Sara</option></select><button id="sample-voice" type="button">Prova la voce</button></div>
       <label class="read-reply"><input type="checkbox" id="read-reply" checked>Leggi le risposte a voce</label>

@@ -20,6 +20,18 @@ Il laboratorio propone anche tre esercizi verificabili senza modello: origine
 di Q, peso maggiore e differenza tra pesi e contenuti. Il tutor riceve i numeri
 attuali e può evidenziare Q, K, V, confronti, pesi o lettura nel codice.
 
+La vista **Percorso completo** segue tutti i 52 capitoli originali, un blocco
+alla volta. Capitolo, sezione e capitoli ripassati si conservano nel browser
+del dispositivo; le conversazioni restano nella memoria temporanea del PC.
+Le animazioni riusano i laboratori originali della lezione. Le 285 autoverifiche
+sono domande aperte: il bot commenta il ragionamento usando la risposta originale,
+senza presentare la valutazione AI come una verifica matematica. Il capitolo 52
+è bibliografico e non contiene un’autoverifica originale.
+
+Il copione e il comando per l’esportazione futura dei capitoli sono descritti in
+`strumenti/studio_media/COURSE_EXPORT.md`. Il percorso non avvia la generazione
+o la riproduzione dei video; l’esportatore usa `--plan` per impostazione predefinita.
+
 ## Cellulare
 
 Per usare anche il microfono da qualsiasi rete, senza account Cloudflare:
@@ -74,6 +86,9 @@ Le richieste Ollama usano un contesto di 6144 token, risposte JSON strutturate e
 Il nome del modello resta lo stesso; il parametro supera il vecchio limite di
 20 layer senza modificare il modello salvato. Su altri PC puoi impostare
 `TUTOR_NUM_GPU` in base alla memoria GPU disponibile.
+Il percorso completo usa un contesto di 4096 token e batch da 128, con fonti
+e storia più brevi, per lasciare memoria GPU alle applicazioni grafiche del PC.
+Il laboratorio Q/K/V conserva la configurazione precedente.
 
 La voce neurale italiana Kokoro usa un ambiente separato, installato fuori dal
 repository dal generatore in `strumenti/studio_media/`. Se il percorso cambia,
@@ -105,6 +120,16 @@ il codice iniziale tramite variabile ambiente `TUTOR_TOKEN`, mai nel codice Git.
   `interaction` descrive `{stage:0|1|2,focus,finished,lastAnswer}` e la scelta
   precedente `{selected,correct,attempts}`. Il server ignora `correct` del browser
   e ricalcola l’esito, così l’AI può spiegare l’errore del passo corrente.
+- Per il percorso completo usa `scene:"course"`, `chapter:1..52`,
+  `course_step:"cN-sM"`. Il tutor usa le fonti del capitolo selezionato e mantiene
+  una storia distinta per capitolo. Le azioni hanno `{scene:"course",chapter,step}`
+  e puntano solo a ID reali del capitolo.
+  `mode:"quiz"` apre una domanda originale, con `type:"open"` e `options:[]`.
+  Per commentare una risposta usa `mode:"feedback"`, `quiz_id` e `quiz_answer`.
+  Il feedback aperto contiene `correct:null`, `assessment:"review"`, la risposta
+  originale in `expected` e il commento AI in `explanation`.
+  La pagina può selezionare direttamente una domanda originale con
+  `course_question:"cN-qM"`, anche come `quiz_id` per chiedere il commento.
 - `POST /api/transcribe`: corpo audio grezzo con `Content-Type: audio/webm`
   (anche WAV, MP4, Ogg e MP3); risposta `{text}`. Massimo 8 MiB e 90 secondi.
 - `POST /api/tts`: JSON `{text, voice?}`; risposta `audio/wav`, voci italiane
@@ -121,3 +146,8 @@ Verifica del contratto e delle protezioni con Ollama simulato:
 py -3.10 -m pip install httpx
 py -3.10 -m unittest discover -s strumenti/tutor -p 'test_*.py' -v
 ```
+
+Il manifest del corso è derivato dalla lezione e dai file Python verificati.
+Dopo modifiche autorizzate alle fonti aggiornarlo con
+`py -3.10 -X utf8 strumenti/tutor/course_content.py`; `--check` controlla
+che il manifest salvato sia attuale, senza modificarlo o generare media.

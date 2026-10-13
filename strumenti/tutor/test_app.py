@@ -287,6 +287,219 @@ class TutorContractTests(unittest.TestCase):
         self.assertEqual(self.client.get("/sito/slide/_copione/copione_orale.pdf").status_code, 404)
         self.assertEqual(self.client.get("/progetto/src/perceiver/attention.py").status_code, 200)
 
+    def course_question(self, chapter=1, **fields):
+        return self.question(**{"message": "Guidami in questo passo del mio progetto", "scene": "course", "chapter": chapter, **fields})
+
+    def test_course_grounding_uses_current_original_chapter_and_code(self):
+        from course_content import get_chapter, load_course
+        course = load_course(tutor.ROOT)
+        captured = []
+
+        def reply(path, payload=None, timeout=10):
+            captured.append(payload)
+            return {"message": {"content": json.dumps({"answer": "Partiamo dal testo originale. Quale idea riconosci?", "action": None})}}
+
+        with patch.object(tutor, "ollama_request", reply):
+            for number in (1, 5, 15, 29, 52):
+                with self.subTest(chapter=number):
+                    chapter = get_chapter(course, number)
+                    step = chapter["steps"][0]
+                    response = self.course_question(number, course_step=step["id"])
+                    self.assertEqual(response.status_code, 200)
+                    context = captured[-1]["messages"][0]["content"]
+                    self.assertIn(chapter["title"], context)
+                    self.assertIn(step["text"], context)
+                    self.assertIn(f"PASSO ATTUALE: {step['id']}", context)
+                    self.assertNotIn("LABORATORIO DIDATTICO ATTUALE", context)
+                    sources = response.json()["sources"]
+                    original = [source for source in sources if "/sito/lezione" in source["path"]]
+                    self.assertTrue(original)
+                    self.assertTrue(all(f"cap-{number}" in source["path"] or source.get("anchor") == f"cap-{number}" for source in original))
+                    if chapter.get("code"):
+                        self.assertTrue(any(all(line.strip() in context for line in item["text"].splitlines() if line.strip()) for item in chapter["code"]))
+                    schema = captured[-1]["format"]["properties"]["action"]["anyOf"][1]["properties"]
+                    self.assertEqual(schema["chapter"]["const"], number)
+                    self.assertEqual(set(schema["step"]["enum"]), {item["id"] for item in chapter["steps"][:3]})
+
+    def test_course_rejects_unknown_cross_chapter_steps_and_lab_state_before_model(self):
+        invalid = [
+            {"chapter": 0}, {"chapter": 53}, {"chapter": True}, {"chapter": "5"},
+            {"chapter": 1, "course_step": "c5-s1"}, {"chapter": 15, "course_step": "invented"},
+            {"chapter": 5, "lab": tutor.LabState().model_dump()},
+        ]
+        with patch.object(tutor, "ollama_request") as model:
+            for fields in invalid:
+                with self.subTest(fields=fields):
+                    self.assertEqual(self.course_question(**fields).status_code, 422)
+            model.assert_not_called()
+
+    def test_course_model_actions_are_limited_to_real_steps_in_current_chapter(self):
+        from course_content import get_chapter, load_course
+        chapter = get_chapter(load_course(tutor.ROOT), 5)
+        step = chapter["steps"][0]["id"]
+        actions = [
+            {"scene": "course", "chapter": 5, "step": step},
+            {"scene": "course", "chapter": 1, "step": "c1-s1"},
+            {"scene": "course", "chapter": 5, "step": "c5-invented"},
+            {"scene": "course", "chapter": True, "step": step},
+            {"scene": "course", "chapter": 5, "step": step, "play_video": True},
+            {"scene": "qkv", "step": 0, "focus": "q"},
+        ]
+        for index, action in enumerate(actions):
+            with self.subTest(action=action), patch.object(tutor, "ollama_request", return_value={"message": {"content": json.dumps({"answer": "Osserva questo passo.", "action": action})}}):
+                response = self.course_question(5, course_step=step).json()
+                self.assertEqual(response["action"], action if index == 0 else None)
+
+    def test_course_quiz_is_original_and_open_feedback_has_no_fake_verdict(self):
+        from course_content import get_chapter, load_course
+        chapter = get_chapter(load_course(tutor.ROOT), 5)
+        original = chapter["quiz"][0]
+        captured = []
+
+        def reply(path, payload=None, timeout=10):
+            captured.append(payload)
+            return {"message": {"content": json.dumps({"answer": "La tua risposta va confrontata con la formula: considera anche K e V.", "action": None})}}
+
+        with patch.object(tutor, "ollama_request", reply):
+            asked = self.course_question(5, mode="quiz").json()
+            self.assertEqual(captured, [])
+            self.assertEqual(asked["quiz"]["question"], original["question"])
+            self.assertEqual(asked["quiz"]["type"], "open")
+            self.assertEqual(asked["quiz"]["options"], [])
+            feedback = self.course_question(5, message="La mia risposta", mode="feedback", quiz_answer="Dipende solo da V", quiz_id=asked["quiz"]["id"], session_id=asked["session_id"]).json()
+        self.assertIsNone(feedback["feedback"]["correct"])
+        self.assertEqual(feedback["feedback"]["assessment"], "review")
+        self.assertEqual(feedback["feedback"]["expected"], [original["expected"]])
+        self.assertEqual(feedback["engine"], "local_model")
+        self.assertIn(original["expected"], captured[0]["messages"][0]["content"])
+        self.assertIn("Dipende solo da V", captured[0]["messages"][0]["content"])
+
+    def test_course_feedback_keeps_question_step_snapshot_and_rejects_other_chapter(self):
+        from course_content import get_chapter, load_course
+        chapter = get_chapter(load_course(tutor.ROOT), 5)
+        steps = chapter["steps"]
+        asked = self.course_question(5, course_step=steps[0]["id"], mode="quiz").json()
+        fields = {"mode": "feedback", "quiz_answer": "Una risposta aperta", "quiz_id": asked["quiz"]["id"], "session_id": asked["session_id"]}
+        with patch.object(tutor, "ollama_request") as model:
+            self.assertEqual(self.course_question(15, **fields).status_code, 409)
+            model.assert_not_called()
+        with patch.object(tutor, "ollama_request", return_value={"message": {"content": "Confrontiamo la tua risposta con quella originale."}}) as model:
+            response = self.course_question(5, course_step=steps[-1]["id"], **fields)
+        self.assertEqual(response.status_code, 200)
+        context = model.call_args.args[1]["messages"][0]["content"]
+        self.assertIn(f"PASSO ATTUALE: {steps[0]['id']}", context)
+        self.assertIsNone(response.json()["action"])
+
+    def test_course_history_does_not_mix_chapters_or_legacy_lab(self):
+        captured = []
+
+        def reply(path, payload=None, timeout=10):
+            captured.append(payload)
+            return {"message": {"content": json.dumps({"answer": "Seguiamo il capitolo attuale.", "action": None})}}
+
+        with patch.object(tutor, "ollama_request", reply):
+            first = self.course_question(1, message="Messaggio esclusivo capitolo uno").json()
+            second = self.course_question(5, message="Messaggio esclusivo capitolo cinque", session_id=first["session_id"]).json()
+            self.assertEqual(second["session_id"], first["session_id"])
+            self.assertEqual(len(captured[1]["messages"]), 2)
+            self.course_question(1, message="Riprendi il primo capitolo", session_id=first["session_id"])
+            self.assertIn("Messaggio esclusivo capitolo uno", captured[2]["messages"][1]["content"])
+            self.assertNotIn("Messaggio esclusivo capitolo cinque", json.dumps(captured[2]["messages"][1:]))
+            self.question(session_id=first["session_id"])
+            self.assertEqual(len(captured[3]["messages"]), 2)
+
+    def test_course_open_feedback_model_failure_is_not_marked_correct(self):
+        asked = self.course_question(5, mode="quiz").json()
+        with patch.object(tutor, "ollama_request", side_effect=tutor.TutorError(503, "MODEL_UNAVAILABLE", "Ollama non risponde.")):
+            response = self.course_question(5, mode="feedback", quiz_answer="Una risposta", quiz_id=asked["quiz"]["id"], session_id=asked["session_id"])
+        self.assertEqual(response.status_code, 503)
+        self.assertNotIn("feedback", response.json())
+
+    def test_course_practice_reviews_named_original_question_without_quiz_preflight(self):
+        from course_content import get_chapter, load_course
+        chapter = get_chapter(load_course(tutor.ROOT), 15)
+        original = chapter["quiz"][1]
+        with patch.object(tutor, "ollama_request", return_value={"message": {"content": "Confronta la tua spiegazione con le query originali del decoder."}}) as model:
+            response = self.course_question(15, course_question=original["id"], quiz_id=original["id"], mode="feedback", quiz_answer="Le query leggono i latenti.")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["feedback"]["assessment"], "review")
+        self.assertIsNone(response.json()["feedback"]["correct"])
+        self.assertEqual(response.json()["feedback"]["expected"], [original["expected"]])
+        self.assertIn(original["question"], model.call_args.args[1]["messages"][0]["content"])
+        with patch.object(tutor, "ollama_request") as model:
+            self.assertEqual(self.course_question(5, course_question=original["id"], quiz_id=original["id"], mode="feedback").status_code, 422)
+            self.assertEqual(self.course_question(5, quiz_id=original["id"], mode="feedback").status_code, 409)
+            model.assert_not_called()
+
+    def test_course_selected_quiz_is_named_original_and_bibliography_has_no_fake_quiz(self):
+        from course_content import get_chapter, load_course
+        chapter = get_chapter(load_course(tutor.ROOT), 29)
+        original = chapter["quiz"][-1]
+        with patch.object(tutor, "ollama_request") as model:
+            response = self.course_question(29, mode="quiz", course_question=original["id"])
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()["quiz"]["question"], original["question"])
+            self.assertEqual(response.json()["quiz"]["lesson_id"], original["id"])
+            self.assertEqual(self.course_question(52, mode="quiz").status_code, 404)
+            model.assert_not_called()
+
+    def test_course_guide_returns_one_original_open_quiz_alongside_real_model_answer(self):
+        from course_content import get_chapter, load_course
+        chapter = get_chapter(load_course(tutor.ROOT), 5)
+        model_answer = "Le Fourier features aggiungono al contenuto l'informazione sulla posizione."
+        with patch.object(tutor, "ollama_request", return_value={"message": {"content": json.dumps({"answer": model_answer, "action": None})}}) as model:
+            response = self.course_question(5, message="Guidami nel passo, poi fammi una domanda breve.").json()
+        self.assertEqual(response["answer"], model_answer)
+        self.assertEqual(response["engine"], "local_model")
+        self.assertEqual(response["quiz"]["type"], "open")
+        self.assertIn(response["quiz"]["question"], [quiz["question"] for quiz in chapter["quiz"]])
+        self.assertEqual(response["quiz"]["options"], [])
+        prompt = model.call_args.args[1]["messages"][0]["content"]
+        self.assertIn("DOMANDA ORIGINALE CHE L'APP MOSTRA SEPARATAMENTE", prompt)
+        self.assertIn("non ripeterla e non porre un'altra domanda", prompt)
+        self.assertEqual(tutor.sessions[response["session_id"]]["course_quiz"]["public"]["id"], response["quiz"]["id"])
+
+    def test_course_feedback_retains_original_hypothesis_limit_when_model_omits_it(self):
+        from course_content import get_chapter, load_course
+        chapter = get_chapter(load_course(tutor.ROOT), 45)
+        original = chapter["quiz"][0]
+        self.assertIn("È un'ipotesi, non una misura.", original["expected"])
+        with patch.object(tutor, "ollama_request", return_value={"message": {"content": "La differenza deriva dall'ordine delle somme in bfloat16."}}):
+            response = self.course_question(45, mode="feedback", course_question=original["id"], quiz_id=original["id"], quiz_answer="Cambiano i latenti").json()
+        self.assertIn("Nei tuoi appunti: «È un'ipotesi, non una misura.»", response["answer"])
+        self.assertEqual(response["feedback"]["explanation"], response["answer"])
+        self.assertIsNone(response["feedback"]["correct"])
+        self.assertEqual(response["feedback"]["expected"], [original["expected"]])
+        qualifier = "È un'ipotesi, non una misura."
+        self.assertEqual(tutor.preserve_reference_limits(qualifier, original["expected"]), qualifier)
+        contradicted = "La fonte dice che non è un'ipotesi, ma una misura."
+        self.assertIn("Nei tuoi appunti: «" + qualifier + "»", tutor.preserve_reference_limits(contradicted, original["expected"]))
+
+    def test_course_schema_has_only_nearby_steps_while_server_rejects_unknown_actions(self):
+        from course_content import get_chapter, load_course
+        chapter = get_chapter(load_course(tutor.ROOT), 45)
+        current = chapter["steps"][30]
+        schema = tutor.course_turn_schema(chapter, current)
+        step_ids = schema["properties"]["action"]["anyOf"][1]["properties"]["step"]["enum"]
+        self.assertEqual(step_ids, [item["id"] for item in chapter["steps"][28:33]])
+        self.assertLessEqual(len(step_ids), 5)
+        self.assertIsNone(tutor.valid_course_action({"scene": "course", "chapter": 45, "step": "c45-invented"}, chapter))
+
+    def test_course_request_uses_gpu_workspace_budget_and_bounds_its_history(self):
+        with patch.object(tutor, "ollama_request", return_value={"message": {"content": "Una spiegazione breve del passo attuale."}}) as model:
+            response = self.course_question(5, message="Spiegami questo passo").json()
+            course_options = model.call_args.args[1]["options"]
+            self.assertEqual(course_options["num_ctx"], 4096)
+            self.assertEqual(course_options["num_batch"], 128)
+            self.assertEqual(course_options["num_gpu"], tutor.NUM_GPU)
+            self.question()
+            self.assertEqual(model.call_args.args[1]["options"]["num_ctx"], 6144)
+            self.assertNotIn("num_batch", model.call_args.args[1]["options"])
+        session = tutor.sessions[response["session_id"]]
+        for index in range(10):
+            tutor.remember_course(session, 5, "Una domanda lunga " * 100, "Una risposta lunga " * 100)
+        self.assertLessEqual(sum(len(turn["content"]) for turn in session["course_history"][5]), 1400)
+
     def test_direct_public_clients_are_rejected(self):
         client = TestClient(tutor.app, client=("8.8.8.8", 50123))
         self.assertEqual(client.get("/api/status").status_code, 403)

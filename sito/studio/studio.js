@@ -5,9 +5,10 @@ const lessonAudio = $("lesson-audio");
 const video = $("lesson-video");
 const tutorAudio = $("tutor-audio");
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-let lesson, currentStep = 0, view = "lab", frame = 0;
+let lesson, currentStep = 0, view = "course", frame = 0;
 let tutorStatus = null, sessionId = null, asking = false, token = "";
 let activeQuiz = null, quizComplete = false;
+let lastCourseChapter = null;
 let recorder = null, recordingStream = null, recordingTimer = null;
 let replyBlobUrl = null, speechVersion = 0;
 const mediaPath = name => new URL("media/" + name, document.baseURI).href;
@@ -151,16 +152,27 @@ for(const media of [lessonAudio,video]){media.addEventListener("timeupdate",onTi
 document.querySelectorAll("[data-view]").forEach(button=>button.addEventListener("click",()=>{
   pauseLesson();view=button.dataset.view;
   for(const item of document.querySelectorAll("[data-view]"))item.setAttribute("aria-pressed",item===button?"true":"false");
-  for(const name of ["lab","guided","video","text"])$(name+"-view").hidden=view!==name;
+  for(const name of ["course","lab","guided","video","text"])$(name+"-view").hidden=view!==name;
+  $("code-section").hidden=view==="course";
+  document.querySelector(".source-details").hidden=view==="course";
   if(view==="video"&&lesson&&!video.getAttribute("src")){video.src=mediaPath(lesson.video);video.poster=mediaPath(lesson.poster);const track=document.createElement("track");track.kind="captions";track.label="Italiano";track.srclang="it";track.src=mediaPath(lesson.subtitles);track.default=true;video.append(track);video.currentTime=lesson.steps[currentStep].start;}
   if(view==="lab")applyLabFocus(window.perceiverLab.describe().focus);
-  drawDiagram();updateClock();updateTutorContext();
+  drawDiagram();updateClock();updateTutorContext();updateViewHeading();
 }));
 new ResizeObserver(drawDiagram).observe($("diagram").parentElement);
 
 function updateTutorContext(){
-  if(view==="lab"&&window.perceiverLab){const state=window.perceiverLab.context();$("tutor-context").textContent="Esperimento attuale · Q = ["+state.query.join(", ")+"] · V = ["+state.values.join(", ")+"]";}
+  if(view==="course"&&window.perceiverCourse?.ready){const context=window.perceiverCourse.context();$("tutor-context").textContent="Cap. "+context.chapter+" · "+window.perceiverCourse.step().title;}
+  else if(view==="lab"&&window.perceiverLab){const state=window.perceiverLab.context();$("tutor-context").textContent="Esperimento attuale · Q = ["+state.query.join(", ")+"] · V = ["+state.values.join(", ")+"]";}
   else if(lesson)$("tutor-context").textContent="Passaggio corrente · "+(labels[lesson.steps[currentStep].stage]||"Q, K, V");
+}
+function updateViewHeading(){
+  if(view==="course"){
+    $("lesson-title").textContent=window.perceiverCourse?.chapter()?.title||"Il tuo progetto, capitolo per capitolo";
+    $("lesson-duration").textContent="52 capitoli · al tuo ritmo";
+    $("tutor-guide").textContent="Guidami qui";$("tutor-guide").dataset.question="Guidami nel passaggio attuale del capitolo, una cosa alla volta.";
+    document.querySelector(".tutor-intro").textContent="Un concetto, poi una domanda. Il tutor segue il capitolo scelto e usa le tue spiegazioni e il codice pertinente.";
+  }else if(lesson){$("lesson-title").textContent=lesson.title;$("lesson-duration").textContent=clock(lesson.duration)+" · "+lesson.steps.length+" frasi";$("tutor-guide").textContent="Mostrami V";$("tutor-guide").dataset.question="Mostrami V nel codice e nel laboratorio.";}
 }
 function applyLabFocus(focus){
   const steps={q:0,k:1,v:2,scores:3,weights:4,output:4};
@@ -169,6 +181,12 @@ function applyLabFocus(focus){
 }
 document.addEventListener("perceiver:focus",event=>{pauseLesson();applyLabFocus(event.detail.focus);});
 document.addEventListener("perceiver:labchange",updateTutorContext);
+document.addEventListener("perceiver:coursechange",event=>{
+  if(lastCourseChapter!==event.detail.chapter){activeQuiz=null;quizComplete=false;$("tutor-quiz").hidden=true;lastCourseChapter=event.detail.chapter;}
+  if(view==="course"){pauseLesson();stopReply();updateTutorContext();updateViewHeading();}
+  availability();
+});
+document.addEventListener("perceiver:course-question",()=>{if(tutorStatus)availability();});
 
 function headers(contentType="application/json"){const value={"Content-Type":contentType};if(token)value["X-Tutor-Token"]=token;return value;}
 async function api(path,body,contentType="application/json") {
@@ -188,6 +206,9 @@ function availability() {
   $("send").disabled=!connected||needToken||asking||recording;
   $("microphone").disabled=!connected||needToken||asking||!(tutorStatus.transcribe&&tutorStatus.transcribe.available);
   document.querySelectorAll("[data-question]").forEach(button=>button.disabled=!connected||needToken||asking||recording);
+  if(view==="course"&&!window.perceiverCourse?.ready)document.querySelectorAll("[data-question]").forEach(button=>button.disabled=true);
+  if(view==="course"&&!window.perceiverCourse?.question())document.querySelectorAll('[data-mode="quiz"]').forEach(button=>button.disabled=true);
+  if(!window.perceiverCourse?.question())$("course-review").disabled=true;
   $("tutor-quiz").querySelectorAll("button").forEach(button=>button.disabled=!connected||needToken||asking||recording||quizComplete);
   $("tutor-status").textContent=asking?"Sto preparando una spiegazione…":needToken?"Inserisci il codice di accesso":connected?"Tutor locale collegato":"Tutor del PC non collegato";
   if(needToken)$("connection").open=true;
@@ -209,11 +230,13 @@ function showTutorQuiz(answer, mode){
     activeQuiz=answer.quiz;quizComplete=false;
     const question=document.createElement("p");question.textContent=activeQuiz.question;
     const choices=document.createElement("div");choices.className="lab-choices";
-    for(const option of activeQuiz.options){const button=document.createElement("button");button.type="button";button.textContent=option.label;button.addEventListener("click",()=>ask("La mia risposta è: "+option.label,{mode:"feedback",quiz_id:activeQuiz.id,quiz_answer:option.id}));choices.append(button);}
-    const status=document.createElement("p");status.className="quiz-status";status.setAttribute("role","status");status.textContent="Scegli una risposta. La domanda usa l’esperimento al momento in cui è stata posta.";
+    if(activeQuiz.type==="open"){
+      const label=document.createElement("label"),input=document.createElement("textarea"),submit=document.createElement("button");label.htmlFor="tutor-quiz-answer";label.textContent="Spiegalo con parole tue";input.id=label.htmlFor;input.rows=3;input.maxLength=1800;submit.type="button";submit.className="open-quiz-submit";submit.textContent="Commenta la mia risposta";submit.addEventListener("click",()=>{const value=input.value.trim();if(value)ask(value,{mode:"feedback",quiz_id:activeQuiz.id,quiz_answer:value});else input.focus();});choices.append(label,input,submit);
+    }else for(const option of activeQuiz.options){const button=document.createElement("button");button.type="button";button.textContent=option.label;button.addEventListener("click",()=>ask("La mia risposta è: "+option.label,{mode:"feedback",quiz_id:activeQuiz.id,quiz_answer:option.id}));choices.append(button);}
+    const status=document.createElement("p");status.className="quiz-status";status.setAttribute("role","status");status.textContent=activeQuiz.type==="open"?"Domanda originale dei tuoi appunti. Il tutor commenterà il ragionamento usando la risposta di riferimento.":"Scegli una risposta. La domanda usa l’esperimento al momento in cui è stata posta.";
     $("tutor-quiz").replaceChildren(question,choices,status);$("tutor-quiz").hidden=false;
   }else if(mode==="quiz"){$("tutor-quiz").hidden=true;activeQuiz=null;}
-  if(answer.feedback&&activeQuiz){quizComplete=answer.feedback.correct;const status=$("tutor-quiz").querySelector(".quiz-status");if(status){status.textContent=answer.feedback.explanation;status.classList.toggle("lab-feedback-correct",answer.feedback.correct);status.classList.toggle("lab-feedback-retry",!answer.feedback.correct);}}
+  if(answer.feedback&&activeQuiz){quizComplete=answer.feedback.correct===true;const status=$("tutor-quiz").querySelector(".quiz-status");if(status){status.textContent=(answer.feedback.assessment==="review"?"Commento del tutor (AI): ":"")+answer.feedback.explanation;status.classList.toggle("lab-feedback-correct",answer.feedback.correct===true);status.classList.toggle("lab-feedback-retry",answer.feedback.correct===false);}}
 }
 async function ask(message, options = {}) {
   if(asking||!message.trim())return;
@@ -221,14 +244,23 @@ async function ask(message, options = {}) {
   pauseLesson();stopReply();appendMessage("user",message);asking=true;availability();$("voice-state").textContent="Il tutor sta leggendo la domanda e le fonti…";
   try{
     const body={message,scene:"qkv",step:currentStep,session_id:sessionId,mode:options.mode||"explain",...options};
+    if(view==="course")Object.assign(body,{scene:"course",...window.perceiverCourse.context()});
     if(view==="lab"){body.lab=window.perceiverLab.context();body.interaction=window.perceiverLab.describe();}
     const response=await api("chat",body), answer=await response.json();sessionId=answer.session_id;
+    if(body.scene==="course"){
+      const current=window.perceiverCourse.context();
+      if(view!=="course"||current.chapter!==body.chapter||current.course_step!==body.course_step){appendMessage("assistant","Risposta al capitolo "+body.chapter+", passaggio precedente:\n"+answer.answer,answer.sources||[]);$("voice-state").textContent="Risposta disponibile nella conversazione del passaggio precedente.";return;}
+    }
     const block=appendMessage("assistant",answer.answer,answer.sources||[]);$("voice-state").textContent="";
     if(answer.action&&answer.action.scene==="qkv"&&Number.isInteger(answer.action.step)&&lesson&&lesson.steps[answer.action.step]){
       setStep(answer.action.step,true);$("code-section").classList.add("highlight");
       if(answer.action.focus){window.perceiverLab.focus(answer.action.focus,false);if(view==="lab")applyLabFocus(answer.action.focus);}
       const show=document.createElement("button");show.type="button";show.className="show-tutor-action";show.textContent="Guarda il passaggio ↑";show.addEventListener("click",()=>{document.querySelector('[data-view="lab"]').click();$("lab-view").scrollIntoView({behavior:reducedMotion?"auto":"smooth",block:"start"});});block.append(show);
     }
+    if(answer.action?.scene==="course"&&window.perceiverCourse.goTo(answer.action.chapter,answer.action.step)){
+      const show=document.createElement("button");show.type="button";show.className="show-tutor-action";show.textContent="Guarda il passaggio ↑";show.addEventListener("click",()=>{document.querySelector('[data-view="course"]').click();$("course-step-title").scrollIntoView({behavior:reducedMotion?"auto":"smooth",block:"start"});});block.append(show);
+    }
+    if(body.scene==="course"&&body.mode==="feedback")$("course-practice-status").textContent="Commento del tutor pronto nella conversazione. Puoi riformulare e riprovare.";
     showTutorQuiz(answer,body.mode);
     // A prepared voice must not prevent asking the next question or answering a quiz.
     speakAnswer(answer.answer);
@@ -237,9 +269,13 @@ async function ask(message, options = {}) {
 $("question-form").addEventListener("submit",event=>{event.preventDefault();const value=$("question").value.trim();if(value){$("question").value="";ask(value);}});
 document.querySelectorAll("[data-question]").forEach(button=>button.addEventListener("click",()=>{
   let question=button.dataset.question;
+  if(button.id==="course-review"){
+    const answer=$("course-answer").value.trim(),original=window.perceiverCourse.question();if(!answer||!original){$("course-practice-status").textContent="Scrivi prima la tua risposta.";$("course-answer").focus();return;}
+    ask(answer,{mode:"feedback",quiz_id:original.id,quiz_answer:answer,course_question:original.id});$("tutor-title").scrollIntoView({behavior:reducedMotion?"auto":"smooth"});return;
+  }
   if(button.id==="lab-ask"&&window.perceiverLab.describe().lastAnswer?.correct===false)question="Ho appena sbagliato la risposta nel laboratorio. Spiegami quell’errore con una cosa alla volta, poi fammi riprovare con una domanda breve.";
   ask(question,{mode:button.dataset.mode||"explain"});
-  if(button.id==="lab-ask")$("tutor-title").scrollIntoView({behavior:reducedMotion?"auto":"smooth"});
+  if(button.id==="lab-ask"||button.id==="course-guide")$("tutor-title").scrollIntoView({behavior:reducedMotion?"auto":"smooth"});
 }));
 $("question").addEventListener("keydown",event=>{if(event.key==="Enter"&&(event.ctrlKey||event.metaKey))$("question-form").requestSubmit();});
 $("stop-voice").addEventListener("click",()=>{if($("stop-voice").textContent==="Ascolta la risposta"){tutorAudio.play().then(()=>{$("stop-voice").textContent="Ferma la risposta";}).catch(()=>{});}else{stopReply();$("voice-state").textContent="Risposta fermata. Puoi fare un’altra domanda.";}});
@@ -262,9 +298,9 @@ $("open-tutor-link").addEventListener("click",()=>{try{const url=new URL($("conn
 window.addEventListener("pagehide",()=>{if(recorder&&recorder.state==="recording")recorder.stop();cleanRecording();stopReply();pauseLesson();});
 
 (async()=>{
-  try{const response=await fetch("media/lesson-qkv.json");if(!response.ok)throw Error();lesson=await response.json();if(!lesson.steps.length)throw Error();lessonAudio.src=mediaPath(lesson.audio);$("lesson-title").textContent=lesson.title;$("lesson-duration").textContent=clock(lesson.duration)+" · "+lesson.steps.length+" frasi";$("diagram-note").textContent=lesson.diagramNote;$("seek").max=lesson.duration;$("download-video").href=mediaPath(lesson.video);
+  try{const response=await fetch("media/lesson-qkv.json");if(!response.ok)throw Error();lesson=await response.json();if(!lesson.steps.length)throw Error();lessonAudio.src=mediaPath(lesson.audio);updateViewHeading();$("diagram-note").textContent=lesson.diagramNote;$("seek").max=lesson.duration;$("download-video").href=mediaPath(lesson.video);
     $("transcript").replaceChildren(...lesson.steps.map((step,index)=>{const li=document.createElement("li"),button=document.createElement("button"),time=document.createElement("time"),text=document.createElement("span");button.type="button";time.textContent=clock(step.start);text.textContent=step.text;button.append(time,text);button.addEventListener("click",()=>{pauseLesson();setStep(index,true);document.querySelector('[data-view="guided"]').click();$("play").focus();});li.append(button);return li;}));
-    for(const source of lesson.sources){const li=document.createElement("li"),link=document.createElement("a");const path=source.path.startsWith("lezione/")?"sito/"+source.path:source.path;link.href=sourceBase+path+(source.line?"#L"+source.line:"");link.textContent=source.label;link.target="_blank";link.rel="noopener";li.append(link);$("source-list").append(li);}applyLabFocus(window.perceiverLab.describe().focus);
+    for(const source of lesson.sources){const li=document.createElement("li"),link=document.createElement("a");const path=source.path.startsWith("lezione/")?"sito/"+source.path:source.path;link.href=sourceBase+path+(source.line?"#L"+source.line:"");link.textContent=source.label;link.target="_blank";link.rel="noopener";li.append(link);$("source-list").append(li);}if(view!=="course")applyLabFocus(window.perceiverLab.describe().focus);$("code-section").hidden=view==="course";document.querySelector(".source-details").hidden=view==="course";
   }catch(_){$("load-error").textContent="Non riesco a caricare la lezione. Aggiorna la pagina o apri la lezione originale.";$("load-error").hidden=false;$("play").disabled=true;}
   await checkTutor();
 })();
