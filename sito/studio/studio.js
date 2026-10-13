@@ -1,0 +1,226 @@
+"use strict";
+
+const $ = id => document.getElementById(id);
+const lessonAudio = $("lesson-audio");
+const video = $("lesson-video");
+const tutorAudio = $("tutor-audio");
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let lesson, currentStep = 0, view = "guided", frame = 0;
+let tutorStatus = null, sessionId = null, asking = false, token = "";
+let recorder = null, recordingStream = null, recordingTimer = null;
+let replyBlobUrl = null, speechVersion = 0;
+const mediaPath = name => new URL("media/" + name, document.baseURI).href;
+const sourceBase = "https://github.com/FrancescoGigli/Perceiver_project/blob/main/";
+const activeMedia = () => view === "video" ? video : lessonAudio;
+const labels = {query:"Q · la domanda",key:"K · l’etichetta",value:"V · il contenuto",scores:"Confronto fra Q e K",weights:"La media pesata",read:"K e V vengono dall’input",output:"Dal costo M² al costo MN"};
+const clock = seconds => Math.floor(seconds / 60) + ":" + String(Math.floor(seconds % 60)).padStart(2, "0");
+const escapeXML = text => String(text).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+try {
+  const fragment = new URLSearchParams(location.hash.slice(1));
+  token = fragment.get("tutor-token") || sessionStorage.getItem("perceiver-tutor-token") || "";
+  if (fragment.has("tutor-token")) {
+    sessionStorage.setItem("perceiver-tutor-token", token);
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+} catch (_) {}
+
+function pauseLesson() { lessonAudio.pause(); video.pause(); }
+function stopReply() {
+  speechVersion++;
+  tutorAudio.pause();
+  if (replyBlobUrl) { URL.revokeObjectURL(replyBlobUrl); replyBlobUrl = null; }
+  $("stop-voice").hidden = true;
+}
+function setStep(index, seek = false) {
+  if (!lesson) return;
+  currentStep = Math.max(0, Math.min(lesson.steps.length - 1, index));
+  const step = lesson.steps[currentStep];
+  if (seek) {
+    lessonAudio.currentTime = step.start;
+    if (video.getAttribute("src")) video.currentTime = step.start;
+  }
+  $("caption").textContent = step.text;
+  $("step-title").textContent = labels[step.stage] || "Cross-attention";
+  $("step-count").textContent = "Frase " + (currentStep + 1) + " / " + lesson.steps.length;
+  $("tutor-context").textContent = "Passaggio corrente · " + (labels[step.stage] || "Q, K, V");
+  $("code-lines").replaceChildren(...step.code.map(row => {
+    const line = document.createElement("div"); line.className = "code-line";
+    const number = document.createElement("span"); number.className = "line-number"; number.textContent = row.line;
+    const code = document.createElement("code"); code.textContent = row.text;
+    line.append(number, code); return line;
+  }));
+  $("code-source").href = sourceBase + "progetto/src/perceiver/attention.py#L" + step.code[0].line;
+  $("previous").disabled = currentStep === 0;
+  $("next").disabled = currentStep === lesson.steps.length - 1;
+  $("transcript").querySelectorAll("button").forEach((button, index) => button.setAttribute("aria-current", index === currentStep ? "true" : "false"));
+  $("code-section").classList.remove("highlight");
+  drawDiagram(); updateClock();
+}
+
+function drawDiagram() {
+  if (!lesson) return;
+  const svg = $("diagram"), width = Math.max(260, svg.parentElement.clientWidth - 22), narrow = width < 510;
+  const height = narrow ? 350 : 270;
+  const stage = lesson.steps[currentStep].stage;
+  const inputActive = ["key","value","read"].includes(stage);
+  const queryActive = stage === "query";
+  const combine = ["weights","output"].includes(stage);
+  const compare = ["scores","weights","output"].includes(stage);
+  const step = lesson.steps[currentStep];
+  const progress = Math.max(0,Math.min(1,(activeMedia().currentTime-step.start)/(step.end-step.start)));
+  const ink="#1a237e", faint="#e6e6ec", soft="#e8eaf6", orange="#e65100", green="#2e7d32";
+  const text = (x,y,value,size=14,color="#3c3c3c",bold=false) => `<text x="${x}" y="${y}" text-anchor="middle" fill="${color}" font-size="${size}" font-family="Segoe UI,Arial,sans-serif"${bold?' font-weight="600"':''}>${escapeXML(value)}</text>`;
+  const box = (x,y,w,h,heading,sub,active=false) => `<rect x="${x-w/2}" y="${y-h/2}" width="${w}" height="${h}" rx="8" fill="${active?soft:'#fff'}" stroke="${active?ink:faint}" stroke-width="${active?2:1}"/>`+text(x,y-4,heading,18,ink,true)+text(x,y+20,sub,12);
+  const arrow = (x1,y1,x2,y2,active=false) => `<path d="M ${x1} ${y1} L ${x2} ${y2}" fill="none" stroke="${active?ink:faint}" stroke-width="2" marker-end="url(#studio-arrow)"/>`;
+  const latentX=narrow?width/2:width*.16, latentY=narrow?49:70;
+  const inputX=narrow?width/2:width*.75, inputY=narrow?150:70;
+  const resultX=width/2, resultY=narrow?270:198;
+  let markup=`<title>${escapeXML(labels[stage]||'Cross-attention')}</title><desc>Q viene dai latenti; K e V dall’input. I confronti producono pesi per leggere i contenuti. Schema con pochi elementi rappresentativi.</desc><defs><marker id="studio-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 1 1 L 9 5 L 1 9" fill="${ink}"/></marker></defs>`;
+  if (stage === "output") {
+    const y=narrow?92:95, cx=width/2;
+    markup+=text(cx,25,"Self-attention sull’input",14,ink,true);
+    const cell=narrow?21:24, grid=5, start=cx-grid*cell/2;
+    for(let r=0;r<grid;r++)for(let c=0;c<grid;c++)markup+=`<rect x="${start+c*cell}" y="${y-55+r*cell}" width="${cell-3}" height="${cell-3}" rx="2" fill="${faint}"/>`;
+    markup+=text(cx,y+grid*cell-30,"M × M",16,ink,true);
+    const y2=narrow?230:95, cx2=narrow?cx:width*.79;
+    if(!narrow){
+      // Put the square at left for a directly comparable pair.
+      const shift=width*.24-cx;
+      markup=`<g transform="translate(${shift},0)">${markup}</g>`;
+    }
+    const nx=cx2-3*cell/2;
+    for(let r=0;r<2;r++)for(let c=0;c<5;c++)markup+=`<rect x="${cx2-5*cell/2+c*cell}" y="${y2-18+r*cell}" width="${cell-3}" height="${cell-3}" rx="2" fill="${soft}"/>`;
+    markup+=text(cx2,y2-43,"Cross-attention",14,ink,true)+text(cx2,y2+55,"N × M",16,ink,true);
+    markup+=text(narrow?cx:width/2,narrow?329:245,"N latenti leggono M input",14,ink);
+  } else {
+    markup+=box(latentX,latentY,130,68,"Latenti L","Q · domanda",queryActive||compare);
+    const inputTitle=stage==="key"?"K₁   K₂   K₃":stage==="value"?"V₁   V₂   V₃":"Input X";
+    const inputSub=stage==="key"?"etichette dell’input":stage==="value"?"contenuti dell’input":"K · etichette   V · contenuti";
+    markup+=box(inputX,inputY,narrow?202:194,76,inputTitle,inputSub,inputActive||compare);
+    if(narrow){
+      markup+=arrow(latentX,latentY+38,inputX,inputY-43,compare);
+      markup+=text(width*.23,103,compare?"confronto":"",12,ink);
+      markup+=arrow(inputX,inputY+42,resultX,resultY-38,combine);
+      markup+=`<path d="M ${latentX+69} ${latentY} L ${width-6} ${latentY} L ${width-6} ${resultY} L ${resultX+86} ${resultY}" fill="none" stroke="${combine?ink:faint}" stroke-width="2" marker-end="url(#studio-arrow)"/>`;
+    } else {
+      markup+=arrow(latentX+69,latentY,inputX-102,inputY,compare);
+      markup+=text((latentX+inputX)/2,latentY-18,compare?"Q confronta tutte le K":"",12,ink);
+      markup+=arrow(latentX,latentY+39,resultX-61,resultY-41,combine);
+      markup+=arrow(inputX,inputY+42,resultX+61,resultY-41,combine);
+    }
+    markup+=box(resultX,resultY,162,70,combine?"Media pesata":"Attenzione",combine?"contenuti pertinenti":"pesi sui contenuti",combine);
+    if(compare&&!activeMedia().paused&&!reducedMotion){
+      const x1=latentX, y1=latentY+38, x2=inputX, y2=inputY-43;
+      if(narrow)markup+=`<circle cx="${x1+(x2-x1)*progress}" cy="${y1+(y2-y1)*progress}" r="4" fill="${orange}"/>`;
+      else markup+=`<circle cx="${latentX+69+(inputX-latentX-171)*progress}" cy="${latentY}" r="4" fill="${orange}"/>`;
+    }
+    markup+=text(width/2,narrow?335:257,stage==="weights"?"softmax → pesi → lettura dei V":"Q dai latenti · K e V dall’input",12,"#62626b");
+  }
+  svg.setAttribute("viewBox",`0 0 ${width} ${height}`); svg.setAttribute("height",height); svg.innerHTML=markup;
+}
+
+function updateClock() {
+  if(!lesson)return;
+  const media=activeMedia(), now=media.currentTime||0;
+  $("elapsed").textContent=clock(now); $("total").textContent=clock(lesson.duration);
+  $("seek").value=now;
+  $("play").querySelector("span").textContent=lessonAudio.paused?(now>=lesson.duration-.2?"Rivedi la lezione":"Ascolta e guarda"):"Pausa";
+  $("play").querySelector("use").setAttribute("href","icons.svg#"+(lessonAudio.paused?"play":"pause"));
+}
+function onTime() {
+  if(!lesson)return;
+  const now=activeMedia().currentTime;
+  const nextIndex=lesson.steps.findIndex(step=>now>=step.start&&now<step.end);
+  if(nextIndex>=0&&nextIndex!==currentStep){
+    if(view==="guided"&&$("pause-per-step").checked&&!lessonAudio.paused&&nextIndex>currentStep){lessonAudio.pause();lessonAudio.currentTime=Math.max(lesson.steps[currentStep].start,lesson.steps[currentStep].end-.03);updateClock();return;}
+    setStep(nextIndex);
+  }
+  updateClock();drawDiagram();
+}
+function animate(){cancelAnimationFrame(frame);if(!activeMedia().paused&&!reducedMotion){drawDiagram();frame=requestAnimationFrame(animate);}}
+async function playLesson(){stopReply();if(!lesson)return;if(lessonAudio.currentTime>=lesson.duration-.2)lessonAudio.currentTime=0;try{await lessonAudio.play();}catch(_){$("load-error").textContent="La riproduzione non è partita. Premi di nuovo Ascolta e guarda.";$("load-error").hidden=false;}}
+
+$("play").addEventListener("click",()=>lessonAudio.paused?playLesson():lessonAudio.pause());
+$("replay-step").addEventListener("click",()=>{setStep(currentStep,true);playLesson();});
+$("previous").addEventListener("click",()=>{pauseLesson();setStep(currentStep-1,true);});
+$("next").addEventListener("click",()=>{pauseLesson();setStep(currentStep+1,true);});
+$("seek").addEventListener("input",()=>{lessonAudio.currentTime=Number($("seek").value);onTime();});
+$("speed").addEventListener("change",()=>{lessonAudio.playbackRate=Number($("speed").value);video.playbackRate=Number($("speed").value);});
+for(const media of [lessonAudio,video]){media.addEventListener("timeupdate",onTime);media.addEventListener("play",()=>{stopReply();updateClock();animate();});media.addEventListener("pause",()=>{cancelAnimationFrame(frame);updateClock();});media.addEventListener("ended",()=>{updateClock();});}
+document.querySelectorAll("[data-view]").forEach(button=>button.addEventListener("click",()=>{
+  pauseLesson();view=button.dataset.view;
+  for(const item of document.querySelectorAll("[data-view]"))item.setAttribute("aria-pressed",item===button?"true":"false");
+  for(const name of ["guided","video","text"])$(name+"-view").hidden=view!==name;
+  if(view==="video"&&lesson&&!video.getAttribute("src")){video.src=mediaPath(lesson.video);video.poster=mediaPath(lesson.poster);const track=document.createElement("track");track.kind="captions";track.label="Italiano";track.srclang="it";track.src=mediaPath(lesson.subtitles);track.default=true;video.append(track);video.currentTime=lesson.steps[currentStep].start;}
+  drawDiagram();updateClock();
+}));
+new ResizeObserver(drawDiagram).observe($("diagram").parentElement);
+
+function headers(contentType="application/json"){const value={"Content-Type":contentType};if(token)value["X-Tutor-Token"]=token;return value;}
+async function api(path,body,contentType="application/json") {
+  const controller=new AbortController(), timer=setTimeout(()=>controller.abort(),150000);
+  try{const response=await fetch("/api/"+path,{method:"POST",headers:headers(contentType),body:contentType==="application/json"?JSON.stringify(body):body,signal:controller.signal});if(!response.ok){let error;try{error=await response.json();}catch(_){}if(response.status===401||response.status===403)throw new Error("Inserisci il codice di accesso del tutor in Collega il tutor del PC.");const detail=error&&(error.error||error.detail);throw new Error(typeof detail==="string"?detail:detail&&detail.message?detail.message:"Il tutor non riesce a rispondere in questo momento. Riprova.");}return response;}finally{clearTimeout(timer);}
+}
+function appendMessage(kind,text,sources=[]) {
+  $("empty-conversation").hidden=true;
+  const block=document.createElement("div");block.className="message "+kind;block.textContent=text;
+  if(sources.length){const links=document.createElement("div");links.className="message-sources";for(const source of sources){const path=String(source.path||"").replace(/^\//,"");if(!/^((sito\/)?lezione\/|progetto\/src\/)/.test(path))continue;const anchor=document.createElement("a");anchor.textContent=source.label||"Fonte";anchor.href=path.startsWith("progetto/")?sourceBase+path:new URL("../lezione/"+((path.match(/#.*$/)||[])[0]||""),document.baseURI).href;anchor.target="_blank";anchor.rel="noopener";links.append(anchor);}block.append(links);}
+  $("messages").append(block);return block;
+}
+function availability() {
+  const connected=!!(tutorStatus&&tutorStatus.available);
+  const needToken=connected&&tutorStatus.auth_required&&!token;
+  const recording=recorder&&recorder.state==="recording";
+  $("send").disabled=!connected||needToken||asking||recording;
+  $("microphone").disabled=!connected||needToken||asking||!(tutorStatus.transcribe&&tutorStatus.transcribe.available);
+  document.querySelectorAll("[data-question]").forEach(button=>button.disabled=!connected||needToken||asking||recording);
+  $("tutor-status").textContent=asking?"Sto preparando una spiegazione…":needToken?"Inserisci il codice di accesso":connected?"Tutor locale collegato":"Tutor del PC non collegato";
+  if(needToken)$("connection").open=true;
+}
+async function checkTutor() {
+  if(location.hostname==="francescogigli.github.io") {tutorStatus=null;availability();return;}
+  try{const response=await fetch("/api/status",{signal:AbortSignal.timeout(8000)});tutorStatus=response.ok?await response.json():null;}catch(_){tutorStatus=null;}
+  availability();
+  if(tutorStatus&&tutorStatus.available&&tutorStatus.voice&&!tutorStatus.voice.available)$("voice-state").textContent="Puoi fare domande scritte; la voce del tutor non è disponibile.";
+}
+async function speakAnswer(text) {
+  stopReply();if(!$("read-reply").checked||!tutorStatus||!tutorStatus.voice||!tutorStatus.voice.available)return;
+  pauseLesson();const version=speechVersion;
+  $("voice-state").textContent="Preparo la risposta vocale…";
+  try{const response=await api("tts",{text,voice:$("voice").value});const blob=await response.blob();if(version!==speechVersion)return;replyBlobUrl=URL.createObjectURL(blob);tutorAudio.src=replyBlobUrl;$("stop-voice").hidden=false;$("stop-voice").textContent="Ferma la risposta";try{await tutorAudio.play();$("voice-state").textContent="Il tutor sta parlando. Puoi fermarlo e fare un’altra domanda.";}catch(_){$("voice-state").textContent="La risposta è pronta: premi Ascolta la risposta.";$("stop-voice").textContent="Ascolta la risposta";}}catch(error){if(version===speechVersion)$("voice-state").textContent="La risposta scritta è disponibile. "+error.message;}
+}
+async function ask(message) {
+  if(asking||!message.trim())return;
+  if(!tutorStatus||!tutorStatus.available){$("connection").open=true;$("voice-state").textContent="Apri il link del tutor sul PC per fare una domanda.";return;}
+  pauseLesson();stopReply();appendMessage("user",message);asking=true;availability();$("voice-state").textContent="Il primo avvio del modello può richiedere un po’ di tempo.";
+  try{const response=await api("chat",{message,scene:"qkv",step:currentStep,session_id:sessionId});const answer=await response.json();sessionId=answer.session_id;appendMessage("assistant",answer.answer,answer.sources||[]);$("voice-state").textContent="";if(answer.action&&answer.action.scene==="qkv"&&Number.isInteger(answer.action.step)&&lesson.steps[answer.action.step]){setStep(answer.action.step,true);$("code-section").classList.add("highlight");}await speakAnswer(answer.answer);}catch(error){appendMessage("error",error.name==="AbortError"?"Il tutor sta impiegando troppo tempo. Riprova con una domanda più breve.":error.message);$("voice-state").textContent="";}finally{asking=false;availability();}
+}
+$("question-form").addEventListener("submit",event=>{event.preventDefault();const value=$("question").value.trim();if(value){$("question").value="";ask(value);}});
+document.querySelectorAll("[data-question]").forEach(button=>button.addEventListener("click",()=>ask(button.dataset.question)));
+$("question").addEventListener("keydown",event=>{if(event.key==="Enter"&&(event.ctrlKey||event.metaKey))$("question-form").requestSubmit();});
+$("stop-voice").addEventListener("click",()=>{if($("stop-voice").textContent==="Ascolta la risposta"){tutorAudio.play().then(()=>{$("stop-voice").textContent="Ferma la risposta";}).catch(()=>{});}else{stopReply();$("voice-state").textContent="Risposta fermata. Puoi fare un’altra domanda.";}});
+tutorAudio.addEventListener("ended",()=>{$("stop-voice").hidden=true;$("voice-state").textContent="";});
+$("sample-voice").addEventListener("click",async()=>{pauseLesson();stopReply();const samples=lesson&&lesson.voiceSamples||[];const sample=samples.find(value=>value.id===$("voice").value);if(!sample){$("voice-state").textContent="Questa voce non ha ancora un esempio disponibile.";return;}tutorAudio.src=mediaPath(sample.file);$("stop-voice").textContent="Ferma la risposta";$("stop-voice").hidden=false;try{await tutorAudio.play();}catch(_){$("voice-state").textContent="Premi nuovamente Prova la voce.";}});
+
+function cleanRecording() {clearTimeout(recordingTimer);if(recordingStream)recordingStream.getTracks().forEach(track=>track.stop());recordingStream=null;recorder=null;$("microphone").classList.remove("recording");$("microphone").querySelector("span").textContent="Parla";}
+$("microphone").addEventListener("click",async()=>{
+  if(recorder&&recorder.state==="recording"){recorder.stop();return;}
+  pauseLesson();stopReply();
+  if(!window.isSecureContext||!navigator.mediaDevices||!window.MediaRecorder){$("voice-state").textContent="Il microfono richiede il link HTTPS del tutor. Puoi comunque scrivere una domanda.";return;}
+  try{recordingStream=await navigator.mediaDevices.getUserMedia({audio:true});const supported=["audio/webm;codecs=opus","audio/mp4","audio/webm"].find(type=>MediaRecorder.isTypeSupported(type));recorder=new MediaRecorder(recordingStream,supported?{mimeType:supported}:{});const chunks=[];const mimeType=recorder.mimeType||supported||"audio/webm";
+    recorder.addEventListener("dataavailable",event=>{if(event.data.size)chunks.push(event.data);});
+    recorder.addEventListener("stop",async()=>{cleanRecording();asking=true;availability();$("voice-state").textContent="Trascrivo la tua domanda…";try{const blob=new Blob(chunks,{type:mimeType});const response=await api("transcribe",blob,mimeType);const result=await response.json();if(result.text&&result.text.trim()){$("question").value=result.text;$("voice-state").textContent="Controlla la domanda qui sopra, poi premi Chiedi al tutor.";$("question").focus();}else{$("voice-state").textContent="Non ho riconosciuto una domanda. Riprova o scrivila.";}}catch(error){$("voice-state").textContent=error.message;}finally{asking=false;availability();}});
+    recorder.start();availability();$("microphone").classList.add("recording");$("microphone").querySelector("span").textContent="Trascrivi";$("voice-state").textContent="Ti ascolto. Premi Trascrivi quando hai finito.";recordingTimer=setTimeout(()=>{if(recorder&&recorder.state==="recording")recorder.stop();},25000);
+  }catch(error){cleanRecording();$("voice-state").textContent=error.name==="NotAllowedError"?"Consenti il microfono nel browser, oppure scrivi una domanda.":"Non riesco ad aprire il microfono. Puoi scrivere la domanda.";}
+});
+$("connect-token").addEventListener("click",()=>{token=$("connection-token").value.trim();try{sessionStorage.setItem("perceiver-tutor-token",token);}catch(_){}$("connection-token").value="";checkTutor();});
+$("open-tutor-link").addEventListener("click",()=>{try{const url=new URL($("connection-link").value);if(url.protocol!=="https:"||!url.hostname.endsWith(".trycloudflare.com"))throw Error();location.assign(url.href);}catch(_){$("voice-state").textContent="Inserisci il link HTTPS del tutor creato sul PC.";}});
+window.addEventListener("pagehide",()=>{if(recorder&&recorder.state==="recording")recorder.stop();cleanRecording();stopReply();pauseLesson();});
+
+(async()=>{
+  try{const response=await fetch("media/lesson-qkv.json");if(!response.ok)throw Error();lesson=await response.json();if(!lesson.steps.length)throw Error();lessonAudio.src=mediaPath(lesson.audio);$("lesson-title").textContent=lesson.title;$("lesson-duration").textContent=clock(lesson.duration)+" · "+lesson.steps.length+" frasi";$("diagram-note").textContent=lesson.diagramNote;$("seek").max=lesson.duration;$("download-video").href=mediaPath(lesson.video);
+    $("transcript").replaceChildren(...lesson.steps.map((step,index)=>{const li=document.createElement("li"),button=document.createElement("button"),time=document.createElement("time"),text=document.createElement("span");button.type="button";time.textContent=clock(step.start);text.textContent=step.text;button.append(time,text);button.addEventListener("click",()=>{pauseLesson();setStep(index,true);document.querySelector('[data-view="guided"]').click();$("play").focus();});li.append(button);return li;}));
+    for(const source of lesson.sources){const li=document.createElement("li"),link=document.createElement("a");const path=source.path.startsWith("lezione/")?"sito/"+source.path:source.path;link.href=sourceBase+path+(source.line?"#L"+source.line:"");link.textContent=source.label;link.target="_blank";link.rel="noopener";li.append(link);$("source-list").append(li);}setStep(0);
+  }catch(_){$("load-error").textContent="Non riesco a caricare la lezione. Aggiorna la pagina o apri la lezione originale.";$("load-error").hidden=false;$("play").disabled=true;}
+  await checkTutor();
+})();

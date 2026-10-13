@@ -1,0 +1,36 @@
+1
+00:00:00,450 --> 00:00:04,954
+Q = una domanda ("cosa sto cercando?").
+
+2
+00:00:04,954 --> 00:00:09,767
+K = un'etichetta ("io rappresento questo").
+
+3
+00:00:09,767 --> 00:00:13,650
+V = il contenuto informativo.
+
+4
+00:00:13,650 --> 00:00:19,433
+L'attenzione confronta ogni domanda con tutte le etichette
+
+5
+00:00:19,433 --> 00:00:25,696
+e restituisce una media pesata dei contenuti più pertinenti.
+
+6
+00:00:25,696 --> 00:00:31,637
+Le Query Q vengono dai latenti L (sono solo N, pochi).
+
+7
+00:00:31,637 --> 00:00:39,335
+Le Key K e i Value V continuano a venire dall'input X (sono M,
+tanti).
+
+8
+00:00:39,335 --> 00:00:47,400
+Il prodotto QKᵀ diventa una matrice rettangolare N×M.
+
+9
+00:00:47,400 --> 00:00:53,557
+Il costo crolla da O(M²) a O(MN).

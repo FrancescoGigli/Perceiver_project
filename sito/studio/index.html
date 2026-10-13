@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1a237e">
+  <meta name="description" content="Studia il tuo Perceiver con una lezione animata, il codice originale e un tutor AI locale con cui parlare.">
+  <title>Perceiver · Studio guidato</title>
+  <link rel="icon" href="icons.svg#brand" type="image/svg+xml">
+  <link rel="stylesheet" href="studio.css">
+  <script src="studio.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#lezione">Vai alla lezione</a>
+  <header class="site-header">
+    <a class="brand" href="../../"><span>Perceiver</span><span class="brand-note">Studio guidato</span></a>
+    <a class="original-link" href="../lezione/">Lezione originale <span aria-hidden="true">↗</span></a>
+  </header>
+  <main class="workspace">
+    <section class="lesson" id="lezione" aria-labelledby="lesson-title">
+      <div class="lesson-heading"><div><p class="eyebrow">Prima lezione · Il tuo codice, passo per passo</p><h1 id="lesson-title">Q, K, V: domanda, etichetta, contenuto</h1></div><span class="duration" id="lesson-duration">Circa un minuto</span></div>
+      <nav class="view-switch" aria-label="Come seguire la lezione">
+        <button type="button" data-view="guided" aria-pressed="true">Lezione guidata</button>
+        <button type="button" data-view="video" aria-pressed="false">Video</button>
+        <button type="button" data-view="text" aria-pressed="false">Testo completo</button>
+      </nav>
+      <div id="load-error" role="alert" hidden></div>
+      <div class="guided-view" id="guided-view">
+        <div class="stage-head"><span id="step-title">Q · la domanda</span><span id="step-count">Caricamento della lezione…</span></div>
+        <div class="diagram-stage"><svg id="diagram" role="img" aria-label="Schema animato della cross-attention"></svg></div>
+        <p class="diagram-note" id="diagram-note">Schema didattico: pochi elementi rappresentativi.</p>
+        <div class="original-caption"><span class="caption-label">Le tue parole</span><p id="caption">La lezione sta caricando.</p></div>
+        <div class="play-controls">
+          <button class="primary-button" id="play" type="button"><svg aria-hidden="true"><use href="icons.svg#play"></use></svg><span>Ascolta e guarda</span></button>
+          <button id="replay-step" type="button">Riascolta la frase</button>
+          <label class="speed">Velocità <select id="speed"><option value="0.75">0,75×</option><option value="1" selected>1×</option><option value="1.25">1,25×</option><option value="1.5">1,5×</option></select></label>
+        </div>
+        <div class="timeline"><label class="sr-only" for="seek">Posizione nella lezione</label><input type="range" id="seek" min="0" max="60" value="0" step="0.1"><div class="time-labels"><span id="elapsed">0:00</span><span id="total">1:00</span></div></div>
+        <div class="step-controls"><button id="previous" type="button">← Frase precedente</button><button id="next" type="button">Frase successiva →</button></div>
+        <label class="pause-per-step"><input type="checkbox" id="pause-per-step">Fermati dopo ogni frase</label>
+      </div>
+      <div id="video-view" hidden>
+        <video id="lesson-video" controls playsinline preload="metadata" aria-label="Video completo Q, K, V"></video>
+        <p class="video-hint">Puoi aprire il video a schermo intero e ruotare il telefono. I sottotitoli sono in italiano.</p>
+        <a class="download-link" id="download-video" download>Scarica il video MP4</a>
+      </div>
+      <div id="text-view" hidden><ol class="transcript" id="transcript"></ol></div>
+      <section class="code-section" id="code-section" aria-labelledby="code-heading">
+        <div class="section-heading"><h2 id="code-heading">Il passaggio nel tuo codice</h2><a id="code-source" target="_blank" rel="noopener">Apri il file ↗</a></div>
+        <div class="code-lines" id="code-lines"></div>
+      </section>
+      <details class="source-details"><summary>Da dove viene questa spiegazione</summary><p>Le frasi sono riprese dai tuoi appunti. Le righe di codice provengono dall’implementazione attuale; gli schemi illustrano il meccanismo.</p><ul id="source-list"></ul><a href="../lezione/">Apri la lezione completa</a></details>
+      <audio id="lesson-audio" preload="metadata"></audio>
+    </section>
+    <aside class="tutor" aria-labelledby="tutor-title">
+      <div class="tutor-heading"><span class="tutor-mark" aria-hidden="true">P</span><div><h2 id="tutor-title">Parliamone insieme</h2><p id="tutor-status" role="status">Controllo il tutor…</p></div></div>
+      <p class="tutor-intro">Chiedi quello che non è chiaro. Il tutor usa i tuoi appunti e il codice del progetto.</p>
+      <div class="tutor-context" id="tutor-context">Passaggio corrente · Q, K, V</div>
+      <div class="messages" id="messages" role="log" aria-label="Conversazione con il tutor" aria-live="polite"><p class="empty-conversation" id="empty-conversation">Puoi dire «chi produce Q?» oppure «mostramelo nel codice».</p></div>
+      <div class="suggestions"><button type="button" disabled data-question="Rispiegami il passaggio corrente con parole semplici, una cosa alla volta.">Spiegamelo più semplice</button><button type="button" disabled data-question="Fammi una sola domanda su questo passaggio per vedere se ho capito.">Fammi una domanda</button></div>
+      <form id="question-form"><label for="question">La tua domanda</label><textarea id="question" rows="3" maxlength="2000" placeholder="Perché le query vengono dai latenti?"></textarea><div class="question-actions"><button id="send" class="primary-button" type="submit" disabled>Chiedi al tutor</button><button id="microphone" type="button" disabled><svg aria-hidden="true"><use href="icons.svg#mic"></use></svg><span>Parla</span></button><button id="stop-voice" type="button" hidden>Ferma la risposta</button></div></form>
+      <p class="voice-state" id="voice-state" role="status"></p>
+      <div class="voice-options"><label for="voice">Voce del tutor</label><select id="voice"><option value="im_nicola">Nicola</option><option value="if_sara">Sara</option></select><button id="sample-voice" type="button">Prova la voce</button></div>
+      <label class="read-reply"><input type="checkbox" id="read-reply" checked>Leggi le risposte a voce</label>
+      <details class="connection" id="connection"><summary>Collega il tutor del PC</summary><p>La lezione e il video funzionano anche senza il PC. Per parlare con l’AI locale, il PC deve restare acceso.</p><label for="connection-link">Link del tutor</label><input id="connection-link" type="url" placeholder="https://…trycloudflare.com/…"><button id="open-tutor-link" type="button">Apri il tutor</button><p class="connection-help">Sul PC avvia <code>strumenti/tutor/avvia-cellulare.ps1</code> per ottenere il link e il codice QR. Quando il collegamento si chiude, la conversazione vocale non è disponibile.</p><label for="connection-token">Codice di accesso, se richiesto</label><input id="connection-token" type="password" autocomplete="off"><button id="connect-token" type="button">Collega</button></details>
+      <audio id="tutor-audio" preload="none"></audio>
+    </aside>
+  </main>
+  <footer><span>Perceiver · Il tuo materiale di studio</span><a href="../lezione/">52 capitoli nella lezione originale</a></footer>
+</body>
+</html>

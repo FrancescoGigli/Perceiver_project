@@ -1,0 +1,166 @@
+{
+  "id": "qkv",
+  "title": "Q, K, V: domanda, etichetta, contenuto",
+  "duration": 53.557,
+  "audio": "qkv-nicola.mp3",
+  "video": "qkv.mp4",
+  "poster": "qkv-poster.svg",
+  "subtitles": "qkv.vtt",
+  "voice": "im_nicola",
+  "timingsVerified": true,
+  "diagramNote": "Schema didattico: pochi elementi disegnati, nessun peso numerico del modello.",
+  "sources": [
+    {
+      "path": "lezione/index.html",
+      "line": 270,
+      "label": "Cap. 1.2 · intuizione Q, K, V"
+    },
+    {
+      "path": "lezione/index.html",
+      "line": 237,
+      "label": "Cap. 1.2 · cross-attention"
+    },
+    {
+      "path": "progetto/src/perceiver/attention.py",
+      "line": 50,
+      "label": "Codice originale · CrossAttention.forward"
+    }
+  ],
+  "steps": [
+    {
+      "id": "query",
+      "stage": "query",
+      "text": "Q = una domanda (\"cosa sto cercando?\").",
+      "start": 0.45,
+      "end": 4.954,
+      "code": [
+        {
+          "line": 50,
+          "text": "q = self.q_proj(self.norm_attn(x_latent))"
+        }
+      ]
+    },
+    {
+      "id": "key",
+      "stage": "key",
+      "text": "K = un'etichetta (\"io rappresento questo\").",
+      "start": 4.954,
+      "end": 9.767,
+      "code": [
+        {
+          "line": 51,
+          "text": "k, v = self.kv_proj(self.norm_input(x_input)).chunk(2, dim=-1)"
+        }
+      ]
+    },
+    {
+      "id": "value",
+      "stage": "value",
+      "text": "V = il contenuto informativo.",
+      "start": 9.767,
+      "end": 13.65,
+      "code": [
+        {
+          "line": 51,
+          "text": "k, v = self.kv_proj(self.norm_input(x_input)).chunk(2, dim=-1)"
+        }
+      ]
+    },
+    {
+      "id": "scores",
+      "stage": "scores",
+      "text": "L'attenzione confronta ogni domanda con tutte le etichette",
+      "start": 13.65,
+      "end": 19.433,
+      "code": [
+        {
+          "line": 57,
+          "text": "dots = torch.einsum(\"b h i d, b h j d -> b h i j\", q, k) * self.scale"
+        }
+      ]
+    },
+    {
+      "id": "weights",
+      "stage": "weights",
+      "text": "e restituisce una media pesata dei contenuti più pertinenti.",
+      "start": 19.433,
+      "end": 25.696,
+      "code": [
+        {
+          "line": 62,
+          "text": "attn = dots.softmax(dim=-1)"
+        },
+        {
+          "line": 63,
+          "text": "out = torch.einsum(\"b h i j, b h j d -> b h i d\", attn, v)"
+        }
+      ]
+    },
+    {
+      "id": "query-source",
+      "stage": "query",
+      "text": "Le Query Q vengono dai latenti L (sono solo N, pochi).",
+      "start": 25.696,
+      "end": 31.637,
+      "code": [
+        {
+          "line": 50,
+          "text": "q = self.q_proj(self.norm_attn(x_latent))"
+        }
+      ]
+    },
+    {
+      "id": "input-source",
+      "stage": "read",
+      "text": "Le Key K e i Value V continuano a venire dall'input X (sono M, tanti).",
+      "start": 31.637,
+      "end": 39.335,
+      "code": [
+        {
+          "line": 51,
+          "text": "k, v = self.kv_proj(self.norm_input(x_input)).chunk(2, dim=-1)"
+        }
+      ]
+    },
+    {
+      "id": "matrix",
+      "stage": "scores",
+      "text": "Il prodotto QKᵀ diventa una matrice rettangolare N×M.",
+      "start": 39.335,
+      "end": 47.4,
+      "code": [
+        {
+          "line": 57,
+          "text": "dots = torch.einsum(\"b h i d, b h j d -> b h i j\", q, k) * self.scale"
+        }
+      ]
+    },
+    {
+      "id": "cost",
+      "stage": "output",
+      "text": "Il costo crolla da O(M²) a O(MN).",
+      "start": 47.4,
+      "end": 53.557,
+      "code": [
+        {
+          "line": 63,
+          "text": "out = torch.einsum(\"b h i j, b h j d -> b h i d\", attn, v)"
+        }
+      ]
+    }
+  ],
+  "voiceEngine": "Kokoro 82M ONNX · voce italiana im_nicola",
+  "speechSpeed": 0.78,
+  "voiceSamples": [
+    {
+      "id": "im_nicola",
+      "name": "Nicola",
+      "file": "sample-nicola.mp3"
+    },
+    {
+      "id": "if_sara",
+      "name": "Sara",
+      "file": "sample-sara.mp3"
+    }
+  ]
+}
