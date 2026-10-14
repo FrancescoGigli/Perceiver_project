@@ -14,7 +14,7 @@ Sul PC già configurato:
 ```
 
 Apri <http://localhost:8765/sito/studio/>. Ollama deve essere avviato con il modello
-`qwen35-9b-gpu20:latest`. La prima risposta può richiedere il caricamento del modello.
+`qwen3.5:9b` dal registro ufficiale Ollama. La prima risposta può richiedere il caricamento del modello.
 Un errore viene mostrato come errore: il server non simula risposte dell’AI.
 Il laboratorio propone anche tre esercizi verificabili senza modello: origine
 di Q, peso maggiore e differenza tra pesi e contenuti. Il tutor riceve i numeri
@@ -27,6 +27,22 @@ Le animazioni riusano i laboratori originali della lezione. Le 285 autoverifiche
 sono domande aperte: il bot commenta il ragionamento usando la risposta originale,
 senza presentare la valutazione AI come una verifica matematica. Il capitolo 52
 è bibliografico e non contiene un’autoverifica originale.
+
+Nella stessa pagina del tutor puoi caricare il video esportato del capitolo e
+fermarlo sul passaggio che non è chiaro. **Spiegami questo passaggio** chiede
+al modello locale una spiegazione nuova: il problema risolto, il perché del
+meccanismo e un piccolo esempio didattico, collegati agli appunti e al codice
+verificati. Quando è pertinente, il tutor nomina la funzione e l'operazione
+effettivamente presenti nello snippet e ne descrive l'effetto. Gli esempi
+numerici specificano cosa contano: le matrici di attention contano confronti
+orientati, incluso quello di un elemento con sé stesso, non coppie uniche.
+Se la fonte è `PerceiverEncoder.forward`, il contesto include anche gli helper
+reali di lettura dell'input e di elaborazione dei latenti, con riferimenti alle
+righe. La baseline teorica M² resta distinta dalla cross-attention N×M e dal
+ragionamento sui latenti N².
+Il testo originale resta una fonte separata. Il tutor propone una
+sola domanda originale pertinente, quando disponibile, e commenta la risposta
+prima di passare oltre. Non genera nuovo parlato né avvia il video da solo.
 
 Il copione e il comando per l’esportazione futura dei capitoli sono descritti in
 `strumenti/studio_media/COURSE_EXPORT.md`. Il percorso non avvia la generazione
@@ -122,13 +138,24 @@ Python 3.10+, `pip install -r strumenti/tutor/requirements.txt`, Ollama con un
 modello locale e FFmpeg per Whisper. Whisper usa il modello `small.pt` già presente
 in `~/.cache/whisper/`; se manca, installarlo prima di registrare. Usa CPU per non
 occupare la GPU del tutor. Per cambiare modello imposta `TUTOR_MODEL`.
+
+Il modello predefinito si installa dal registro ufficiale:
+
+```powershell
+ollama pull qwen3.5:9b
+```
+
+I modelli già installati restano sul PC. `TUTOR_MODEL` può selezionare un altro
+modello locale senza cambiare il codice.
 Le richieste Ollama usano un contesto di 6144 token, risposte JSON strutturate e
 `TUTOR_NUM_GPU=33` per caricare tutti i layer del modello attuale sulla RTX 3080.
-Il nome del modello resta lo stesso; il parametro supera il vecchio limite di
-20 layer senza modificare il modello salvato. Su altri PC puoi impostare
+Il parametro supera il vecchio limite di 20 layer senza modificare il modello
+salvato. Su altri PC puoi impostare
 `TUTOR_NUM_GPU` in base alla memoria GPU disponibile.
 Il percorso completo usa un contesto di 4096 token e batch da 128, con fonti
 e storia più brevi, per lasciare memoria GPU alle applicazioni grafiche del PC.
+La modalità coach usa 6144 token per conservare anche gli helper del codice,
+il collegamento causale e la storia; la spiegazione resta entro circa 90 parole.
 Il laboratorio Q/K/V conserva la configurazione precedente.
 
 La voce neurale italiana Kokoro usa un ambiente separato, installato fuori dal
@@ -215,12 +242,22 @@ il codice iniziale tramite variabile ambiente `TUTOR_TOKEN`, mai nel codice Git.
   `course_step:"cN-sM"`. Il tutor usa le fonti del capitolo selezionato e mantiene
   una storia distinta per capitolo. Le azioni hanno `{scene:"course",chapter,step}`
   e puntano solo a ID reali del capitolo.
-  `mode:"quiz"` apre una domanda originale, con `type:"open"` e `options:[]`.
+  `mode:"quiz"` apre una domanda originale pertinente al passo corrente, con
+  `type:"open"` e `options:[]`; se manca restituisce un errore esplicito.
   Per commentare una risposta usa `mode:"feedback"`, `quiz_id` e `quiz_answer`.
   Il feedback aperto contiene `correct:null`, `assessment:"review"`, la risposta
   originale in `expected` e il commento AI in `explanation`.
   La pagina può selezionare direttamente una domanda originale con
   `course_question:"cN-qM"`, anche come `quiz_id` per chiedere il commento.
+  `mode:"coach"` usa il vero modello Ollama per spiegare il perché del passo
+  selezionato con un esempio dichiarato didattico, entro circa 90 parole.
+  Restituisce gli stessi campi, con `engine:"local_model"` e una sola `quiz`
+  originale scelta per rilevanza al concetto; `quiz:null` se non è disponibile.
+  La domanda mantiene `lesson_id`, mentre `id` identifica lo snapshot della
+  sessione. Il suo commento usa `mode:"feedback"` con quel `quiz_id` e lo stesso
+  `session_id`. In modalità coach l'azione può mostrare solo il passo corrente:
+  non fa avanzare lo studente e non chiama la sintesi vocale. Un guasto di Ollama
+  resta un errore esplicito, senza sostituire la spiegazione con una lettura.
 - `POST /api/transcribe`: corpo audio grezzo con `Content-Type: audio/webm`
   (anche WAV, MP4, Ogg e MP3); risposta `{text}`. Massimo 8 MiB e 90 secondi.
 - `POST /api/tts`: JSON `{text, voice?}`; risposta `audio/wav`, voci italiane

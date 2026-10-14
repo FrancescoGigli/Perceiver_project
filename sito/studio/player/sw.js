@@ -1,6 +1,6 @@
 /* Only the player shell is cached. Access codes, API responses and media never are. */
 "use strict";
-const CACHE = "perceiver-player-shell-v4";
+const CACHE = "perceiver-player-shell-v5";
 const SHELL = ["./", "index.html", "player.css", "commands.js", "player.js", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "icon-180.png"].map(path => new URL(path, self.location.href).href);
 self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting())));
 self.addEventListener("activate", event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith("perceiver-player-shell-") && key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));

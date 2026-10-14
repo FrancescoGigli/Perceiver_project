@@ -8,3 +8,7 @@
 .message-sources a{color:var(--primary)}
 .view-switch .player-link{display:inline-flex;align-items:center;min-height:44px;padding:9px 13px;border:1px solid var(--line);border-radius:7px;background:var(--paper);font-size:13px;text-decoration:none}
 .view-switch .player-link:hover{background:var(--primary-softer)}
+#course-player{display:block;width:100%;height:540px;border:0;border-radius:8px;background:var(--paper)}
+.video-tutor-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:14px 0 10px}.video-tutor-actions button,.video-tutor-actions a{font-size:13px}.video-tutor-actions a{padding:9px 0}
+@media(max-width:760px){#course-player{height:510px}.video-tutor-actions button{flex:1}.video-tutor-actions a{flex-basis:100%}.tutor{scroll-margin-top:16px}}
+.video-example{margin-top:20px;padding-top:18px;border-top:1px solid var(--line);scroll-margin-top:16px}.video-example>.section-heading{align-items:center}.video-example>.section-heading h2{font-size:16px;line-height:1.5}.video-example>.section-heading button{font-size:12px}.video-example .course-animation{margin-bottom:18px}.video-example .course-code-section{margin-bottom:0}

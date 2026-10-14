@@ -34,7 +34,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "strumenti" / "studio_media"))
 import elevenlabs_tts
 OLLAMA_URL = "http://127.0.0.1:11434"
-MODEL = os.environ.get("TUTOR_MODEL", "qwen35-9b-gpu20:latest")
+MODEL = os.environ.get("TUTOR_MODEL", "qwen3.5:9b")
 NUM_GPU = int(os.environ.get("TUTOR_NUM_GPU", "33"))
 REMOTE = os.environ.get("TUTOR_REMOTE") == "1"
 LAN = os.environ.get("TUTOR_LAN") == "1"
@@ -319,7 +319,7 @@ class ChatInput(BaseModel):
     session_id: str | None = Field(default=None, max_length=64)
     lab: LabState | None = None
     interaction: LabInteraction | None = None
-    mode: Literal["explain", "quiz", "feedback"] = "explain"
+    mode: Literal["explain", "quiz", "feedback", "coach"] = "explain"
     quiz_answer: str | None = Field(default=None, max_length=1800)
     quiz_id: str | None = Field(default=None, max_length=64)
     chapter: int | None = Field(default=None, ge=1, le=52, strict=True)
@@ -328,6 +328,8 @@ class ChatInput(BaseModel):
 
     @model_validator(mode="after")
     def math_answer_needs_lab(self):
+        if self.mode == "coach" and self.scene != "course":
+            raise ValueError("La spiegazione guidata usa il capitolo e il passo del corso.")
         if self.scene == "course" and (self.lab is not None or self.interaction is not None):
             raise ValueError("Il corso usa il capitolo selezionato, non lo stato del laboratorio Q/K/V.")
         if self.interaction is not None and self.interaction.stage == 1 and self.interaction.lastAnswer is not None and self.lab is None:
@@ -785,6 +787,15 @@ Restituisci JSON con answer (spiegazione italiana in testo semplice) e action (o
 """
 
 
+COACH_SYSTEM = """MODALITÀ SPIEGAZIONE GUIDATA: il video e gli appunti sono già disponibili; lo studente ti chiede di capire, non di sentirli leggere.
+Elabora UNA idea del passo attuale, entro 90 parole e 4–5 frasi brevi. Parti dal problema concreto che risolve. Spiega il PERCHÉ e il legame causa-effetto: che cosa cambierebbe togliendo quel meccanismo o modificando una sola quantità. Quando il codice fornito è pertinente, nomina una funzione o un simbolo verificato e una sua operazione visibile, poi spiega concretamente che effetto produce. 'Nel codice' senza dire quale operazione non basta. Non inventare snippet, funzioni, matrici o moduli per un capitolo teorico.
+Usa un piccolo esempio o un'analogia nuova per rendere visibile quel legame. Introducila esplicitamente con 'Esempio didattico' o 'Immagina': i suoi numeri e personaggi sono illustrativi, non risultati del progetto o parole dell'autore. Se fai un conto, definisci cosa stai contando e verifica che la formula conti proprio quella quantità. Nell'attention una matrice di confronti conta coppie orientate, includendo il confronto di ciascun elemento con sé stesso: una tabella con 4 righe e 4 colonne contiene 4×4=16 confronti, con 8 righe e 8 colonne 8×8=64. Preferisci questa matrice ad analogie fisiche. Questo è un esempio per quel meccanismo, non da riusare in tutti i capitoli. Evita abbracci o strette di mano: le coppie uniche fra persone hanno un conteggio diverso. Non inventare dati di training né usare i numeri del paper come configurazione delle run.
+Distingui il problema teorico dalla soluzione nel codice mostrato. La self-attention sull'intero input costa M²; non attribuire questa matrice a un encoder Perceiver soltanto perché è fornito il suo forward. Per descrivere la soluzione, segui le chiamate realmente visibili: quali dati entrano, quali operazioni vengono eseguite e quale stato viene aggiornato. Non affermare che nello snippet si costruisce una matrice se quel calcolo non è visibile.
+Non trascrivere il passo, non farne soltanto un riassunto o una parafrasi e non leggere tutta la soluzione di autoverifica. Le citazioni esatte e le cautele delle fonti restano attribuite. Se le fonti non sostengono una causa, dichiarane il limite.
+Se è fornita una domanda originale da mostrare separatamente, prepara lo studente a ragionarci ma non aggiungere o ripetere domande nella spiegazione. Non avanzare al passo successivo: prima ascolta e commenta la risposta dello studente. Le uniche azioni ammesse sono null o mostrare lo stesso passo attuale.
+"""
+
+
 def course_selection(data: ChatInput):
     """Gli ID e le fonti provengono dall'estrattore, mai da campi del browser."""
     from course_content import get_chapter, load_course
@@ -846,6 +857,38 @@ def course_turn_schema(chapter, step=None):
 def nearby_course_steps(chapter, step):
     index = chapter["steps"].index(step)
     return chapter["steps"][max(0, index - 2):index + 3]
+
+
+def teaching_question(chapter, step, question_id=None):
+    """Sceglie una verifica originale sul concetto, non una domanda a rotazione.
+
+    Gli stepId di molte Q&A indicano il blocco finale prima dell'autoverifica:
+    da soli non descrivono quale idea venga verificata. Usiamo il testo originale
+    del passo e della domanda, senza lasciare che il modello inventi una verifica.
+    """
+    questions = chapter.get("quiz", [])
+    if question_id is not None:
+        return next((item for item in questions if item["id"] == question_id), None)
+    generic = {"perche", "questo", "questa", "quello", "quella", "anche", "piu", "solo", "tutti", "ogni",
+               "serve", "vuol", "dire", "spiega", "lezione", "capitolo", "progetto", "modello", "paper",
+               "fa", "fanno", "essere", "ha", "hanno", "puo", "possono", "stesso", "stessa", "senza"}
+    terms = {term for term in retrieval_terms(step["text"]) - generic if len(term) > 2 or term.isdigit() or term in {"q", "k", "v"}}
+    title_terms = {term for term in words(step["title"]) - generic if len(term) > 2}
+    frequency = Counter(term for item in questions for term in words(item["question"] + " " + item.get("expected", "")))
+    scored = []
+    for question in questions:
+        question_terms = words(question["question"])
+        reference_terms = words(question.get("expected", ""))
+        matched = terms & (question_terms | reference_terms)
+        if not matched:
+            continue
+        # Un concetto raro discrimina meglio di termini comuni al capitolo;
+        # il testo attuale ha priorità sul titolo ripetuto di una sezione.
+        score = sum(1 / frequency.get(term, 1) for term in matched)
+        score += sum(1 / frequency.get(term, 1) for term in terms & question_terms)
+        score += 0.25 * len(title_terms & question_terms)
+        scored.append((score, question))
+    return max(scored, key=lambda item: item[0])[1] if scored else None
 
 
 def course_guidance_requested(message):
@@ -933,12 +976,58 @@ async def course_chat(data: ChatInput):
                     f"RISPOSTA ORIGINALE DI CONFRONTO: {question.get('expected', '')}\n")
     base = {"session_id": session_id, "sources": sources, "action": None, "quiz": None, "feedback": None}
     if data.mode == "quiz":
-        quiz = make_course_quiz(session, chapter, step, data.course_question)
+        question = teaching_question(chapter, step, data.course_question)
+        if question is None:
+            raise TutorError(404, "COURSE_QUIZ_UNAVAILABLE", "In questo passo non è disponibile una domanda originale pertinente di autoverifica.")
+        quiz = make_course_quiz(session, chapter, step, question["id"])
         remember_course(session, chapter["id"], data.message, quiz["question"])
         return {**base, "answer": quiz["question"], "quiz": quiz, "engine": "activity"}
     assessment = None
     message = data.message.strip()
     model_step = step
+    coach_question = None
+    if data.mode == "coach":
+        shown_code = [code for code in (step.get("code") or chapter.get("code", [])) if code.get("symbol") and any(
+            source["path"] == "/" + code["path"].lstrip("/") and source.get("line_start") == code["start"]
+            for source in sources)]
+        if any(code["symbol"] == "PerceiverEncoder.forward" for code in shown_code):
+            from course_content import code_excerpt
+            try:
+                helpers = [code_excerpt(ROOT, "progetto/src/perceiver/encoder.py", symbol) for symbol in
+                           ("PerceiverEncoder._apply_cross", "PerceiverEncoder._apply_latent_stage")]
+            except (OSError, ValueError, SyntaxError):
+                raise TutorError(503, "COURSE_SOURCE_UNAVAILABLE", "Gli helper dell'encoder non sono disponibili nelle fonti attuali. Controlla il codice del progetto.")
+            for code in helpers:
+                numbered = "\n".join(f"{number}: {line}" for number, line in enumerate(code["text"].splitlines(), code["start"]))
+                context += f"\nHELPER REALE {code['path']} · {code['symbol']}:\n{numbered}\n"
+                sources.append({"path": "/" + code["path"], "label": "Codice originale · " + code["symbol"],
+                                "line_start": code["start"], "line_end": code["end"]})
+            shown_code.extend(helpers)
+            formula = next((item for item in chapter["steps"] if "O(M^2)" in item["text"] and "O(MN)" in item["text"]), None)
+            if (formula is not None and "cross(latents, data" in helpers[0]["text"]
+                    and "latents = block(latents)" in helpers[1]["text"]):
+                context += (f"\nFORMULA ORIGINALE DEL CAPITOLO: {formula['text']}\n"
+                            "COLLEGAMENTO FRA QUESTE FONTI: M sono gli elementi di data, N i latenti. M² descrive la baseline self-attention sull'intero input. "
+                            "_apply_cross chiama cross(latents, data): N latenti leggono M elementi, quindi N×M, non M². "
+                            "_apply_latent_stage chiama block(latents) senza data: la self-attention lavora sui N latenti, quindi N². "
+                            "Immaginando di togliere la lettura cross, qui i latenti non ricevono il contenuto di data. Non attribuire M² a _apply_cross.\n")
+                sources.append({"path": f"/sito/lezione/#{chapter['anchor']}", "label": "Formula originale · " + formula["id"],
+                                "line_start": formula["source"]["line"]})
+        if shown_code:
+            context += "\nSIMBOLI VERIFICATI NEGLI SNIPPET FORNITI: " + json.dumps([
+                {"path": code["path"], "symbol": code["symbol"]} for code in shown_code
+            ], ensure_ascii=False) + "\n"
+        coach_question = teaching_question(chapter, step, data.course_question)
+        if coach_question is not None:
+            context += (f"\nDOMANDA ORIGINALE CHE L'APP MOSTRA DOPO LA SPIEGAZIONE: {coach_question['question']}\n"
+                        f"RIFERIMENTO ORIGINALE PER PREPARARE IL CONCETTO: {coach_question.get('expected', '')}\n"
+                        "La domanda è separata: spiega il meccanismo necessario per ragionarci, senza leggerne tutta la risposta.\n")
+            source = coach_question.get("source", {})
+            base["sources"] = [*sources, {"path": f"/sito/lezione/#{chapter['anchor']}",
+                                          "label": "Autoverifica originale · " + coach_question["id"],
+                                          "line_start": source.get("line")}]
+        else:
+            context += "\nNon è disponibile una domanda originale pertinente a questo passo. Non inventare un'autoverifica.\n"
     if data.mode == "explain" and course_guidance_requested(message) and chapter.get("quiz"):
         quiz = make_course_quiz(session, chapter, step, data.course_question)
         base["quiz"] = quiz
@@ -971,15 +1060,29 @@ async def course_chat(data: ChatInput):
         raise TutorError(429, "TUTOR_BUSY", "Il tutor sta rispondendo. Aspetta qualche secondo.")
     async with generation_lock:
         history = session.get("course_history", {}).get(chapter["id"], [])
-        messages = [{"role": "system", "content": COURSE_SYSTEM + "\n\n" + context}, *history,
+        system = COURSE_SYSTEM + ("\n" + COACH_SYSTEM if data.mode == "coach" else "")
+        schema = course_turn_schema(chapter, model_step)
+        if data.mode == "coach":
+            schema["properties"]["action"]["anyOf"][1]["properties"]["step"] = {"const": step["id"]}
+        messages = [{"role": "system", "content": system + "\n\n" + context}, *history,
                     {"role": "user", "content": message}]
         result = await asyncio.to_thread(ollama_request, "/api/chat", {
-            "model": MODEL, "messages": messages, "format": course_turn_schema(chapter, model_step), "stream": False,
+            "model": MODEL, "messages": messages, "format": schema, "stream": False,
             "think": False, "keep_alive": "10m", "options": {
-                "temperature": 0.2, "num_predict": 460, "num_ctx": 4096, "num_batch": 128, "num_gpu": NUM_GPU,
+                "temperature": 0.2, "num_predict": 360 if data.mode == "coach" else 460,
+                "num_ctx": 6144 if data.mode == "coach" else 4096, "num_batch": 128, "num_gpu": NUM_GPU,
             },
         }, 150)
         answer, action = parse_turn(result, lambda action: valid_course_action(action, chapter))
+        if data.mode == "coach":
+            # Il server non consente di saltare una verifica ancora da discutere.
+            if action is not None and action["step"] != step["id"]:
+                action = None
+            answer = preserve_reference_limits(answer, step["text"])
+            if coach_question is not None:
+                answer = preserve_reference_limits(answer, coach_question.get("expected", ""))
+                # Una generazione fallita non lascia una nuova domanda fantasma.
+                base["quiz"] = make_course_quiz(session, chapter, step, coach_question["id"])
         if assessment is not None:
             answer = preserve_reference_limits(answer, quiz["expected"])
         remember_course(session, chapter["id"], message, answer)

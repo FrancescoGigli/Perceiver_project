@@ -361,7 +361,7 @@ class TutorContractTests(unittest.TestCase):
             return {"message": {"content": json.dumps({"answer": "La tua risposta va confrontata con la formula: considera anche K e V.", "action": None})}}
 
         with patch.object(tutor, "ollama_request", reply):
-            asked = self.course_question(5, mode="quiz").json()
+            asked = self.course_question(5, mode="quiz", course_question=original["id"]).json()
             self.assertEqual(captured, [])
             self.assertEqual(asked["quiz"]["question"], original["question"])
             self.assertEqual(asked["quiz"]["type"], "open")

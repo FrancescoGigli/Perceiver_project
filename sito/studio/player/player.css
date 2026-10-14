@@ -7,3 +7,4 @@
 @media(max-width:600px){.site-header{padding:15px 14px}.workspace{padding:10px 14px 24px}.primary-controls{gap:8px}.options-controls>label{margin-right:0}input,select{font-size:16px}.inline-fields button{padding-left:10px;padding-right:10px}.scene-heading{font-size:11px}.local-files input{font-size:12px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 #voice-preview{display:block;width:100%;margin-top:12px}
+.embedded-player{background:var(--paper)}.embedded-player .site-header,.embedded-player #lesson-title,.embedded-player .skip-link{display:none}.embedded-player .workspace{max-width:none;padding:0 0 10px}.embedded-player .player-options{margin-top:12px}
