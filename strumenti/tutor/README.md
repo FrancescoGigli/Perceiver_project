@@ -42,6 +42,12 @@ Non genera altri capitoli e non avvia la riproduzione automaticamente.
 La schermata principale mostra il video, **Riproduci** e **Parla**. Capitoli,
 controlli aggiuntivi, file locali e collegamento al PC sono nel menu **Opzioni**.
 
+In **Opzioni → Prova voce ElevenLabs**, **Carica campione** carica l'MP3
+`cap-01-voce-elevenlabs.mp3` dalla stessa cartella dei video. Premi poi il
+controllo audio per ascoltarlo: caricamento e riproduzione sono manuali.
+È una prova separata; la voce dei video e del tutor resta quella attuale.
+Il player usa il file già generato e non accede all'account ElevenLabs.
+
 Dal player puoi usare Play/Pausa, saltare di dieci secondi, tornare al
 passaggio precedente, ripetere una frase, cambiare velocità e attivare i
 sottotitoli. Per la voce premi **Parla**, pronuncia il comando, poi termina
@@ -148,6 +154,8 @@ il codice iniziale tramite variabile ambiente `TUTOR_TOKEN`, mai nel codice Git.
 - `GET` / `HEAD /api/videos/cap-NN.mp4`: media protetti con richieste byte
   Range per la ricerca nel video. Sono serviti anche `cap-NN.vtt`, `cap-NN.srt`
   e `cap-NN-piano.json` della stessa cartella dedicata; nessun altro file Downloads.
+  È ammesso anche il solo campione `cap-01-voce-elevenlabs.mp3`, con le stesse
+  protezioni e supporto Range; gli altri MP3 non sono esposti.
   `--video-dir` permette di scegliere un'altra cartella di esportazione.
 - `POST /api/chat`: JSON `{message, scene:"qkv", step:0, session_id?, lab?,
   mode?:"explain"|"quiz"|"feedback", quiz_id?, quiz_answer?, interaction?}`. `lab` contiene

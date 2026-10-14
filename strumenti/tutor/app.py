@@ -41,6 +41,7 @@ MEDIA_COOKIE = "perceiver_media"
 MEDIA_SECRET = secrets.token_bytes(32)
 MEDIA_SESSION_SECONDS = 8 * 60 * 60
 VIDEO_NAME = re.compile(r"cap-(0[1-9]|[1-4][0-9]|5[0-2])(?:\.(mp4|vtt|srt)|-piano\.json)\Z")
+VOICE_PREVIEW_NAME = "cap-01-voce-elevenlabs.mp3"
 VOICE_CACHE = Path(os.environ.get("LOCALAPPDATA", str(Path.home() / ".cache"))) / "PerceiverTutor"
 DEFAULT_RUNTIME = VOICE_CACHE / "voice"
 try:
@@ -150,7 +151,7 @@ async def clear_media_session(request: Request):
 
 def video_file(filename: str) -> Path:
     """Solo esportazioni note nella cartella dedicata, incluse verifiche dei link simbolici."""
-    if not VIDEO_NAME.fullmatch(filename):
+    if not VIDEO_NAME.fullmatch(filename) and filename != VOICE_PREVIEW_NAME:
         raise TutorError(404, "VIDEO_NOT_FOUND", "Questo file video non è disponibile.")
     try:
         directory = VIDEO_DIR.resolve()
@@ -237,7 +238,7 @@ async def serve_video(request: Request, filename: str):
     size = path.stat().st_size
     headers = {"Accept-Ranges": "bytes", "Cache-Control": "private, no-store"}
     media_type = {".mp4": "video/mp4", ".vtt": "text/vtt; charset=utf-8", ".srt": "application/x-subrip",
-                  ".json": "application/json"}[path.suffix]
+                  ".json": "application/json", ".mp3": "audio/mpeg"}[path.suffix]
     start, end, status = 0, size - 1, 200
     if request.headers.get("range"):
         try:

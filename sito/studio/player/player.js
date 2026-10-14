@@ -2,6 +2,7 @@
   "use strict";
   const $ = id => document.getElementById(id);
   const video = $("lesson-video");
+  const voicePreview = $("voice-preview");
   const commands = window.PerceiverPlayerCommands;
   const rememberKey = "perceiver-player-remembered-token";
   const sessionKey = "perceiver-tutor-token";
@@ -10,6 +11,9 @@
   let recorder = null, recordingStream = null, recordingTimer = null, recordingTicker = null;
   let blobVideoUrl = null, blobSubtitleUrl = null, captionsEnabled = false, loadVersion = 0;
   let restoreTime = 0, lastSaved = 0, pageClosing = false, installPrompt = null;
+  let previewLoading = false, previewVersion = 0;
+  let disconnecting = false, connectionVersion = 0;
+  const mediaSessionRequests = new Set();
 
   function storageGet(storage, key) { try { return storage.getItem(key); } catch (_) { return null; } }
   function storageSet(storage, key, value) { try { storage.setItem(key, value); } catch (_) {} }
@@ -41,7 +45,7 @@
       const response = await fetch(path, { credentials: "same-origin", cache: "no-store", ...options, signal: controller.signal });
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) throw new Error("Inserisci il codice di accesso del tutor in Collega il PC.");
-        if (response.status === 404) throw new Error("Questo link non ha il server del PC. Apri il link HTTPS del tutor oppure scegli un MP4 sul telefono.");
+        if (response.status === 404) throw Object.assign(new Error("Questo link non ha il server del PC. Apri il link HTTPS del tutor oppure scegli un MP4 sul telefono."), { status: 404 });
         let detail;
         try { detail = await response.json(); } catch (_) {}
         const message = detail && (detail.error || detail.detail);
@@ -54,6 +58,13 @@
       throw error;
     } finally { clearTimeout(timer); }
   }
+  async function createMediaSession() {
+    if (disconnecting || pageClosing) throw new Error("PC scollegato.");
+    const pending = request("/api/media-session", { method: "POST", headers: headers("application/json"), body: "{}" });
+    mediaSessionRequests.add(pending);
+    try { return await pending; }
+    finally { mediaSessionRequests.delete(pending); }
+  }
   function mediaPath(value) {
     const url = new URL(String(value || ""), location.origin);
     if (url.origin !== location.origin || !/^\/api\/videos\/cap-\d{2}\.(?:mp4|vtt)$|^\/api\/videos\/cap-\d{2}-piano\.json$/.test(url.pathname) || url.search || url.hash) throw new Error("Il catalogo contiene un percorso video non valido.");
@@ -62,7 +73,7 @@
   function hasVideo() { return Boolean(activeVideo && video.getAttribute("src")); }
   function hasScenes() { return Boolean(plan && plan.scenes.length); }
   function updateButtons() {
-    const loaded = hasVideo();
+    const loaded = hasVideo() && !disconnecting;
     document.querySelectorAll("[data-media]").forEach(button => { button.disabled = !loaded; });
     $("play-pause").textContent = video.paused ? "Riproduci" : "Pausa";
     $("previous-step").disabled = !loaded || !hasScenes() || sceneIndex <= 0;
@@ -72,7 +83,44 @@
     $("captions").setAttribute("aria-pressed", String(captionsEnabled));
     $("microphone").disabled = !loaded || !connected || !transcribeAvailable || transcribing || requestingMicrophone;
     $("execute").disabled = transcribing || requestingMicrophone || Boolean(recorder && recorder.state === "recording");
-    $("refresh").disabled = checking;
+    $("refresh").disabled = checking || disconnecting;
+    $("load-voice-preview").disabled = !connected || checking || previewLoading || pageClosing || disconnecting;
+    $("disconnect").disabled = disconnecting;
+    $("connection-form").querySelector("button[type=submit]").disabled = disconnecting;
+  }
+  function clearVoicePreview() {
+    previewVersion++;
+    previewLoading = false;
+    voicePreview.pause();
+    voicePreview.removeAttribute("src");
+    voicePreview.load();
+    voicePreview.hidden = true;
+    $("voice-preview-state").textContent = connected ? "Carica il campione quando vuoi provarlo." : "Collega il PC per caricare il campione.";
+    updateButtons();
+  }
+  async function loadVoicePreview() {
+    if (!connected || previewLoading || checking || pageClosing || disconnecting) return;
+    const version = ++previewVersion, previewToken = token;
+    previewLoading = true;
+    $("voice-preview-state").textContent = "Carico il campione dal PC…";
+    updateButtons();
+    try {
+      await createMediaSession();
+      if (version !== previewVersion || pageClosing || !connected || token !== previewToken) return;
+      const response = await request("/api/videos/cap-01-voce-elevenlabs.mp3", { method: "HEAD", headers: headers() });
+      if (version !== previewVersion || pageClosing || !connected || token !== previewToken) return;
+      if ((response.headers.get("Content-Type") || "").split(";")[0] !== "audio/mpeg") throw new Error("Il campione vocale non è disponibile in formato MP3.");
+      voicePreview.pause();
+      voicePreview.src = "/api/videos/cap-01-voce-elevenlabs.mp3";
+      voicePreview.hidden = false;
+      voicePreview.load();
+      $("voice-preview-state").textContent = "Campione pronto. Tocca il controllo audio per ascoltarlo.";
+    } catch (error) {
+      if (version !== previewVersion || pageClosing || token !== previewToken) return;
+      $("voice-preview-state").textContent = error.status === 404 ? "Il campione ElevenLabs non è ancora disponibile sul PC." : error.message;
+    } finally {
+      if (version === previewVersion) { previewLoading = false; updateButtons(); }
+    }
   }
   function saveProgress(force = false) {
     if (!hasVideo() || !Number.isFinite(video.currentTime) || video.currentTime < 0) return;
@@ -169,11 +217,12 @@
     }
   }
   async function loadRemote(id) {
+    if (!connected || disconnecting || pageClosing) return;
     const item = catalog.find(value => value.id === id);
     if (!item) return;
     const version = ++loadVersion;
     try {
-      await request("/api/media-session", { method: "POST", headers: headers("application/json"), body: "{}" });
+      await createMediaSession();
       if (version !== loadVersion) return;
       setVideo(item, item.videoUrl);
       if (item.subtitlesUrl) attachSubtitles(item.subtitlesUrl);
@@ -191,7 +240,8 @@
     }
   }
   async function checkConnection() {
-    if (checking) return;
+    if (checking || disconnecting || pageClosing) return;
+    const version = ++connectionVersion, connectionToken = token;
     checking = true;
     $("connection-state").textContent = "Controllo la connessione al PC…";
     updateButtons();
@@ -201,9 +251,11 @@
         request("/api/videos", { headers: headers() })
       ]);
       const [status, data] = await Promise.all([statusResponse.json(), catalogResponse.json()]);
+      if (version !== connectionVersion || disconnecting || pageClosing || token !== connectionToken) return;
       if (!data || !Array.isArray(data.videos)) throw new Error("Il catalogo video del PC non è disponibile.");
       catalog = data.videos.filter(item => item && /^cap-\d{2}$/.test(item.id) && typeof item.title === "string" && Number.isInteger(item.chapter) && item.chapter >= 1 && item.chapter <= 52).map(item => ({ ...item, videoUrl: mediaPath(item.videoUrl), subtitlesUrl: item.subtitlesUrl ? mediaPath(item.subtitlesUrl) : null, planUrl: mediaPath(item.planUrl) }));
       connected = true;
+      if (!voicePreview.getAttribute("src")) $("voice-preview-state").textContent = "Carica il campione quando vuoi provarlo.";
       transcribeAvailable = Boolean(status.transcribe && status.transcribe.available);
       $("connection-state").textContent = "PC collegato" + (transcribeAvailable ? " · Whisper locale pronto." : " · Whisper non è pronto: usa i controlli o i comandi scritti.");
       $("voice-state").textContent = transcribeAvailable ? "Tocca Parla, pronuncia un comando, poi Invia comando." : "Voce non disponibile. Usa i pulsanti o un comando scritto in Opzioni.";
@@ -218,13 +270,16 @@
       $("catalog-state").textContent = catalog.length ? catalog.length + (catalog.length === 1 ? " capitolo generato. I video si caricano dal PC." : " capitoli generati. I video si caricano dal PC.") : "I capitoli appariranno qui quando saranno generati. Puoi anche aprire un MP4 sul telefono.";
       if (catalog.length && (!activeVideo || !activeVideo.local)) await loadRemote($("chapter").value);
     } catch (error) {
+      if (version !== connectionVersion || disconnecting || pageClosing || token !== connectionToken) return;
       connected = false;
+      clearVoicePreview();
+      $("voice-preview-state").textContent = "Collega il PC per caricare il campione.";
       transcribeAvailable = false;
       $("connection-state").textContent = error.message;
       $("catalog-state").textContent = "Catalogo del PC non raggiungibile. Apri il link HTTPS del tutor o scegli un video dal telefono.";
       $("voice-state").textContent = "Collega il PC in Opzioni, oppure apri un MP4 sul telefono.";
       if (token || error.message.includes("codice")) $("connection").open = true;
-    } finally { checking = false; updateButtons(); }
+    } finally { if (version === connectionVersion) { checking = false; updateButtons(); } }
   }
   async function play() {
     if (!hasVideo()) { $("command-state").textContent = "Scegli prima un video."; return false; }
@@ -290,6 +345,7 @@
     if (recorder && recorder.state === "recording") { recorder.stop(); return; }
     if (!hasVideo() || !connected || !transcribeAvailable || transcribing || requestingMicrophone) return;
     video.pause();
+    voicePreview.pause();
     if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
       $("voice-state").textContent = "Il microfono richiede il link HTTPS e un browser compatibile. Puoi dettare il comando dalla tastiera.";
       return;
@@ -350,9 +406,13 @@
   $("chapter").addEventListener("change", () => loadRemote($("chapter").value));
   $("refresh").addEventListener("click", checkConnection);
   $("microphone").addEventListener("click", startRecording);
+  $("load-voice-preview").addEventListener("click", loadVoicePreview);
   $("command-form").addEventListener("submit", event => { event.preventDefault(); execute($("command").value); });
   $("connection-form").addEventListener("submit", event => {
     event.preventDefault();
+    if (disconnecting || pageClosing) return;
+    connectionVersion++; checking = false;
+    clearVoicePreview();
     token = $("connection-token").value.trim();
     $("connection-token").value = "";
     if (token) storageSet(sessionStorage, sessionKey, token); else storageRemove(sessionStorage, sessionKey);
@@ -364,9 +424,20 @@
     else { storageRemove(localStorage, rememberKey); if ($("remember-access").checked) $("connection-state").textContent = "Inserisci il codice di accesso e premi Collega per ricordarlo."; }
   });
   $("disconnect").addEventListener("click", async () => {
+    if (disconnecting) return;
+    disconnecting = true;
+    connectionVersion++; loadVersion++; checking = false;
     video.pause();
+    connected = false;
+    clearVoicePreview();
+    $("voice-preview-state").textContent = "Collega il PC per caricare il campione.";
+    $("connection-state").textContent = "Sto scollegando il PC…";
+    token = "";
+    storageRemove(sessionStorage, sessionKey); storageRemove(localStorage, rememberKey);
     if (recorder && recorder.state === "recording") { pageClosing = true; recorder.stop(); cleanRecording(); }
+    await Promise.allSettled([...mediaSessionRequests]);
     try { await request("/api/media-session", { method: "DELETE", headers: headers() }, 5000); } catch (_) {}
+    disconnecting = false;
     pageClosing = false;
     token = ""; connected = false; transcribeAvailable = false; catalog = []; loadVersion++;
     storageRemove(sessionStorage, sessionKey); storageRemove(localStorage, rememberKey);
@@ -420,6 +491,7 @@
   });
   video.addEventListener("timeupdate", () => { updateScene(); saveProgress(); });
   video.addEventListener("play", () => {
+    voicePreview.pause();
     if (requestingMicrophone || (recorder && recorder.state === "recording")) { video.pause(); $("media-state").textContent = "Il video resta in pausa mentre il microfono ascolta."; return; }
     $("media-state").textContent = "Video in riproduzione."; updateButtons();
   });
@@ -427,12 +499,23 @@
   video.addEventListener("ended", () => { $("media-state").textContent = "Capitolo terminato. Puoi ripetere un passaggio o scegliere un altro video."; updateButtons(); });
   video.addEventListener("error", () => { if (hasVideo()) $("media-state").textContent = activeVideo.local ? "Il browser non riesce a leggere questo video. Prova il file MP4 originale." : "Il video non si carica. Controlla il collegamento al PC e premi Aggiorna."; });
   video.textTracks.addEventListener("addtrack", () => { applyCaptions(); updateButtons(); });
+  voicePreview.addEventListener("play", () => {
+    if (!connected || pageClosing || requestingMicrophone || transcribing || (recorder && recorder.state === "recording")) {
+      voicePreview.pause();
+      $("voice-preview-state").textContent = !connected || pageClosing ? "Collega il PC per ascoltare il campione." : "Il campione resta in pausa mentre usi il microfono.";
+      return;
+    }
+    video.pause();
+  });
+  voicePreview.addEventListener("error", () => {
+    if (voicePreview.getAttribute("src")) $("voice-preview-state").textContent = "Il campione non si carica. Controlla il PC e premi Carica campione.";
+  });
   if ("mediaSession" in navigator) {
     const handlers = { play, pause: () => video.pause(), seekbackward: info => seek(video.currentTime - (info.seekOffset || 10)), seekforward: info => seek(video.currentTime + (info.seekOffset || 10)), seekto: info => seek(info.seekTime), previoustrack: () => execute("passaggio precedente"), nexttrack: () => execute("passaggio successivo") };
     for (const [action, handler] of Object.entries(handlers)) { try { navigator.mediaSession.setActionHandler(action, handler); } catch (_) {} }
   }
-  window.addEventListener("pagehide", () => { pageClosing = true; saveProgress(true); video.pause(); if (recorder && recorder.state === "recording") recorder.stop(); cleanRecording(); });
-  window.addEventListener("pageshow", () => { pageClosing = false; });
+  window.addEventListener("pagehide", () => { pageClosing = true; saveProgress(true); video.pause(); clearVoicePreview(); if (recorder && recorder.state === "recording") recorder.stop(); cleanRecording(); });
+  window.addEventListener("pageshow", () => { pageClosing = false; updateButtons(); });
   window.addEventListener("beforeinstallprompt", event => { event.preventDefault(); installPrompt = event; $("install").hidden = false; });
   $("install").addEventListener("click", async () => { if (!installPrompt) return; await installPrompt.prompt(); installPrompt = null; $("install").hidden = true; });
   window.addEventListener("offline", () => { $("offline-state").textContent = "Sei senza rete: scegli un MP4 sul telefono. La voce locale richiede la connessione al PC."; });

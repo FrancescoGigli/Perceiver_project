@@ -19,6 +19,8 @@ class VideoLibraryTests(unittest.TestCase):
         self.videos.mkdir()
         self.payload = b"\x00\x00\x00\x18ftypisom" + bytes(range(256)) * 5
         (self.videos / "cap-01.mp4").write_bytes(self.payload)
+        self.voice_payload = b"ID3" + bytes(range(256)) * 2
+        (self.videos / "cap-01-voce-elevenlabs.mp3").write_bytes(self.voice_payload)
         (self.videos / "cap-01.vtt").write_text("WEBVTT\n\n00:00.000 --> 00:01.000\nIl mio codice.\n", encoding="utf-8")
         (self.videos / "cap-01.srt").write_text("1\n00:00:00,000 --> 00:00:01,000\nIl mio codice.\n", encoding="utf-8")
         self.plan = {"chapter": 1, "title": "La complessità quadratica", "duration": 12.25, "mediaGenerated": True}
@@ -104,6 +106,55 @@ class VideoLibraryTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 416)
                 self.assertEqual(response.headers["content-range"], f"bytes */{len(self.payload)}")
                 self.assertEqual(response.content, b"")
+
+    def test_voice_preview_supports_mp3_head_and_exact_audio_ranges(self):
+        path = "/api/videos/cap-01-voce-elevenlabs.mp3"
+        response = self.client.get(path)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, self.voice_payload)
+        self.assertEqual(response.headers["content-type"], "audio/mpeg")
+        self.assertEqual(response.headers["cache-control"], "private, no-store")
+        self.assertEqual(response.headers["accept-ranges"], "bytes")
+        head = self.client.head(path)
+        self.assertEqual(head.status_code, 200)
+        self.assertEqual(head.content, b"")
+        self.assertEqual(head.headers["content-type"], "audio/mpeg")
+        self.assertEqual(head.headers["content-length"], str(len(self.voice_payload)))
+        part = self.client.get(path, headers={"Range": "bytes=10-19"})
+        self.assertEqual(part.status_code, 206)
+        self.assertEqual(part.content, self.voice_payload[10:20])
+        self.assertEqual(part.headers["content-range"], f"bytes 10-19/{len(self.voice_payload)}")
+        self.assertEqual(self.client.head(path, headers={"Range": "bytes=10-19"}).headers["content-length"], "10")
+        invalid = self.client.get(path, headers={"Range": "bytes=999999-"})
+        self.assertEqual(invalid.status_code, 416)
+        self.assertEqual(invalid.content, b"")
+        self.assertEqual(invalid.headers["content-range"], f"bytes */{len(self.voice_payload)}")
+
+    def test_only_the_exact_elevenlabs_preview_filename_is_exposed(self):
+        for filename in ("cap-02-voce-elevenlabs.mp3", "cap-01-voce-sara.mp3", "cap-01.mp3",
+                         "cap-01-voce-elevenlabs.wav", "cap-01-voce-elevenlabs.mp3.bak"):
+            (self.videos / filename).write_bytes(b"Never exposed")
+            with self.subTest(filename=filename):
+                self.assertEqual(self.client.get("/api/videos/" + filename).status_code, 404)
+        for filename in ("sub/cap-01-voce-elevenlabs.mp3", "..%5ccap-01-voce-elevenlabs.mp3"):
+            with self.subTest(filename=filename):
+                self.assertEqual(self.client.get("/api/videos/" + filename).status_code, 404)
+        (self.videos / "cap-01-voce-elevenlabs.mp3").unlink()
+        self.assertEqual(self.client.head("/api/videos/cap-01-voce-elevenlabs.mp3").status_code, 404)
+
+    def test_voice_preview_requires_the_existing_remote_session_and_same_origin(self):
+        path = "/api/videos/cap-01-voce-elevenlabs.mp3"
+        with patch.object(tutor, "REMOTE", True):
+            self.assertEqual(self.client.get(path).status_code, 401)
+            self.assertEqual(self.client.head(path).status_code, 401)
+            header = {"X-Tutor-Token": "test-token-only"}
+            self.assertEqual(self.client.get(path, headers=header).content, self.voice_payload)
+            self.assertEqual(self.client.post("/api/media-session", headers=header).status_code, 200)
+            self.assertEqual(self.client.head(path).status_code, 200)
+            self.assertEqual(self.client.get(path, headers={"Range": "bytes=-12"}).content, self.voice_payload[-12:])
+            self.assertEqual(self.client.get(path, headers={"Origin": "https://other.example"}).status_code, 403)
+            self.client.delete("/api/media-session")
+            self.assertEqual(self.client.get(path).status_code, 401)
 
     def test_subtitles_and_plan_preserve_the_exported_contents(self):
         vtt = self.client.get("/api/videos/cap-01.vtt")

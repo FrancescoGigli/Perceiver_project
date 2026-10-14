@@ -11,9 +11,9 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-180.png">
-  <link rel="stylesheet" href="player.css?v=minimal-1">
+  <link rel="stylesheet" href="player.css?v=elevenlabs-preview-1">
   <script src="commands.js" defer></script>
-  <script src="player.js?v=minimal-1" defer></script>
+  <script src="player.js?v=elevenlabs-preview-1" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Vai al player</a>
@@ -41,6 +41,7 @@
           <div class="options-controls"><label for="speed">Velocità <select id="speed" data-media disabled><option value="0.5">0,5×</option><option value="0.75">0,75×</option><option value="1" selected>1×</option><option value="1.25">1,25×</option><option value="1.5">1,5×</option></select></label><button id="captions" type="button" aria-pressed="false" disabled>Sottotitoli</button><button id="fullscreen" type="button" data-media disabled>Schermo intero</button></div>
           <div class="scene-heading"><span id="scene-count"></span><time id="current-time">0:00 / 0:00</time></div>
           <details id="scene-details"><summary>Testo e codice</summary><h2 id="scene-title">Scegli un capitolo</h2><p id="scene-text"></p><pre id="scene-code" hidden><code></code></pre><p id="scene-source" class="hint"></p></details>
+          <details class="voice-preview"><summary>Prova voce ElevenLabs</summary><p>Un breve campione del capitolo 1. Premi Carica campione, poi usa il controllo audio per ascoltarlo.</p><button id="load-voice-preview" type="button" disabled>Carica campione</button><audio id="voice-preview" controls preload="none" aria-label="Campione voce ElevenLabs del capitolo 1" hidden></audio><p id="voice-preview-state" class="hint" role="status">Collega il PC per caricare il campione.</p></details>
           <details class="local-files"><summary>Apri un file sul telefono</summary><p>Per l’uso offline scegli un MP4 già salvato sul telefono.</p><label for="local-video">Video MP4</label><input id="local-video" type="file" accept="video/mp4,video/*,.mp4"><label for="local-plan">Piano JSON · facoltativo</label><input id="local-plan" type="file" accept="application/json,.json" disabled><label for="local-subtitles">Sottotitoli VTT · facoltativi</label><input id="local-subtitles" type="file" accept="text/vtt,.vtt" disabled><p id="local-state" class="hint" role="status"></p></details>
           <details class="command-help"><summary>Comandi vocali e scritti</summary><p>«Pausa», «riprendi», «indietro dieci secondi», «ripeti», «più lento», «sottotitoli».</p><p>Tocca Parla, pronuncia il comando, poi Invia comando. Durante l’ascolto il video si ferma. Per la voce serve il PC acceso.</p><form id="command-form"><label for="command">Comando scritto</label><div class="inline-fields"><input id="command" type="text" placeholder="Es. indietro 10 secondi" autocomplete="off" maxlength="160"><button id="execute" type="submit">Esegui</button></div></form></details>
           <details id="connection"><summary>Collega il PC</summary><p>Apri il link HTTPS del tutor o inserisci il codice di accesso.</p><form id="connection-form"><label for="connection-token">Codice di accesso</label><input id="connection-token" type="password" autocomplete="off" spellcheck="false"><label class="remember-access"><input id="remember-access" type="checkbox">Ricorda l’accesso su questo telefono</label><div class="inline-fields"><button type="submit">Collega</button><button id="disconnect" type="button">Scollega</button></div></form><p id="connection-state" class="hint" role="status"></p></details>
