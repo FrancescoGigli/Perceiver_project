@@ -2,7 +2,8 @@
 
 The default is a JSON plan: no voice model, browser, audio, video or FFmpeg starts.
 All generated files must stay outside the repository. Optional media libraries are
-imported only by render_plan(), using the existing local Kokoro runtime.
+imported only by render_plan(). The default voice is the local Kokoro runtime;
+ElevenLabs is selected explicitly and uses the connected account's free quota.
 """
 from __future__ import annotations
 
@@ -27,6 +28,8 @@ DEFAULT_MANIFEST = REPO / "sito/studio/media/course-project.json"
 WIDTH, HEIGHT = 1280, 720
 FONT = "Segoe UI"
 CODE_FONT = "Consolas"
+ELEVENLABS_VOICE = "Xb7hH8MSUJpSbSDYk0k2"
+VOICE_ENGINES = {"kokoro", "elevenlabs"}
 INDIGO, ORANGE, MUTED = "#1a237e", "#e65100", "#6c7081"
 ALLOWED_CODE_FILES = {
     "progetto/train.py", "progetto/baseline_cnn.py", "progetto/experiments.py",
@@ -148,12 +151,15 @@ def code_pages(snippets: list[dict[str, Any]], row_limit: int = 8) -> list[dict[
 
 
 def build_plan(manifest: dict[str, Any], chapter_id: int, root: Path = REPO,
-               voice: str = "im_nicola", speed: float = .86) -> dict[str, Any]:
+               voice: str = "im_nicola", speed: float = .86,
+               voice_engine: str = "kokoro") -> dict[str, Any]:
     if type(chapter_id) is not int:
         raise ValueError("Il capitolo deve essere un numero intero.")
     chapter = next((item for item in manifest.get("chapters", []) if item.get("id") == chapter_id), None)
     if chapter is None:
         raise ValueError(f"Capitolo {chapter_id} non presente nel manifest.")
+    if voice_engine not in VOICE_ENGINES:
+        raise ValueError("Motore vocale non valido: scegli kokoro o elevenlabs.")
     if voice not in {"im_nicola", "if_sara"} or not (.5 <= speed <= 1.3):
         raise ValueError("Voce o velocità non valida.")
     if not chapter.get("steps"):
@@ -199,7 +205,10 @@ def build_plan(manifest: dict[str, Any], chapter_id: int, root: Path = REPO,
         "version": 1, "chapter": chapter_id, "title": chapter["title"],
         "originalHref": chapter.get("originalHref"),
         "source": manifest["source"], "sourceVerified": True, "mediaGenerated": False,
-        "mode": "plan", "voice": voice, "speechSpeed": speed,
+        "mode": "plan", "voiceEngineId": voice_engine,
+        "voice": ELEVENLABS_VOICE if voice_engine == "elevenlabs" else voice,
+        "speechSpeed": 1.0 if voice_engine == "elevenlabs" else speed,
+        "speechSpeedControl": "provider-default" if voice_engine == "elevenlabs" else "local-runtime",
         "format": {"width": WIDTH, "height": HEIGHT, "fps": 20, "videoCodec": "h264",
                    "audioCodec": "aac", "pixelFormat": "yuv420p", "fastStart": True,
                    "subtitles": ["vtt", "srt", "mp4-mov_text"]},
@@ -303,11 +312,30 @@ def runtime_directory(explicit: Path | None) -> Path:
     return resolved
 
 
-def render_plan(plan: dict[str, Any], output: Path, runtime: Path, fps: int = 20,
-                overwrite: bool = False) -> dict[str, Any]:
+def elevenlabs_audio(text: str, mp3: Path, wav: Path, ffmpeg: str) -> dict[str, Any]:
+    """Keep original speech text; decode cached/provider MP3 to one mono PCM rate."""
+    from elevenlabs_tts import synthesize
+
+    result = synthesize(text, mp3)
+    decode = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-i", str(mp3),
+              "-vn", "-ac", "1", "-ar", "44100", "-c:a", "pcm_s16le", str(wav)]
+    completed = subprocess.run(decode, capture_output=True, check=False)
+    if completed.returncode != 0:
+        raise RuntimeError("FFmpeg non ha decodificato il parlato ElevenLabs.")
+    return result
+
+
+def render_plan(plan: dict[str, Any], output: Path, runtime: Path | None = None, fps: int = 20,
+                overwrite: bool = False, voice_engine: str | None = None) -> dict[str, Any]:
     """Explicit future export. No caller invokes this in default/--plan mode."""
     output = output_directory(output)
-    runtime = runtime_directory(runtime)
+    voice_engine = voice_engine or plan.get("voiceEngineId", "kokoro")
+    if voice_engine not in VOICE_ENGINES:
+        raise ValueError("Motore vocale non valido: scegli kokoro o elevenlabs.")
+    if voice_engine == "kokoro":
+        runtime = runtime_directory(runtime)
+    elif runtime is not None:
+        runtime = output_directory(runtime)
     if fps not in {15, 20, 25, 30}:
         raise ValueError("FPS consentiti: 15, 20, 25, 30.")
     ffmpeg = shutil.which("ffmpeg")
@@ -318,31 +346,49 @@ def render_plan(plan: dict[str, Any], output: Path, runtime: Path, fps: int = 20
     review = output / f"{stem}-piano.json"
     if not overwrite and any(path.exists() for path in [*names.values(), review]):
         raise ValueError("Un file di questo capitolo esiste già; scegli un'altra cartella o usa --overwrite.")
-    # Same local neural voice and SVG rasterisation used by generate_lesson.py.
+    if voice_engine == "elevenlabs":
+        from elevenlabs_tts import preflight
+        # Check the entire uncached chapter before spending credit on any scene.
+        preflight([scene["speechText"] for scene in plan["scenes"] if scene["speechText"]])
+    else:
+        from neural_tts import synthesize
+    # Same SVG rasterisation used by generate_lesson.py.
     import io
     import numpy as np
     from PIL import Image, ImageDraw
     import resvg_py
     import soundfile as sf
-    from neural_tts import synthesize
 
     fonts = [Path("C:/Windows/Fonts") / name for name in
              ("segoeui.ttf", "segoeuib.ttf", "consola.ttf", "seguisym.ttf", "cambria.ttc")]
     if not all(path.is_file() for path in fonts):
         raise ValueError("Sono richiesti Segoe UI, Consolas, Segoe UI Symbol e Cambria per le formule.")
     output.mkdir(parents=True, exist_ok=True)
+    if runtime is not None:
+        runtime.mkdir(parents=True, exist_ok=True)
     rendered = json.loads(json.dumps(plan, ensure_ascii=False))
-    with tempfile.TemporaryDirectory(prefix=f"perceiver-{stem}-", dir=runtime) as temporary_name:
+    rendered["voiceEngineId"] = voice_engine
+    if voice_engine == "elevenlabs":
+        rendered.update(voice=ELEVENLABS_VOICE, speechSpeed=1.0, speechSpeedControl="provider-default")
+    with tempfile.TemporaryDirectory(prefix=f"perceiver-{stem}-", dir=runtime or output) as temporary_name:
         temporary = Path(temporary_name)
-        samples_list, position, rate = [], 0., 24000
+        samples_list, position, rate = [], 0., 44100 if voice_engine == "elevenlabs" else 24000
         frames = []
         for index, scene in enumerate(rendered["scenes"]):
             print(f"Voce e pannelli: scena {index + 1}/{len(rendered['scenes'])}", file=sys.stderr, flush=True)
             scene["start"] = round(position, 3)
             if scene["speechText"]:
                 wav = temporary / f"segment-{index:04}.wav"
-                synthesize(scene["speechText"], wav, rendered["voice"], rendered["speechSpeed"], runtime)
-                samples, rate = sf.read(str(wav), dtype="float32")
+                if voice_engine == "elevenlabs":
+                    metadata = elevenlabs_audio(scene["speechText"], wav.with_suffix(".mp3"), wav, ffmpeg)
+                    rendered["voice"] = metadata.get("voice", ELEVENLABS_VOICE)
+                    rendered["ttsModel"] = metadata.get("model", "eleven_v4")
+                    rendered["language"] = "it"
+                else:
+                    synthesize(scene["speechText"], wav, rendered["voice"], rendered["speechSpeed"], runtime)
+                samples, sample_rate = sf.read(str(wav), dtype="float32")
+                if sample_rate != rate or samples.ndim != 1 or len(samples) == 0:
+                    raise RuntimeError("La voce deve avere audio mono non vuoto alla frequenza prevista.")
                 samples_list.append(samples)
                 position += len(samples) / rate
             pause = scene.get("readingSeconds", 0) + scene["pauseAfterSeconds"]
@@ -355,7 +401,8 @@ def render_plan(plan: dict[str, Any], output: Path, runtime: Path, fps: int = 20
         audio = temporary / "master.wav"
         sf.write(str(audio), np.concatenate(samples_list), rate)
         rendered.update(mode="render", mediaGenerated=True, timingsVerified=True,
-                        duration=round(position, 3), voiceEngine="Kokoro 82M ONNX · voce italiana locale")
+                        duration=round(position, 3),
+                        voiceEngine="ElevenLabs · Eleven v4 · Alice" if voice_engine == "elevenlabs" else "Kokoro 82M ONNX · voce italiana locale")
         rendered["format"]["fps"] = fps
         vtt, srt = subtitle_text(rendered["scenes"])
         temporary_vtt = temporary / f"{stem}.vtt"
@@ -409,7 +456,9 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument("--plan", action="store_true", help="Solo piano JSON, nessun audio/video (predefinito).")
     mode.add_argument("--render", action="store_true", help="Genera esplicitamente MP4 e sottotitoli usando il PC.")
     parser.add_argument("--output", type=Path, help="Cartella esterna al repository; senza flag il piano va su stdout.")
-    parser.add_argument("--runtime", type=Path, help="Runtime Kokoro locale, necessario solo per --render.")
+    parser.add_argument("--runtime", type=Path, help="Runtime Kokoro locale; con ElevenLabs è solo una cartella temporanea facoltativa.")
+    parser.add_argument("--voice-engine", choices=sorted(VOICE_ENGINES), default="kokoro",
+                        help="kokoro locale (predefinito) oppure elevenlabs con il collegamento e la quota configurati.")
     parser.add_argument("--voice", choices=["im_nicola", "if_sara"], default="im_nicola")
     parser.add_argument("--speed", type=float, default=.86)
     parser.add_argument("--fps", type=int, choices=[15, 20, 25, 30], default=20)
@@ -419,9 +468,10 @@ def main(argv: list[str] | None = None) -> int:
         if args.render and args.output is None:
             raise ValueError("--render richiede --output con una cartella esterna al repository.")
         manifest = json.loads(args.manifest.read_text(encoding="utf-8-sig"))
-        plan = build_plan(manifest, args.chapter, voice=args.voice, speed=args.speed)
+        plan = build_plan(manifest, args.chapter, voice=args.voice, speed=args.speed, voice_engine=args.voice_engine)
         if args.render:
-            result = render_plan(plan, args.output, runtime_directory(args.runtime), args.fps, args.overwrite)
+            runtime = runtime_directory(args.runtime) if args.voice_engine == "kokoro" else args.runtime
+            result = render_plan(plan, args.output, runtime, args.fps, args.overwrite, voice_engine=args.voice_engine)
             print(json.dumps(result, ensure_ascii=False, indent=2))
         elif args.output:
             output = output_directory(args.output)

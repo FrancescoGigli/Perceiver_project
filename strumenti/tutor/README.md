@@ -45,8 +45,8 @@ controlli aggiuntivi, file locali e collegamento al PC sono nel menu **Opzioni**
 In **Opzioni → Prova voce ElevenLabs**, **Carica campione** carica l'MP3
 `cap-01-voce-elevenlabs.mp3` dalla stessa cartella dei video. Premi poi il
 controllo audio per ascoltarlo: caricamento e riproduzione sono manuali.
-È una prova separata; la voce dei video e del tutor resta quella attuale.
-Il player usa il file già generato e non accede all'account ElevenLabs.
+È una prova separata. Il player usa il file già generato e non accede
+direttamente all'account ElevenLabs.
 
 Dal player puoi usare Play/Pausa, saltare di dieci secondi, tornare al
 passaggio precedente, ripetere una frase, cambiare velocità e attivare i
@@ -140,12 +140,51 @@ Il launcher e il server leggono questo file; non va incluso in Git. Il percorso
 predefinito dei modelli è `%LOCALAPPDATA%\PerceiverTutor\voice`.
 In assenza della voce resta disponibile il dialogo scritto.
 
+### Voce ElevenLabs sul PC e sull'iPhone
+
+La voce **Alice · ElevenLabs** usa il programma ufficiale ElevenLabs sul PC,
+con accesso OAuth conservato nel gestore credenziali di Windows. Il testo da
+leggere viene inviato a ElevenLabs; il dialogo e le fonti del tutor restano sul PC.
+La stessa API protetta serve il browser sul PC e il player HTTPS sull'iPhone.
+Non servono chiavi nel browser o nel repository. La riproduzione richiede sempre
+un gesto dell'utente; la configurazione non avvia audio o video.
+
+La configurazione personale, fuori da Git, è
+`%LOCALAPPDATA%\PerceiverTutor\elevenlabs-runtime.json`:
+
+```json
+{"enabled":true,"cli":"C:/percorso/ufficiale/elevenlabs.exe","voice":"Xb7hH8MSUJpSbSDYk0k2","model":"eleven_v4"}
+```
+
+Se il file manca o `enabled` è falso, il tutor conserva le voci locali.
+Quando ElevenLabs è attivo, Alice è la scelta predefinita; Sara e Nicola sono
+scelte locali esplicite nel selettore. Gli audio identici vengono riusati dalla
+cache personale `%LOCALAPPDATA%\PerceiverTutor\elevenlabs\audio`.
+
+L'esportatore e il tutor condividono un conteggio conservativo dei caratteri
+gratuiti in `elevenlabs\budget.json`. Prima di una nuova conversione verificano
+il piano Free, l'assenza di estensioni a pagamento e i caratteri rimasti, poi
+riservano i caratteri prima di inviare il testo. Un timeout conserva la riserva:
+nessun retry automatico della conversione, cambio di piano o passaggio silenzioso
+a un'altra voce. Solo il controllo del piano, in lettura e senza consumare
+caratteri, viene ripetuto una volta se incontra un errore temporaneo.
+Quando non bastano i caratteri, resta il testo e puoi scegliere una voce locale.
+L'inizializzazione con gli eventuali campioni già creati avviene sul PC tramite
+`elevenlabs_tts.initialize_budget(initial_characters=526)`; non diminuisce un
+conteggio già presente. I video esportati si riproducono senza consumare nuovi
+caratteri. Per creare video ElevenLabs usa il provider esplicito dell'esportatore.
+
 ## API
 
 Tutte le POST richiedono `X-Tutor-Token` in modalità LAN o remote. Puoi fornire
 il codice iniziale tramite variabile ambiente `TUTOR_TOKEN`, mai nel codice Git.
 
 - `GET /api/status`: `available`, `model`, `auth_required`, `voice`, `transcribe`.
+  `voice` contiene anche `voices` e `defaultVoice`; non espone dati dell'account.
+- `POST /api/tts`: JSON `{text,voice?:"alice"|"if_sara"|"im_nicola"}`.
+  Restituisce MP3 (`audio/mpeg`) per Alice o WAV (`audio/wav`) per le voci locali,
+  con `X-Voice-Engine: ElevenLabs` oppure `Kokoro`. Se `voice` manca usa la
+  scelta predefinita indicata dallo stato. Gli errori di quota sono espliciti.
 - `GET /api/videos`: elenco dei video esportati con capitolo, titolo, durata,
   dimensione e URL di MP4, VTT e piano. Richiede il codice in modalità remote/LAN.
 - `POST /api/media-session`: con `X-Tutor-Token`, crea un cookie HttpOnly

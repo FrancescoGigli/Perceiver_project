@@ -12,6 +12,7 @@ import re
 import secrets
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 import urllib.error
@@ -30,6 +31,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "strumenti" / "studio_media"))
+import elevenlabs_tts
 OLLAMA_URL = "http://127.0.0.1:11434"
 MODEL = os.environ.get("TUTOR_MODEL", "qwen35-9b-gpu20:latest")
 NUM_GPU = int(os.environ.get("TUTOR_NUM_GPU", "33"))
@@ -334,7 +337,7 @@ class ChatInput(BaseModel):
 
 class VoiceInput(BaseModel):
     text: str = Field(min_length=1, max_length=2200)
-    voice: Literal["if_sara", "im_nicola"] = "if_sara"
+    voice: Literal["if_sara", "im_nicola", "alice"] | None = None
 
 
 class ChapterParser(HTMLParser):
@@ -730,7 +733,12 @@ def ollama_request(path: str, payload=None, timeout=10):
 
 def voice_status():
     ready = TTS_PYTHON.is_file() and TTS_HELPER.is_file() and (TTS_RUNTIME / "kokoro-v1.0.onnx").is_file() and (TTS_RUNTIME / "voices-v1.0.bin").is_file()
-    return {"available": ready, "engine": "Kokoro · italiano", "voices": ["if_sara", "im_nicola"], "reason": None if ready else "Voce neurale locale non ancora installata."}
+    cloud = elevenlabs_tts.status()
+    return {"available": ready or cloud["available"],
+            "engine": cloud["engine"] if cloud["enabled"] else "Kokoro · italiano",
+            "voices": (["alice"] if cloud["enabled"] else []) + ["if_sara", "im_nicola"],
+            "defaultVoice": "alice" if cloud["enabled"] else "if_sara",
+            "reason": cloud["reason"] if cloud["enabled"] else None if ready else "Voce neurale locale non ancora installata."}
 
 
 @app.get("/api/status")
@@ -1080,6 +1088,17 @@ async def transcribe(request: Request):
 
 
 def synthesize_voice(text: str, voice: str = "if_sara"):
+    if voice == "alice":
+        with tempfile.TemporaryDirectory(prefix="perceiver-voice-") as directory:
+            output = Path(directory) / "speech.mp3"
+            try:
+                elevenlabs_tts.synthesize(text, output)
+                return output.read_bytes()
+            except elevenlabs_tts.ElevenLabsError as error:
+                http_status = 429 if error.code in {"ELEVENLABS_QUOTA", "ELEVENLABS_BUSY", "ELEVENLABS_RATE_LIMIT"} else 503
+                raise TutorError(http_status, error.code, error.message)
+            except OSError:
+                raise TutorError(503, "ELEVENLABS_UNAVAILABLE", "Non riesco a leggere l'audio ElevenLabs sul PC. La risposta scritta resta disponibile.")
     with tempfile.TemporaryDirectory(prefix="perceiver-voice-") as directory:
         text_path, output = Path(directory) / "text.txt", Path(directory) / "speech.wav"
         text_path.write_text(text, encoding="utf-8")
@@ -1098,13 +1117,16 @@ def synthesize_voice(text: str, voice: str = "if_sara"):
 async def tts(request: Request):
     authorize(request)
     data = await json_body(request, VoiceInput)
-    if not voice_status()["available"]:
+    voice = data.voice or voice_status()["defaultVoice"]
+    local_ready = TTS_PYTHON.is_file() and TTS_HELPER.is_file() and (TTS_RUNTIME / "kokoro-v1.0.onnx").is_file() and (TTS_RUNTIME / "voices-v1.0.bin").is_file()
+    if voice != "alice" and not local_ready:
         raise TutorError(503, "VOICE_UNAVAILABLE", "La voce neurale locale non è installata. Puoi continuare a leggere la risposta.")
     if voice_lock.locked():
         raise TutorError(429, "VOICE_BUSY", "Attendi che termini l'audio in corso.")
     async with voice_lock:
-        audio = await asyncio.to_thread(synthesize_voice, data.text, data.voice)
-    return Response(audio, media_type="audio/wav")
+        audio = await asyncio.to_thread(synthesize_voice, data.text, voice)
+    return Response(audio, media_type="audio/mpeg" if voice == "alice" else "audio/wav",
+                    headers={"X-Voice-Engine": "ElevenLabs" if voice == "alice" else "Kokoro"})
 
 
 @app.get("/")

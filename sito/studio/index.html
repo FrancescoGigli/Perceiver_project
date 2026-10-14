@@ -14,7 +14,7 @@
   <script src="attention-lab.js?v=interactive-2" defer></script>
   <link rel="stylesheet" href="course.css?v=course-1">
   <script src="course.js?v=course-1" defer></script>
-  <script src="studio.js?v=course-1" defer></script>
+  <script src="studio.js?v=elevenlabs-tutor-1" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#lezione">Vai alla lezione</a>
@@ -98,9 +98,10 @@
       <div id="tutor-quiz" class="tutor-quiz" hidden></div>
       <form id="question-form"><label for="question">La tua domanda</label><textarea id="question" rows="3" maxlength="1800" placeholder="Spiegami questo passaggio con un esempio…"></textarea><div class="question-actions"><button id="send" class="primary-button" type="submit" disabled>Chiedi al tutor</button><button id="microphone" type="button" disabled><svg aria-hidden="true"><use href="icons.svg#mic"></use></svg><span>Parla</span></button><button id="stop-voice" type="button" hidden>Ferma la risposta</button></div></form>
       <p class="voice-state" id="voice-state" role="status"></p>
-      <div class="voice-options"><label for="voice">Voce del tutor</label><select id="voice"><option value="im_nicola">Nicola</option><option value="if_sara">Sara</option></select><button id="sample-voice" type="button">Prova la voce</button></div>
+      <div class="voice-options"><label for="voice">Voce del tutor</label><select id="voice" aria-describedby="voice-help"><option value="im_nicola">Nicola · sul PC</option><option value="if_sara">Sara · sul PC</option></select><button id="sample-voice" type="button">Prova la voce</button></div>
+      <p class="voice-state" id="voice-help" role="status">Nicola e Sara funzionano sul PC, senza crediti online.</p>
       <label class="read-reply"><input type="checkbox" id="read-reply" checked>Leggi le risposte a voce</label>
-      <details class="connection" id="connection"><summary>Collega il tutor del PC</summary><p>La lezione e il video funzionano anche senza il PC. Per parlare con l’AI locale, il PC deve restare acceso.</p><label for="connection-link">Link del tutor</label><input id="connection-link" type="url" placeholder="https://…trycloudflare.com/…"><button id="open-tutor-link" type="button">Apri il tutor</button><p class="connection-help">Sul PC avvia <code>strumenti/tutor/avvia-cellulare.ps1</code> per ottenere il link e il codice QR. Quando il collegamento si chiude, la conversazione vocale non è disponibile.</p><label for="connection-token">Codice di accesso, se richiesto</label><input id="connection-token" type="password" autocomplete="off"><button id="connect-token" type="button">Collega</button></details>
+      <details class="connection" id="connection"><summary>Collega il tutor del PC</summary><p>La lezione e il video funzionano anche senza il PC. Per parlare con l’AI locale, il PC deve restare acceso.</p><label for="connection-link">Link del tutor</label><input id="connection-link" type="url" placeholder="https://…trycloudflare.com/…"><button id="open-tutor-link" type="button">Apri il tutor</button><p class="connection-help">Sul PC avvia <code>strumenti/tutor/avvia-cellulare.ps1</code> per ottenere il link diretto. Quando il collegamento si chiude, la conversazione vocale non è disponibile.</p><label for="connection-token">Codice di accesso, se richiesto</label><input id="connection-token" type="password" autocomplete="off"><button id="connect-token" type="button">Collega</button></details>
       <audio id="tutor-audio" preload="none"></audio>
     </aside>
   </main>

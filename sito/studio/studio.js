@@ -11,6 +11,7 @@ let activeQuiz = null, quizComplete = false;
 let lastCourseChapter = null;
 let recorder = null, recordingStream = null, recordingTimer = null;
 let replyBlobUrl = null, speechVersion = 0;
+let voiceChosen = false, tutorAccessRequired = false;
 const mediaPath = name => new URL("media/" + name, document.baseURI).href;
 const sourceBase = "https://github.com/FrancescoGigli/Perceiver_project/blob/main/";
 const activeMedia = () => view === "video" ? video : lessonAudio;
@@ -30,6 +31,8 @@ function pauseLesson() { lessonAudio.pause(); video.pause(); }
 function stopReply() {
   speechVersion++;
   tutorAudio.pause();
+  tutorAudio.removeAttribute("src");
+  tutorAudio.load();
   if (replyBlobUrl) { URL.revokeObjectURL(replyBlobUrl); replyBlobUrl = null; }
   $("stop-voice").hidden = true;
 }
@@ -201,7 +204,7 @@ function appendMessage(kind,text,sources=[]) {
 }
 function availability() {
   const connected=!!(tutorStatus&&tutorStatus.available);
-  const needToken=connected&&tutorStatus.auth_required&&!token;
+  const needToken=tutorAccessRequired||(connected&&tutorStatus.auth_required&&!token);
   const recording=recorder&&recorder.state==="recording";
   $("send").disabled=!connected||needToken||asking||recording;
   $("microphone").disabled=!connected||needToken||asking||!(tutorStatus.transcribe&&tutorStatus.transcribe.available);
@@ -210,20 +213,46 @@ function availability() {
   if(view==="course"&&!window.perceiverCourse?.question())document.querySelectorAll('[data-mode="quiz"]').forEach(button=>button.disabled=true);
   if(!window.perceiverCourse?.question())$("course-review").disabled=true;
   $("tutor-quiz").querySelectorAll("button").forEach(button=>button.disabled=!connected||needToken||asking||recording||quizComplete);
+  $("sample-voice").disabled=asking||recording||($("voice").value==="alice"&&(needToken||!tutorStatus?.voice?.available));
   $("tutor-status").textContent=asking?"Sto preparando una spiegazione…":needToken?"Inserisci il codice di accesso":connected?"Tutor locale collegato":"Tutor del PC non collegato";
   if(needToken)$("connection").open=true;
 }
+function updateVoiceOptions() {
+  const select=$("voice"), previous=select.value;
+  const aliceAvailable=Boolean(tutorStatus?.voice?.available&&tutorStatus.voice.voices?.includes("alice"));
+  const choices=aliceAvailable?[["alice","Alice · ElevenLabs"],["im_nicola","Nicola · sul PC"],["if_sara","Sara · sul PC"]]:[["im_nicola","Nicola · sul PC"],["if_sara","Sara · sul PC"]];
+  select.replaceChildren(...choices.map(([value,label])=>{const option=document.createElement("option");option.value=value;option.textContent=label;return option;}));
+  const defaultVoice=tutorStatus?.voice?.defaultVoice;
+  select.value=voiceChosen&&choices.some(([value])=>value===previous)?previous:choices.some(([value])=>value===defaultVoice)?defaultVoice:choices[0][0];
+  updateVoiceHelp();
+}
+function updateVoiceHelp() {
+  $("voice-help").textContent=$("voice").value==="alice"?"Alice · ElevenLabs usa i crediti del piano gratuito. Gli audio già creati si riusano. Se finiscono i crediti, puoi scegliere Nicola o Sara sul PC.":"Questa voce funziona sul PC, senza crediti online.";
+}
 async function checkTutor() {
-  if(location.hostname==="francescogigli.github.io") {tutorStatus=null;availability();return;}
-  try{const response=await fetch("/api/status",{signal:AbortSignal.timeout(8000)});tutorStatus=response.ok?await response.json():null;}catch(_){tutorStatus=null;}
+  if(location.hostname==="francescogigli.github.io") {tutorStatus=null;tutorAccessRequired=false;updateVoiceOptions();availability();return;}
+  try{const response=await fetch("/api/status",{headers:headers(),credentials:"same-origin",cache:"no-store",signal:AbortSignal.timeout(8000)});tutorAccessRequired=response.status===401||response.status===403;tutorStatus=response.ok?await response.json():null;}catch(_){tutorStatus=null;}
+  updateVoiceOptions();
   availability();
   if(tutorStatus&&tutorStatus.available&&tutorStatus.voice&&!tutorStatus.voice.available)$("voice-state").textContent="Puoi fare domande scritte; la voce del tutor non è disponibile.";
+}
+async function audioBlob(response) {
+  const type=(response.headers.get("Content-Type")||"").split(";")[0].trim().toLowerCase();
+  if(!["audio/mpeg","audio/wav","audio/x-wav"].includes(type))throw new Error("La risposta vocale non contiene un audio valido. Riprova.");
+  const blob=await response.blob();
+  if(!blob.size)throw new Error("La risposta vocale è vuota. Riprova.");
+  return blob;
+}
+async function playPreparedReply() {
+  const version=speechVersion;
+  try{await tutorAudio.play();if(version!==speechVersion)return;$("stop-voice").textContent="Ferma la risposta";$("voice-state").textContent="Il tutor sta parlando. Puoi fermarlo e fare un’altra domanda.";}
+  catch(_){if(version!==speechVersion)return;$("voice-state").textContent="La risposta è pronta: premi Ascolta la risposta.";$("stop-voice").textContent="Ascolta la risposta";}
 }
 async function speakAnswer(text) {
   stopReply();if(!$("read-reply").checked||!tutorStatus||!tutorStatus.voice||!tutorStatus.voice.available)return;
   pauseLesson();const version=speechVersion;
   $("voice-state").textContent="Preparo la risposta vocale…";
-  try{const response=await api("tts",{text,voice:$("voice").value});const blob=await response.blob();if(version!==speechVersion)return;replyBlobUrl=URL.createObjectURL(blob);tutorAudio.src=replyBlobUrl;$("stop-voice").hidden=false;$("stop-voice").textContent="Ferma la risposta";try{await tutorAudio.play();$("voice-state").textContent="Il tutor sta parlando. Puoi fermarlo e fare un’altra domanda.";}catch(_){$("voice-state").textContent="La risposta è pronta: premi Ascolta la risposta.";$("stop-voice").textContent="Ascolta la risposta";}}catch(error){if(version===speechVersion)$("voice-state").textContent="La risposta scritta è disponibile. "+error.message;}
+  try{const response=await api("tts",{text,voice:$("voice").value});const blob=await audioBlob(response);if(version!==speechVersion)return;replyBlobUrl=URL.createObjectURL(blob);tutorAudio.src=replyBlobUrl;$("stop-voice").hidden=false;$("stop-voice").textContent="Ferma la risposta";await playPreparedReply();}catch(error){if(version===speechVersion)$("voice-state").textContent="La risposta scritta è disponibile. "+error.message;}
 }
 function showTutorQuiz(answer, mode){
   if(answer.quiz){
@@ -278,9 +307,26 @@ document.querySelectorAll("[data-question]").forEach(button=>button.addEventList
   if(button.id==="lab-ask"||button.id==="course-guide")$("tutor-title").scrollIntoView({behavior:reducedMotion?"auto":"smooth"});
 }));
 $("question").addEventListener("keydown",event=>{if(event.key==="Enter"&&(event.ctrlKey||event.metaKey))$("question-form").requestSubmit();});
-$("stop-voice").addEventListener("click",()=>{if($("stop-voice").textContent==="Ascolta la risposta"){tutorAudio.play().then(()=>{$("stop-voice").textContent="Ferma la risposta";}).catch(()=>{});}else{stopReply();$("voice-state").textContent="Risposta fermata. Puoi fare un’altra domanda.";}});
+$("stop-voice").addEventListener("click",()=>{if($("stop-voice").textContent==="Ascolta la risposta"){playPreparedReply();}else{stopReply();$("voice-state").textContent="Risposta fermata. Puoi fare un’altra domanda.";}});
 tutorAudio.addEventListener("ended",()=>{$("stop-voice").hidden=true;$("voice-state").textContent="";});
-$("sample-voice").addEventListener("click",async()=>{pauseLesson();stopReply();const samples=lesson&&lesson.voiceSamples||[];const sample=samples.find(value=>value.id===$("voice").value);if(!sample){$("voice-state").textContent="Questa voce non ha ancora un esempio disponibile.";return;}tutorAudio.src=mediaPath(sample.file);$("stop-voice").textContent="Ferma la risposta";$("stop-voice").hidden=false;try{await tutorAudio.play();}catch(_){$("voice-state").textContent="Premi nuovamente Prova la voce.";}});
+$("voice").addEventListener("change",()=>{voiceChosen=true;stopReply();updateVoiceHelp();availability();});
+$("read-reply").addEventListener("change",()=>{if(!$("read-reply").checked)stopReply();});
+$("sample-voice").addEventListener("click",async()=>{
+  pauseLesson();stopReply();const version=speechVersion;
+  try{
+    if($("voice").value==="alice"){
+      $("voice-state").textContent="Carico il campione già creato, senza generare altro audio…";
+      const response=await fetch("/api/videos/cap-01-voce-elevenlabs.mp3",{headers:headers(),credentials:"same-origin",cache:"no-store",signal:AbortSignal.timeout(15000)});
+      if(!response.ok)throw new Error(response.status===401||response.status===403?"Inserisci il codice di accesso in Collega il tutor del PC.":"Il campione ElevenLabs non è disponibile sul PC.");
+      const blob=await audioBlob(response);if(version!==speechVersion)return;replyBlobUrl=URL.createObjectURL(blob);tutorAudio.src=replyBlobUrl;
+    }else{
+      const sample=(lesson&&lesson.voiceSamples||[]).find(value=>value.id===$("voice").value);
+      if(!sample)throw new Error("Questa voce non ha ancora un esempio disponibile.");
+      tutorAudio.src=mediaPath(sample.file);
+    }
+    $("stop-voice").textContent="Ferma la risposta";$("stop-voice").hidden=false;await playPreparedReply();
+  }catch(error){if(version===speechVersion)$("voice-state").textContent=error.message;}
+});
 
 function cleanRecording() {clearTimeout(recordingTimer);if(recordingStream)recordingStream.getTracks().forEach(track=>track.stop());recordingStream=null;recorder=null;$("microphone").classList.remove("recording");$("microphone").querySelector("span").textContent="Parla";}
 $("microphone").addEventListener("click",async()=>{
@@ -293,7 +339,7 @@ $("microphone").addEventListener("click",async()=>{
     recorder.start();availability();$("microphone").classList.add("recording");$("microphone").querySelector("span").textContent="Trascrivi";$("voice-state").textContent="Ti ascolto. Premi Trascrivi quando hai finito.";recordingTimer=setTimeout(()=>{if(recorder&&recorder.state==="recording")recorder.stop();},25000);
   }catch(error){cleanRecording();$("voice-state").textContent=error.name==="NotAllowedError"?"Consenti il microfono nel browser, oppure scrivi una domanda.":"Non riesco ad aprire il microfono. Puoi scrivere la domanda.";}
 });
-$("connect-token").addEventListener("click",()=>{token=$("connection-token").value.trim();try{sessionStorage.setItem("perceiver-tutor-token",token);}catch(_){}$("connection-token").value="";checkTutor();});
+$("connect-token").addEventListener("click",()=>{stopReply();token=$("connection-token").value.trim();try{sessionStorage.setItem("perceiver-tutor-token",token);}catch(_){}$("connection-token").value="";checkTutor();});
 $("open-tutor-link").addEventListener("click",()=>{try{const url=new URL($("connection-link").value);if(url.protocol!=="https:"||!url.hostname.endsWith(".trycloudflare.com"))throw Error();location.assign(url.href);}catch(_){$("voice-state").textContent="Inserisci il link HTTPS del tutor creato sul PC.";}});
 window.addEventListener("pagehide",()=>{if(recorder&&recorder.state==="recording")recorder.stop();cleanRecording();stopReply();pauseLesson();});
 

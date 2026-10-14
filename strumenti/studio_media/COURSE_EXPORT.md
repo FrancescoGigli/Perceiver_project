@@ -65,7 +65,44 @@ Il testo scritto resta identico alla fonte; `neural_tts.py` espande soltanto
 la pronuncia di lettere e formule. Le pause aiutano a seguire una sola idea
 alla volta. Il ritmo della voce può essere cambiato con `--speed` da 0.5 a 1.3.
 
-L'output futuro è un MP4 H.264/AAC 1280×720 con pixel format `yuv420p` e
+### Voce ElevenLabs collegata
+
+Con il collegamento ElevenLabs già autorizzato sul PC, si può scegliere
+`--voice-engine elevenlabs`. Senza `--render` anche questa scelta prepara
+soltanto il piano: non accede all'account e non genera parlato.
+
+```powershell
+python -X utf8 strumenti/studio_media/export_chapter.py --chapter 1 --plan --voice-engine elevenlabs
+```
+
+Per generare davvero il capitolo, usando le librerie multimediali del runtime
+già presente sul PC:
+
+```powershell
+$configurazioneVocePerceiver = Get-Content -LiteralPath (Join-Path $env:LOCALAPPDATA 'PerceiverTutor\voice-runtime.json') -Raw | ConvertFrom-Json
+$cartellaVideoPerceiver = Join-Path $env:USERPROFILE 'Downloads\Perceiver-video'
+& $configurazioneVocePerceiver.python strumenti/studio_media/export_chapter.py --chapter 1 --render --voice-engine elevenlabs --output $cartellaVideoPerceiver
+```
+
+La modalità ElevenLabs non carica il modello Kokoro e non richiede `--runtime`.
+Usa Alice con Eleven v4 in italiano, mantiene lo stesso testo originale,
+i pannelli, le evidenziazioni e le domande. I tempi delle scene e dei
+sottotitoli vengono misurati dal parlato generato. `--speed` riguarda Kokoro;
+Eleven v4 usa il ritmo del servizio, indicato nel piano come
+`speechSpeedControl: provider-default`.
+
+Prima della sintesi viene controllata la quota gratuita per l'intero capitolo
+ancora da generare. Una quota insufficiente ferma l'esportazione prima della
+prima scena. Il controllo e il conteggio prudente locale includono il campione
+già prodotto e le altre richieste del tutor. Non si attivano estensioni o
+acquisti. Le scene identiche già generate si riusano dalla cache esterna al
+repository; la riproduzione del video non usa nuovi crediti.
+
+Collegamento, configurazione, cache e conteggio locale restano sul PC, fuori
+da Git. Per sostituire un MP4 già esistente occorre ancora `--overwrite`;
+senza il flag il comando si ferma prima di interrogare il servizio.
+
+L'output è un MP4 H.264/AAC 1280×720 con pixel format `yuv420p` e
 `faststart`, sottotitoli selezionabili nell'MP4 e file VTT/SRT separati.
 È un formato adatto alla riproduzione locale sul telefono. La cartella
 di destinazione deve essere fuori dal repository: codice e video personali
@@ -107,8 +144,9 @@ controlli rimangono nella piattaforma, con il tutor gratuito sul PC.
 python -X utf8 -m unittest discover -s strumenti/studio_media -p test_export_chapter.py -v
 ```
 
-Questi test controllano solo piani, fedeltà delle fonti, protezione dei
-percorsi, paginazione del codice, SVG e formato dei sottotitoli. Non lanciano
+Questi test controllano piani, fedeltà delle fonti, protezione dei
+percorsi, paginazione del codice, SVG e formato dei sottotitoli, oltre ai
+contratti della sintesi ElevenLabs con un servizio simulato. Non lanciano
 sintesi vocale, codifica o riproduzione. Il percorso `--render` deve ricevere
 una verifica audio/video dedicata quando verrà richiesto di generare media;
 il controllo del piano non certifica un video che non è stato prodotto.
