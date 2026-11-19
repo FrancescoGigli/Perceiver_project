@@ -175,7 +175,8 @@
           gap: 10px;
         }
 
-        .actions { justify-content: flex-start; }
+        .actions { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; }
+        .chevron { grid-column: 2; grid-row: 1; }
         .button { flex: 1 1 130px; }
       }
     </style>
@@ -192,14 +193,15 @@
 
         <details open>
           <summary>
-            <h2>Studio guidato — video e tutor</h2>
+            <h2>Studio guidato</h2>
             <nav class="actions" aria-label="Azioni studio guidato">
-              <a class="button primary" href="sito/studio/" onclick="event.stopPropagation()">Studia</a>
+              <a class="button primary" href="sito/studio/?ripasso=inizia" onclick="event.stopPropagation()">Ripasso illustrato</a>
+              <a class="button" href="sito/studio/" onclick="event.stopPropagation()">Video e tutor</a>
               <a class="button" href="sito/studio/media/qkv.mp4" download onclick="event.stopPropagation()">Scarica video</a>
             </nav>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
           </summary>
-          <div class="detail-body"><p>Prima lezione su Q, K e V: voce neurale italiana, animazioni, sottotitoli e codice originale, anche dal cellulare. Puoi fermarti su ogni frase o guardare il video completo. Il tutor conversazionale gratuito usa il modello sul PC e richiede il suo collegamento protetto.</p></div>
+          <div class="detail-body"><p>Nel ripasso illustrato segui una foto di CIFAR-10 dai pixel alla classe prevista, poi studi come Perceiver IO legge il testo e come interpretare gli esperimenti. Ogni tappa ha una figura, un flusso e una domanda per l’orale. Puoi aprirla dal PC o dal cellulare. La lezione su Q, K e V ha anche voce italiana, animazioni e sottotitoli. Il tutor conversazionale usa il modello sul PC e richiede il suo collegamento protetto.</p></div>
         </details>
 
         <!-- Lezione interattiva -->

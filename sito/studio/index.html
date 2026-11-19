@@ -15,6 +15,9 @@
   <link rel="stylesheet" href="course.css?v=course-1">
   <script src="course.js?v=course-1" defer></script>
   <script src="studio.js?v=tutor-video-2" defer></script>
+  <link rel="stylesheet" href="ripasso.css">
+  <script src="ripasso-tappe.js" defer></script>
+  <script src="ripasso.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#lezione">Vai alla lezione</a>
@@ -26,6 +29,7 @@
     <section class="lesson" id="lezione" aria-labelledby="lesson-title">
       <div class="lesson-heading"><div><p class="eyebrow">Il tuo codice e le tue spiegazioni · Un concetto alla volta</p><h1 id="lesson-title">Il tuo progetto, capitolo per capitolo</h1></div><span class="duration" id="lesson-duration">52 capitoli</span></div>
       <nav class="view-switch" aria-label="Come seguire la lezione">
+        <a id="ripasso-nav-entry" href="?ripasso=inizia">Ripasso illustrato</a>
         <button type="button" data-view="video" aria-pressed="true">Video e tutor</button>
         <button type="button" data-view="course" aria-pressed="false">Appunti e animazioni</button>
         <button type="button" data-view="lab" aria-pressed="false">Laboratorio Q/K/V</button>
@@ -35,6 +39,49 @@
       </nav>
       <div id="load-error" role="alert" hidden></div>
       <section id="course-view" aria-label="Percorso dei capitoli" hidden>
+        <details id="ripasso">
+          <summary>
+            <span class="ripasso-invito">Ripasso illustrato del progetto</span>
+            <span class="ripasso-chiudi">← Torna agli appunti</span>
+          </summary>
+          <div class="ripasso-reader">
+            <div class="ripasso-index">
+              <label for="ripasso-select">Scegli una tappa</label>
+              <select id="ripasso-select" aria-label="Scegli una tappa"></select>
+            </div>
+            <p id="ripasso-position"></p>
+            <h1 id="ripasso-title" tabindex="-1"></h1>
+            <div class="ripasso-spread">
+              <figure class="ripasso-plate">
+                <a id="ripasso-enlarge" target="_blank" rel="noopener" aria-label="Ingrandisci la figura in una nuova scheda">
+                  <img id="ripasso-figure" alt="" loading="lazy" decoding="async">
+                  <span>Ingrandisci la figura ↗</span>
+                </a>
+                <figcaption id="ripasso-caption"></figcaption>
+                <button id="ripasso-motion" type="button" hidden>Apri l’animazione di Q, K e V</button>
+              </figure>
+              <div class="ripasso-reading">
+                <h2>Segui il flusso</h2>
+                <ol id="ripasso-flow"></ol>
+                <p id="ripasso-explanation"></p>
+                <details id="ripasso-check">
+                  <summary><span>Domanda per l’orale</span><strong id="ripasso-question"></strong></summary>
+                  <p id="ripasso-answer"></p>
+                </details>
+              </div>
+            </div>
+            <nav class="ripasso-paging" aria-label="Tappe del ripasso">
+              <button type="button" id="ripasso-prev">← Precedente</button>
+              <button type="button" id="ripasso-next">Successiva →</button>
+            </nav>
+            <div class="ripasso-references">
+              <button type="button" id="ripasso-deepen" disabled>Studia questo passaggio negli appunti</button>
+              <a id="ripasso-original">Leggi il capitolo completo</a>
+              <a id="ripasso-permalink">Link a questa tappa</a>
+            </div>
+            <p class="ripasso-handoff">Qui ritrovi l’ultima tappa studiata su questo dispositivo. Per continuare su un altro, copia o condividi il link alla tappa.</p>
+          </div>
+        </details>
         <div class="course-navigator"><label for="course-chapter">Scegli il capitolo</label><select id="course-chapter" disabled><option>Caricamento dei tuoi appunti…</option></select><label for="course-topic">Vai a una sezione</label><select id="course-topic" disabled><option>Caricamento…</option></select><div class="course-nav-row"><button id="course-prev-chapter" type="button" disabled>← Capitolo</button><span id="course-progress" role="status">Riprendi da dove eri rimasto</span><button id="course-next-chapter" type="button" disabled>Capitolo →</button></div></div>
         <p class="course-step-count" id="course-step-count"></p>
         <h2 id="course-step-title">Caricamento del percorso…</h2>
