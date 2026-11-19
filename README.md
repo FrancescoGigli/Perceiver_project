@@ -7,6 +7,11 @@ Implementazione in PyTorch, da zero, di [Perceiver](https://arxiv.org/abs/2103.0
 (ICML 2021) e [Perceiver IO](https://arxiv.org/abs/2107.14795) (ICLR 2022), con
 replica sperimentale su tre modalità: immagini, point cloud 3D e testo a byte.
 
+**Per preparare l’esame**, parti dal [percorso guidato al codice](preparazione_esame/guida/README.md).
+Comprende la [dispensa stampabile](preparazione_esame/guida/Guida-Perceiver.pdf), un
+[laboratorio animato su latenti e attenzione](https://francescogigli.github.io/Perceiver_project/preparazione_esame/guida/laboratorio.html)
+e una revisione dei risultati con domande d’orale e verifiche ripetibili.
+
 ## Il repo contiene due cose
 
 | | |
@@ -69,7 +74,7 @@ python experiments.py --next          # stato + lancia la prima mancante
 
 python check.py                       # quali sono fatte, quali mancano
 python analyze_v2.py                  # confronto con la banda di rumore
-python -m pytest tests/ -q            # 55 test
+python -m pytest tests/ -q            # suite della replica, 57 test verificati
 ```
 
 > I comandi vanno lanciati con `cwd = progetto/`.
@@ -106,8 +111,9 @@ Risultati principali:
 Nessuna configurazione batte il baseline al di fuori della banda: tutti gli
 effetti che superano il rumore sono negativi. Il più netto è anche il più
 istruttivo — senza positional encoding il modello crolla al 32,36%, mentre
-permutare i pixel lo lascia dov'era: la posizione entra solo dalla codifica,
-non dalla griglia.
+permutare insieme colori e posizioni dà un risultato entro l’escursione dei seed.
+In e29 la rimozione delle coordinate restringe anche le proiezioni di lettura
+da 261 a 3 canali. Il calo osservato include entrambi i cambiamenti.
 
 **Il confronto scomodo va detto per primo.** Su ImageNet il paper batte
 la ResNet-50 di +0,4 punti (78,0 contro 77,6) e di +4,5 quella con Fourier
@@ -119,12 +125,13 @@ valgono 22 punti (la ResNet usa SGD con cosine e weight decay, il Perceiver LAMB
 gradini). Il paper mostra che a scala ImageNet smette di servire; a scala
 CIFAR-10 si paga, e questo numero dice quanto.
 
-**Due numeri GLUE non sono apprendimento**, ed è scritto anche sul sito: CoLA
-fa 721 corrette su 1043, cioè esattamente il conteggio della classe
-maggioritaria, e MRPC la supera di 9 esempi su 408. La media di 71,13 poggia
-su sei task, non su otto — e CoLA nel paper è misurata col coefficiente di
-Matthews, che per un predittore costante vale 0: con quella metrica le medie
-sarebbero 62,49 (separati) e 65,41 (multitask).
+**Su CoLA conta anche la classe minoritaria.** Il modello singolo risponde sempre
+con la classe maggioritaria e indovina 721 esempi su 1.043. Il multitask indovina
+lo stesso totale, recuperando quattro negativi e perdendo quattro positivi.
+Il coefficiente di Matthews vale rispettivamente 0 e 0,0364. Sostituendo la
+sola voce CoLA con Matthews, le medie sugli otto task diventano **62,49**
+(separati) e **65,87** (multitask). Su MRPC il singolo supera la maggioranza
+di 9 esempi su 408. [Conteggi e verifica sui checkpoint](preparazione_esame/guida/02-esperimenti.md)
 
 Stato: **42 run su 42**. Il registro è completo.
 
@@ -132,14 +139,14 @@ Stato: **42 run su 42**. Il registro è completo.
 sta nella Tab. 2 del paper: un solo Perceiver IO con una query di output per task
 contro otto fine-tuning separati. Il paper misura 81,8 contro 81,0, cioè **+0,8**;
 qui 74,05 contro 71,13, cioè **+2,92**. Il livello assoluto è ~8 punti sotto in accuratezza, ~16 con CoLA in Matthews
-(65,41 contro 81,8), e non
+(65,87 contro 81,8), e non
 si colma — 18,9M parametri pre-addestrati su WikiText-103 contro 201M su
 Wikipedia + C4 — ma segno e ordine di grandezza dell'effetto tengono (con una run
 per task e senza banda è un indizio), e il multitask sta sopra pur avendo una sola selezione dell'epoca contro le otto dei
 modelli separati. La media però nasconde dove sta il guadagno: tutto nei task
 piccoli (STS-B +16,9, RTE +7,6, MRPC +6,1), mentre i grandi perdono qualcosa
-(SST-2 −3,6, QQP −2,0, MNLI −1,9) e CoLA resta sulla classe maggioritaria anche
-qui. I task piccoli vedono appena 1,35 passate sui propri dati contro le 30
+(SST-2 −3,6, QQP −2,0, MNLI −1,9) e CoLA conserva la stessa accuratezza.
+I task piccoli vedono appena 1,35 passate sui propri dati contro le 30
 epoche dei modelli separati: che il guadagno venga dai task grandi e
 affini non è dimostrato (nel paper STS-B in multitask perde 6,86).
 
