@@ -20,14 +20,16 @@ Si apre una finestra.
 
 - **Tabella esperimenti** — i 42 del registro `experiments.py`: id, tabella del
   paper replicata, config (override), modalità, stato (`ok` / `in corso` /
-  `da fare` / `DIVERGITA`), valore del paper e test-accuracy letta dai `logs/`.
-- **Colonna `paper acc`** — il numero che il paper riporta per la riga replicata,
+  `da fare` / `DIVERGITA`), valore del paper e risultato letto dai `logs/`.
+- **Colonna `risultato`** — metrica, split e valore della run. Su STS-B il pannello mostra Pearson sul dev set. Per ModelNet40 indica l’uso del test per scegliere l’epoca.
+- **Colonna `rif. paper`** — il numero che il paper riporta per la riga replicata,
   preso dalle tabelle trascritte nel cap. 13 della lezione (Tab. 2, 4, 5, 6, 7).
   Dove il paper non dà quella configurazione la cella resta `—` invece di essere
   stimata: Fig. 6 è un grafico senza tabella, l'at-start è dato solo per T=8, e
-  il ramo IO non ha né CIFAR-10 né accuratezza sui byte mascherati; GLUE il paper
-  lo dà come media sugli 8 task (81.0 byte-level, BERT 81.1), non per task.
-  Ne risultano 13 righe su 42 con un valore.
+  il ramo IO non ha né CIFAR-10 né accuratezza sui byte mascherati. Per GLUE la
+  Tab. 2 riporta 81,8 punti per il multitask e 81,0 per gli otto fine-tuning
+  separati. Il confronto usa Matthews su CoLA, mentre la media locale originale
+  usa l’accuratezza su quel task. Ne risultano 14 righe su 42 con un riferimento.
 - **Riga di confronto** — selezionando una run, sopra il comando compaiono due
   righe: `NOSTRO` (verde) con dataset e configurazione **effettiva** della run e
   `PAPER` (ambra) con dataset e configurazione della riga replicata. La riga

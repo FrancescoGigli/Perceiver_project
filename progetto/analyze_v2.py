@@ -18,8 +18,9 @@ import math
 import os
 
 from experiments import EXPERIMENTS
+from src.utils.run_metrics import format_value, metric_name, reported_score
 
-GROUP_OF = {e["id"]: e["group"] for e in EXPERIMENTS}
+BY_ID = {e["id"]: e for e in EXPERIMENTS}
 ORDER = {e["id"]: i for i, e in enumerate(EXPERIMENTS)}
 
 NOISE_BAND_IDS = ["e01_baseline", "e31_baseline_seed1", "e32_baseline_seed2"]
@@ -88,16 +89,17 @@ def build_rows(results, band):
 
     rows = []
     for eid, data in results.items():
-        if eid not in GROUP_OF:
+        if eid not in BY_ID:
             # Cartella in logs/ che non corrisponde a nessuna run del registro
             # (prove, run di versioni precedenti): niente delta ne' verdetto, che
             # sarebbero senza senso rispetto a un baseline con cui non condivide
             # la configurazione. Elencata a parte in coda alla tabella.
             continue
-        acc = _acc(data)
+        score = reported_score(BY_ID[eid], data)
+        acc = score.value
         epoch = data.get("selected_epoch")
         params = data.get("params")
-        group = GROUP_OF.get(eid, "?")
+        group = BY_ID[eid]["group"]
         mod = MODALITY_OF.get(eid, "image")
         base = baseline_acc.get(mod)
         base_id = BASELINE_OF.get(mod)
@@ -129,7 +131,8 @@ def build_rows(results, band):
             {
                 "id": eid,
                 "group": group,
-                "test_acc": acc,
+                "test_acc": data.get("test_accuracy"),
+                "score": score,
                 "selected_epoch": epoch,
                 "params": params,
                 "delta_vs_e01": delta,
@@ -145,7 +148,8 @@ def write_csv(rows, path=OUT_CSV):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
-        writer.writerow(["id", "group", "test_acc", "selected_epoch", "params", "delta_vs_e01", "verdetto"])
+        writer.writerow(["id", "group", "test_acc", "selected_epoch", "params", "delta_vs_e01", "verdetto",
+                         "score", "metric", "split"])
         for r in rows:
             writer.writerow(
                 [
@@ -156,6 +160,9 @@ def write_csv(rows, path=OUT_CSV):
                     "" if r["params"] is None else r["params"],
                     "" if r["delta_vs_e01"] is None else r["delta_vs_e01"],
                     r["verdetto"],
+                    "" if _is_missing(r["score"].value) else r["score"].value,
+                    r["score"].metric,
+                    r["score"].split,
                 ]
             )
     return path
@@ -167,14 +174,14 @@ def _fmt_pct(value):
     return "-"
 
 
-def _fmt_signed_pct(value):
+def _fmt_delta_pp(value):
     if isinstance(value, (int, float)) and value == value:
-        return f"{value * 100:+.2f}%"
+        return f"{value * 100:+.2f} pp"
     return "-"
 
 
 def print_table(rows, band, band_ids):
-    header = f"{'id':28s} {'gruppo':7s} {'test acc':>9s} {'epoca':>6s} {'params':>11s} {'delta':>8s}  {'verdetto':16s}"
+    header = f"{'id':28s} {'gruppo':7s} {'metrica / split: valore':47s} {'epoca':>6s} {'params':>11s} {'delta':>8s}  {'verdetto':16s}"
     print(header)
     print("-" * len(header))
     for r in rows:
@@ -182,8 +189,8 @@ def print_table(rows, band, band_ids):
         params_s = f"{params:,}" if isinstance(params, (int, float)) else "-"
         epoch_s = str(r["selected_epoch"]) if r["selected_epoch"] is not None else "-"
         print(
-            f"{r['id']:28s} {r['group']:7s} {_fmt_pct(r['test_acc']):>9s} {epoch_s:>6s} "
-            f"{params_s:>11s} {_fmt_signed_pct(r['delta_vs_e01']):>8s}  {r['verdetto']:16s}"
+            f"{r['id']:28s} {r['group']:7s} {r['score'].describe():47s} {epoch_s:>6s} "
+            f"{params_s:>11s} {_fmt_delta_pp(r['delta_vs_e01']):>8s}  {r['verdetto']:16s}"
         )
     print("-" * len(header))
     if band is None:
@@ -232,7 +239,7 @@ def print_io_section(results, band):
                 verdetto = "banda ignota"
             else:
                 verdetto = "sopra il rumore" if abs(delta) > band else "NON concludente"
-            print(f"   {label:<39}: {_fmt_pct(acc)}   delta {_fmt_signed_pct(delta)}   {verdetto}")
+            print(f"   {label:<39}: {_fmt_pct(acc)}   delta {_fmt_delta_pp(delta)}   {verdetto}")
 
     # 2. Media GLUE. Il paper riporta 81.0 (byte-level) / 81.1 (BERT su token).
     print("\n-- GLUE (paper Tab. 1: Perceiver IO byte-level 81.0, BERT 81.1) --")
@@ -246,10 +253,13 @@ def print_io_section(results, band):
             missing.append(task)
         else:
             scores.append(pre)
-        metrica = "Pearson" if task == "stsb" else "accuracy"
+        metrica = metric_name(BY_ID[f"io_glue_{task}"])
         delta = (pre - scr) if (pre is not None and scr is not None) else None
-        print(f"   {task:8s} {metrica:10s} {_fmt_pct(pre):>9s} {_fmt_pct(scr):>9s} "
-              f"{_fmt_signed_pct(delta):>9s}")
+        delta_text = _fmt_delta_pp(delta)
+        if metrica == "Pearson r" and delta is not None:
+            delta_text = f"{delta:+.4f}"
+        print(f"   {task:8s} {metrica:10s} {format_value(metrica, pre):>9s} {format_value(metrica, scr):>9s} "
+              f"{delta_text:>9s}")
     print("   " + "-" * 50)
     if scores:
         media = sum(scores) / len(scores)
@@ -279,7 +289,7 @@ def print_io_section(results, band):
         delta = multi_acc - singola
         print(f"   otto fine-tuning separati, media {len(scores)}/8 : {singola * 100:.2f}")
         print(f"   io_glue_multitask (un modello, 8 query)   : {multi_acc * 100:.2f}"
-              f"   delta {_fmt_signed_pct(delta)}")
+              f"   delta {delta * 100:+.2f} punti")
         if len(scores) < 8:
             print("   ATTENZIONE: confronto contro una media parziale")
         print(f"   il paper misura +0.80 nella stessa direzione.")
@@ -299,7 +309,7 @@ def print_io_section(results, band):
             print(f"   {task}: controllo incompleto")
         else:
             print(f"   {task}: {_fmt_pct(scr)} da zero -> {_fmt_pct(pre)} col pre-training "
-                  f"({_fmt_signed_pct(pre - scr)})")
+                  f"({_fmt_delta_pp(pre - scr)})")
 
 
 def main():
@@ -316,7 +326,7 @@ def main():
 
     print_table(rows, band, band_ids)
 
-    extra = sorted(eid for eid in results if eid not in GROUP_OF)
+    extra = sorted(eid for eid in results if eid not in BY_ID)
     if extra:
         print(f"\nAltre cartelle in logs/ non presenti nel registro ({len(extra)}), "
               f"escluse dal confronto: {', '.join(extra)}")

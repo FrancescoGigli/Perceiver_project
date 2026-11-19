@@ -97,7 +97,12 @@ class CourseContentTests(unittest.TestCase):
             self.assertIn('"--num_transformer_blocks", "4"', context)
             self.assertIn('_exp("e01_baseline", "tab1", [])', context)
             self.assertIn('_exp("e02_permuted", "tab2", ["--permute_pixels", "--permute_pixels_seed", "42"])', context)
-            self.assertTrue(any(source.get("line_start") == 12 for source in sources))
+            registry_lines = (ROOT / "progetto/experiments.py").read_text(encoding="utf-8").splitlines()
+            cited_blocks = [
+                registry_lines[source["line_start"] - 1:source["line_end"]]
+                for source in sources if source["path"] == "progetto/experiments.py"
+            ]
+            self.assertIn(chapter["code"][0]["text"].splitlines(), cited_blocks)
         chapter = get_chapter(self.course, 45)
         focused = [step for step in chapter["steps"] if step.get("experimentId") in {"e01_baseline", "e02_permuted"}]
         self.assertEqual(len(focused), 8)

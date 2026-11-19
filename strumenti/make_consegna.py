@@ -15,11 +15,14 @@
 
 import argparse
 import ast
+import errno
 import io
+import os
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import tokenize
 import zipfile
 from pathlib import Path
@@ -94,59 +97,115 @@ def strip_comments(source, path):
     return cleaned
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Crea la cartella di consegna")
-    parser.add_argument("--dest", default=str(ROOT.parent / "Perceiver_consegna"))
-    parser.add_argument("--keep-comments", action="store_true",
-                        help="non rimuovere commenti e docstring")
-    parser.add_argument("--no-zip", action="store_true")
-    args = parser.parse_args()
-
-    dest = Path(args.dest)
-    if dest.exists():
-        shutil.rmtree(dest)
-    dest.mkdir(parents=True)
-
-    check_nothing_is_left_behind()
-    files = tracked_files()
-    if not files:
-        raise SystemExit("git ls-files non ha trovato nulla sotto progetto/")
-
+def copy_files(files, dest, keep_comments):
     n_py = 0
     for rel in files:
         src = ROOT / rel
         target = dest / Path(rel).relative_to("progetto")
         target.parent.mkdir(parents=True, exist_ok=True)
-        if src.suffix == ".py" and not args.keep_comments:
+        if src.suffix == ".py" and not keep_comments:
             target.write_text(strip_comments(src.read_text(encoding="utf-8"), src),
                               encoding="utf-8")
             n_py += 1
         else:
             shutil.copy2(src, target)
-
-    print(f"Copiati {len(files)} file tracciati in {dest}")
-    if not args.keep_comments:
-        print(f"  {n_py} file .py spogliati di commenti e docstring")
-
-    # Verifica: tutto compila e il registro e' importabile dalla cartella pulita.
-    subprocess.check_call([sys.executable, "-m", "compileall", "-q", str(dest)])
-    subprocess.check_call([sys.executable, "-c",
+        if src.suffix == ".py":
+            compile(target.read_bytes(), str(target), "exec")
+    subprocess.check_call([sys.executable, "-B", "-c",
                            "import experiments; print('  registro:', len(experiments.EXPERIMENTS), 'run')"],
                           cwd=str(dest))
-    for cache in dest.rglob("__pycache__"):
-        shutil.rmtree(cache, ignore_errors=True)
+    return n_py
 
-    if not args.no_zip:
-        zip_path = dest.with_suffix(".zip")
-        zip_path.unlink(missing_ok=True)
-        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-            for f in sorted(dest.rglob("*")):
-                if f.is_file():
-                    zf.write(f, f.relative_to(dest))
-        print(f"Zip: {zip_path} ({zip_path.stat().st_size / 1024:.0f} KB)")
 
-    total = sum(1 for f in dest.rglob("*") if f.is_file())
-    print(f"Pronto: {total} file in {dest}")
+def publish_new(source, target):
+    """Rinomina sullo stesso filesystem solo se il nome finale è ancora libero."""
+    if os.name == "nt":
+        # Su Windows rename fallisce anche se il target è una directory vuota.
+        os.rename(source, target)
+        return
+
+    # Su POSIX os.rename può sostituire una directory vuota comparsa in corsa.
+    # I flag esclusivi del kernel applicano controllo e pubblicazione insieme.
+    import ctypes
+    libc = ctypes.CDLL(None, use_errno=True)
+    if sys.platform.startswith("linux") and hasattr(libc, "renameat2"):
+        at_fdcwd = -100
+        result = libc.renameat2(at_fdcwd, os.fsencode(source), at_fdcwd, os.fsencode(target), 1)
+    elif sys.platform == "darwin" and hasattr(libc, "renamex_np"):
+        result = libc.renamex_np(os.fsencode(source), os.fsencode(target), 4)
+    else:
+        raise OSError(errno.ENOTSUP, "Rinomina esclusiva non disponibile su questa piattaforma")
+    if result != 0:
+        error = ctypes.get_errno()
+        raise OSError(error, os.strerror(error), str(target))
+
+
+def build(dest, keep_comments=False, no_zip=False):
+    # Risolvi i link dei genitori ma conserva l'ultima componente per rilevare
+    # anche un link di destinazione rotto.
+    dest = Path(dest).absolute()
+    dest = dest.parent.resolve() / dest.name
+    source = SOURCE.resolve()
+    git_dir = (ROOT / ".git").resolve()
+    if source.is_relative_to(dest) or dest.is_relative_to(source) or dest.is_relative_to(git_dir):
+        raise ValueError(f"Destinazione incompatibile con i sorgenti del progetto: {dest}")
+    archive = None if no_zip else dest.with_suffix(".zip")
+    if archive == dest:
+        raise ValueError(f"Cartella e ZIP avrebbero lo stesso nome: {dest}")
+    for target in (dest, archive):
+        if target is not None and os.path.lexists(target):
+            raise FileExistsError(errno.EEXIST, "Scegli un nome di consegna libero", str(target))
+
+    check_nothing_is_left_behind()
+    files = tracked_files()
+    if not files:
+        raise ValueError("git ls-files non ha trovato nulla sotto progetto/")
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".consegna-", dir=dest.parent) as work:
+        staged = Path(work) / "codice"
+        staged.mkdir()
+        n_py = copy_files(files, staged, keep_comments)
+        if archive is None:
+            publish_new(staged, dest)
+        else:
+            staged_zip = Path(work) / "consegna.zip"
+            with zipfile.ZipFile(staged_zip, "x", zipfile.ZIP_DEFLATED) as zf:
+                for f in sorted(staged.rglob("*")):
+                    if f.is_file():
+                        zf.write(f, f.relative_to(staged))
+            # Pubblicando prima lo ZIP, un conflitto sulla cartella richiede di
+            # ritirare solo il nostro file, mai di eliminare un albero pubblico.
+            written = staged_zip.stat()
+            publish_new(staged_zip, archive)
+            try:
+                publish_new(staged, dest)
+            except BaseException:
+                try:
+                    if os.path.samestat(written, archive.lstat()):
+                        archive.unlink()
+                except FileNotFoundError:
+                    pass
+                raise
+    print(f"Pronto: {len(files)} file in {dest}")
+    if not keep_comments:
+        print(f"  {n_py} file .py spogliati di commenti e docstring")
+    if archive is not None:
+        print(f"Zip: {archive}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Crea una nuova cartella di consegna")
+    parser.add_argument("--dest", default=str(ROOT.parent / "Perceiver_consegna"),
+                        help="nome libero per la cartella e il relativo .zip")
+    parser.add_argument("--keep-comments", action="store_true",
+                        help="non rimuovere commenti e docstring")
+    parser.add_argument("--no-zip", action="store_true", help="crea solo la cartella")
+    args = parser.parse_args()
+    try:
+        build(args.dest, args.keep_comments, args.no_zip)
+    except (OSError, ValueError, SyntaxError, subprocess.SubprocessError, zipfile.BadZipFile) as exc:
+        parser.exit(1, f"Consegna interrotta: {exc}\n")
 
 
 if __name__ == "__main__":

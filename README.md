@@ -69,7 +69,7 @@ python experiments.py --next          # stato + lancia la prima mancante
 
 python check.py                       # quali sono fatte, quali mancano
 python analyze_v2.py                  # confronto con la banda di rumore
-python -m pytest tests/ -q            # suite della replica, 57 test verificati
+python -m pytest tests/ -q            # suite della replica e regressioni sui casi limite
 ```
 
 > I comandi vanno lanciati con `cwd = progetto/`.

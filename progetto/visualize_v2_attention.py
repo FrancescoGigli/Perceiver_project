@@ -21,11 +21,9 @@ import numpy as np
 import torch
 
 from src.data.cifar10 import CIFAR10PerceiverDataModule
+from src.data.transforms import unnormalize_cifar10_image
 from src.perceiver.input_pe import InputPositionalEncoding, make_token_permutation
 from src.perceiver.perceiver import Perceiver
-
-CIFAR10_MEAN = torch.tensor([0.4914, 0.4822, 0.4465]).view(3, 1, 1)
-CIFAR10_STD = torch.tensor([0.2023, 0.1994, 0.2010]).view(3, 1, 1)
 
 
 def _convert(value):
@@ -148,11 +146,10 @@ def load_model(experiment, log_dir="logs"):
     return model, cfg, patch_size
 
 
-def get_batch(cfg, patch_size, num_images):
+def get_batch(cfg, patch_size, num_images, data_dir=None):
     """Prime `num_images` immagini del test set CIFAR-10 (nessuno shuffle -> deterministico)."""
-    data_dir = cfg.get("data_dir") or "./data"
     dm = CIFAR10PerceiverDataModule(
-        data_dir=data_dir,
+        data_dir=data_dir or cfg.get("data_dir") or "./data",
         batch_size=num_images,
         num_workers=0,
         patch_size=patch_size,
@@ -169,9 +166,15 @@ def get_batch(cfg, patch_size, num_images):
 
 def unnormalize(img):
     """[3, H, W] normalizzato -> numpy [H, W, 3] in [0, 1], per la visualizzazione."""
-    img = img * CIFAR10_STD + CIFAR10_MEAN
-    img = img.clamp(0.0, 1.0)
-    return img.permute(1, 2, 0).numpy()
+    return unnormalize_cifar10_image(img).permute(1, 2, 0).numpy()
+
+
+def attention_in_image_order(weights, permutation):
+    """Riporta l'ultimo asse delle mappe dall'ordine di lettura a quello dei pixel."""
+    if permutation is None:
+        return weights
+    # Il token letto in posizione j proviene dal pixel permutation[j].
+    return weights.index_select(-1, permutation.argsort().to(weights.device))
 
 
 def main():
@@ -183,6 +186,7 @@ def main():
         help="id della run, es. e01_baseline (deve esistere logs/<experiment>/checkpoints/best_model.pt)",
     )
     parser.add_argument("--num-images", type=int, default=4, help="numero di immagini del test set da visualizzare")
+    parser.add_argument("--data-dir", help="cartella CIFAR-10 da usare al posto di quella registrata nella run")
     parser.add_argument("--out", default="perceiver_visualizations_v2", help="cartella di output per i PNG")
     parser.add_argument(
         "--num-latents-grid", type=int, default=8,
@@ -203,7 +207,7 @@ def main():
         f"patch_size={patch_size}"
     )
 
-    inputs, original_images, labels = get_batch(cfg, patch_size, args.num_images)
+    inputs, original_images, labels = get_batch(cfg, patch_size, args.num_images, args.data_dir)
     print(f"Batch di test caricato: {inputs.shape[0]} immagini, inputs {tuple(inputs.shape)}")
 
     with torch.no_grad():
@@ -216,7 +220,7 @@ def main():
             "di Perceiver (in questo script e' impostato in build_model())."
         )
 
-    last_stage = model.attn_maps[-1]  # [B, num_heads_cross, N, M]
+    last_stage = attention_in_image_order(model.attn_maps[-1], model.input_pe.perm)
     print(f"attn_maps: {len(model.attn_maps)} stage(s) salvati, ultimo stage shape {tuple(last_stage.shape)}")
 
     num_tokens = inputs.shape[1]

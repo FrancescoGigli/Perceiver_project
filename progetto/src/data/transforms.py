@@ -6,7 +6,15 @@ from torchvision import transforms
 
 # CIFAR-10 Augmentations
 # As per requirements: "Use only RandAugment for data augmentation"
-# Normalization values for CIFAR-10: mean (0.4914, 0.4822, 0.4465), std (0.2023, 0.1994, 0.2010)
+CIFAR10_MEAN = (0.4914, 0.4822, 0.4465)
+CIFAR10_STD = (0.2023, 0.1994, 0.2010)
+
+
+def unnormalize_cifar10_image(image):
+    """Convert a normalized [3, H, W] CIFAR image to displayable RGB in [0, 1]."""
+    mean = image.new_tensor(CIFAR10_MEAN).view(3, 1, 1)
+    std = image.new_tensor(CIFAR10_STD).view(3, 1, 1)
+    return (image * std + mean).clamp(0, 1)
 
 def get_cifar10_train_transforms(randaugment_num_ops=2, randaugment_magnitude=9):
     """
@@ -15,7 +23,7 @@ def get_cifar10_train_transforms(randaugment_num_ops=2, randaugment_magnitude=9)
     return transforms.Compose([
         transforms.RandAugment(num_ops=randaugment_num_ops, magnitude=randaugment_magnitude),
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+        transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD)
     ])
 
 def get_cifar10_test_transforms():
@@ -25,7 +33,7 @@ def get_cifar10_test_transforms():
     """
     return transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+        transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD)
     ])
 
 

@@ -77,7 +77,8 @@ def get_base_config():
                         help='Task for the model: classification or mlm')
     parser.add_argument('--mlm_vocab_size', type=int, default=256, help='Vocabulary size for MLM (byte-level uses 256)')
     parser.add_argument('--text_seq_len', type=int, default=2048, help='Sequence length for byte-level MLM')
-    parser.add_argument('--mlm_mask_prob', type=float, default=0.15, help='Mask probability for MLM')
+    parser.add_argument('--mlm_mask_prob', type=float, default=0.15,
+                        help='Independent probability of masking each byte in MLM (0 < p <= 1)')
     parser.add_argument('--text_fourier_bands', type=int, default=6,
                         help='Fourier bands for the 1D text PE: 2K+1 channels, 13 with K=6 (input 257+13=270)')
     parser.add_argument('--text_max_freq', type=float, default=64.0, help='Max frequency for text positional encoding')

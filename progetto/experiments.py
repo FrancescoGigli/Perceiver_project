@@ -8,6 +8,8 @@ import os
 import subprocess
 import sys
 
+from src.utils.run_metrics import format_value, metric_name
+
 # Config base per gli esperimenti su IMMAGINI (CIFAR-10).
 BASE = [
     "--dataset", "cifar10",
@@ -368,8 +370,9 @@ def next_experiment():
         cfg = " ".join(exp["overrides"]) or "baseline (riferimento)"
         if len(cfg) > 40:
             cfg = cfg[:37] + "..."
-        accs = f"{acc * 100:.2f}%" if isinstance(acc, (int, float)) and acc == acc else "-"
-        print(f"{i:<4}{exp['id']:<26}{cfg:<42}{stato:<20}{accs:>9}")
+        metric = metric_name(exp)
+        accs = format_value(metric, acc)
+        print(f"{i:<4}{exp['id']:<26}{cfg:<42}{stato:<20}{accs:>9}  {metric}")
         if pulito:
             n_ok += 1
         elif first_todo is None:

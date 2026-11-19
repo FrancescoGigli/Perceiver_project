@@ -1,5 +1,5 @@
 # check.py
-# Dashboard delle run v2: quali sono fatte, il loro test accuracy, quali sono
+# Dashboard delle run v2: quali sono fatte, con quale metrica e split, quali sono
 # divergite (nan) e quali mancano ancora. L'unica fonte e' logs/<id>/results.json:
 # una run divergente ma protetta ha comunque un test_accuracy valido, preso dal
 # checkpoint scelto prima della divergenza. Sola lettura, non lancia nulla.
@@ -10,17 +10,18 @@
 
 import argparse
 import json
+import math
 import os
 import time
 
 from experiments import EXPERIMENTS
+from src.utils.run_metrics import reported_score
 
-GROUP_OF = {e["id"]: e["group"] for e in EXPERIMENTS}
-ORDER = [e["id"] for e in EXPERIMENTS]
+BY_ID = {e["id"]: e for e in EXPERIMENTS}
 
 
 def _status_of(experiment_id):
-    """Ritorna (stato, test_acc, epoca) leggendo results.json."""
+    """Ritorna stato, punteggio con metrica e split, epoca."""
     path = os.path.join("logs", experiment_id, "results.json")
     if not os.path.exists(path):
         # C'e' un checkpoint ma niente json => run in corso o interrotta
@@ -29,30 +30,29 @@ def _status_of(experiment_id):
         return ("da fare", None, None)
     with open(path, encoding="utf-8") as handle:
         data = json.load(handle)
-    acc = data.get("test_accuracy")
-    if acc is None:  # ModelNet40 non ha una split di test separata: la val E' l'insieme di test
-        acc = data.get("val_accuracy")
+    score = reported_score(BY_ID.get(experiment_id, {}), data)
     ep = data.get("selected_epoch")
-    if acc is None or (isinstance(acc, float) and acc != acc):  # None o nan
-        return ("DIVERGITA", acc, ep)
-    return ("ok", acc, ep)
+    if score.value is None or not math.isfinite(score.value):
+        return ("DIVERGITA", score, ep)
+    return ("ok", score, ep)
 
 
 def dashboard():
     done = diverged = 0
-    print(f"{'run':28s} {'gruppo':6s} {'stato':20s} {'test acc':>9s} {'epoca':>6s}")
-    print("-" * 74)
-    for eid in ORDER:
-        stato, acc, ep = _status_of(eid)
-        accs = f"{acc*100:.2f}%" if isinstance(acc, (int, float)) and acc == acc else "-"
+    header = f"{'run':28s} {'gruppo':8s} {'stato':20s} {'epoca':>6s}  metrica / split: valore"
+    print(header)
+    print("-" * len(header))
+    for eid, experiment in BY_ID.items():
+        stato, score, ep = _status_of(eid)
         eps = str(ep) if ep is not None else "-"
-        print(f"{eid:28s} {GROUP_OF[eid]:6s} {stato:20s} {accs:>9s} {eps:>6s}")
+        result = score.describe() if score else "-"
+        print(f"{eid:28s} {experiment['group']:8s} {stato:20s} {eps:>6s}  {result}")
         if stato == "ok":
             done += 1
         elif stato == "DIVERGITA":
             diverged += 1
-    print("-" * 74)
-    total = len(ORDER)
+    print("-" * len(header))
+    total = len(BY_ID)
     print(f"fatte: {done}/{total}   divergite: {diverged}   mancanti: {total - done - diverged}")
     if diverged:
         print("ATTENZIONE: run divergite presenti. Controlla grad_clip / lr prima di rifarle.")
@@ -69,9 +69,9 @@ def export_csv(path):
     with open(path, "w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
-        for eid in ORDER:
+        for eid, experiment in BY_ID.items():
             stato, _, _ = _status_of(eid)
-            row = {"run": eid, "group": GROUP_OF[eid], "status": stato}
+            row = {"run": eid, "group": experiment["group"], "status": stato}
             json_path = os.path.join("logs", eid, "results.json")
             if os.path.exists(json_path):
                 with open(json_path, encoding="utf-8") as handle_json:
@@ -83,7 +83,7 @@ def export_csv(path):
                     row[key] = value
                 n += 1
             writer.writerow(row)
-    print(f"{path}: {n} run con risultati su {len(ORDER)}")
+    print(f"{path}: {n} run con risultati su {len(BY_ID)}")
 
 
 def watch(experiment_id, poll_seconds=30):
@@ -91,12 +91,12 @@ def watch(experiment_id, poll_seconds=30):
     compare (fine) o quando riporta un'accuratezza nan (divergenza)."""
     print(f"watching {experiment_id} (Ctrl-C per uscire)")
     while True:
-        stato, acc, ep = _status_of(experiment_id)
+        stato, score, ep = _status_of(experiment_id)
         if stato == "ok":
-            print(f"FINITA: test {acc*100:.2f}% (checkpoint epoca {ep})")
+            print(f"FINITA: {score.describe()} (checkpoint epoca {ep})")
             return 0
         if stato == "DIVERGITA":
-            print(f"DIVERGITA: results.json ha test_accuracy={acc}")
+            print(f"DIVERGITA: nessun valore finito per {score.metric} / {score.split}")
             return 1
         print(f"  [{stato}] ...", flush=True)
         time.sleep(poll_seconds)

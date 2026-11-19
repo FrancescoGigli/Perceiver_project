@@ -17,6 +17,7 @@ import seaborn as sns
 # Project specific imports
 from src.config.base_cfg import get_base_config
 from src.data.cifar10 import CIFAR10PerceiverDataModule
+from src.data.transforms import unnormalize_cifar10_image
 from src.data.modelnet40 import ModelNet40PerceiverDataModule
 from src.data.wikitext2 import WikiText2PerceiverDataModule
 from src.data.wikitext103 import WikiText103PerceiverDataModule
@@ -32,7 +33,18 @@ from src.utils.scheduler import get_scheduler
 from src.utils.logger import BaseLogger
 import torch_optimizer as custom_optim # For LAMB optimizer
 
+def _is_mlm(args):
+    return args.dataset in ('wikitext2', 'wikitext103') and args.model_task == 'mlm'
+
+
 def main(args):
+    mlm = _is_mlm(args)
+    if mlm:
+        if not 0 < args.mlm_mask_prob <= 1:
+            raise ValueError("--mlm_mask_prob deve essere maggiore di 0 e al massimo 1 per il training MLM.")
+        if args.text_seq_len < 1:
+            raise ValueError("--text_seq_len deve essere positivo per creare finestre MLM.")
+
     from src.utils.seed import set_global_seed
     set_global_seed(args.seed)
     print(f"Global seed: {args.seed}")
@@ -146,6 +158,9 @@ def main(args):
     
     # Setup data module
     data_module.setup()
+    if mlm and (len(data_module.train_dataset) == 0 or len(data_module.val_dataset) == 0):
+        raise ValueError("Per il training MLM serve almeno una finestra completa in ciascuno split. "
+                         "Verifica i dati e --text_seq_len.")
     train_loader = data_module.train_dataloader()
     val_loader = data_module.val_dataloader()
     
@@ -419,7 +434,7 @@ def main(args):
 
     # Nessun early stopping: 120 epoche piene, cosi' ogni run riceve il decay del LR
     # ai milestone [84, 102, 114]. Vedi la spec, sezione "La lotteria del decay".
-    best_val_accuracy = float('-inf') if args.dataset == 'glue_stsb' else 0.0
+    best_val_accuracy = float('-inf') if mlm or args.dataset == 'glue_stsb' else 0.0
     best_epoch = 0
 
     # Tracking previous accuracies to calculate differences
@@ -588,6 +603,7 @@ def main(args):
 
 def train_one_epoch(model, train_loader, criterion, optimizer, device, epoch_num, logger, args, scaler, data_module):
     model.train()
+    mlm = _is_mlm(args)
     total_loss = 0
     total_correct = 0
     total_samples = 0
@@ -600,13 +616,7 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device, epoch_num
             data = batch_dict['inputs']
             target = batch_dict['labels']
             mask = None
-        elif args.dataset == 'wikitext2':
-            batch_dict = data_module.preprocess_batch(batch)
-            data = batch_dict['inputs']
-            target = batch_dict['labels']
-            mask = batch_dict['mask']
-            mask = batch_dict['mask']
-        elif args.dataset == 'wikitext103':
+        elif args.dataset in ('wikitext2', 'wikitext103'):
             batch_dict = data_module.preprocess_batch(batch)
             data = batch_dict['inputs']
             target = batch_dict['labels']
@@ -621,6 +631,10 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device, epoch_num
             data, target = batch
             mask = None
         
+        if mlm:
+            masked_count = mask.sum().item()
+            if masked_count == 0:
+                continue
         data = data.to(device)
         target = target.to(device)
         if mask is not None:
@@ -631,14 +645,8 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device, epoch_num
         # Use autocast for mixed precision training
         with autocast(device_type=device.type, dtype=torch.bfloat16, enabled=(device.type == 'cuda' and not args.no_amp)):
             output = model(data)
-            if (args.dataset == 'wikitext2' or args.dataset == 'wikitext103') and args.model_task == 'mlm':
-                mask_flat = mask.view(-1)
-                if mask_flat.any():
-                    logits = output.view(-1, output.size(-1))
-                    target_flat = target.view(-1)
-                    loss = criterion(logits[mask_flat], target_flat[mask_flat])
-                else:
-                    loss = torch.tensor(0.0, device=device)
+            if mlm:
+                loss = criterion(output[mask], target[mask])
             elif args.dataset == 'glue_stsb':
                 # STS-B regression: squeeze output to match target shape
                 loss = criterion(output.squeeze(-1), target.float())
@@ -655,11 +663,11 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device, epoch_num
         scaler.step(optimizer)
         scaler.update()
 
-        if (args.dataset == 'wikitext2' or args.dataset == 'wikitext103') and args.model_task == 'mlm':
-            total_loss += loss.item() * mask.sum().item()
+        if mlm:
+            total_loss += loss.item() * masked_count
             preds = output.argmax(dim=-1)
             total_correct += (preds[mask] == target[mask]).sum().item()
-            total_samples += mask.sum().item()
+            total_samples += masked_count
         elif args.dataset == 'glue_stsb':
             # STS-B: track loss only (regression, no accuracy)
             total_loss += loss.item() * data.size(0)
@@ -677,6 +685,9 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device, epoch_num
         logger.log_scalar("train/batch_loss", loss.item(), epoch_num * len(train_loader) + batch_idx)
         logger.log_scalar("train/batch_accuracy", current_acc, epoch_num * len(train_loader) + batch_idx)
             
+    if mlm and total_samples == 0:
+        raise ValueError(f"Nessun byte mascherato nel training all’epoca {epoch_num + 1}. "
+                         "Verifica --mlm_mask_prob e la quantità di testo.")
     avg_loss = total_loss / max(1, total_samples)
     avg_acc = total_correct / max(1, total_samples)
     return avg_loss, avg_acc
@@ -684,6 +695,7 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device, epoch_num
 
 def validate_one_epoch(model, val_loader, criterion, device, epoch_num, logger, args, data_module):
     model.eval()
+    mlm = _is_mlm(args)
     total_loss = 0
     total_correct = 0
     total_samples = 0
@@ -701,12 +713,7 @@ def validate_one_epoch(model, val_loader, criterion, device, epoch_num, logger, 
                 data = batch_dict['inputs']
                 target = batch_dict['labels']
                 mask = None
-            elif args.dataset == 'wikitext2':
-                batch_dict = data_module.preprocess_batch(batch)
-                data = batch_dict['inputs']
-                target = batch_dict['labels']
-                mask = batch_dict['mask']
-            elif args.dataset == 'wikitext103':
+            elif args.dataset in ('wikitext2', 'wikitext103'):
                 batch_dict = data_module.preprocess_batch(batch)
                 data = batch_dict['inputs']
                 target = batch_dict['labels']
@@ -721,6 +728,10 @@ def validate_one_epoch(model, val_loader, criterion, device, epoch_num, logger, 
                 data, target = batch
                 mask = None
             
+            if mlm:
+                masked_count = mask.sum().item()
+                if masked_count == 0:
+                    continue
             data = data.to(device)
             target = target.to(device)
             if mask is not None:
@@ -729,24 +740,18 @@ def validate_one_epoch(model, val_loader, criterion, device, epoch_num, logger, 
             # Use autocast for mixed precision in validation too
             with autocast(device_type=device.type, dtype=torch.bfloat16, enabled=(device.type == 'cuda' and not args.no_amp)):
                 output = model(data)
-                if (args.dataset == 'wikitext2' or args.dataset == 'wikitext103') and args.model_task == 'mlm':
-                    mask_flat = mask.view(-1)
-                    if mask_flat.any():
-                        logits = output.view(-1, output.size(-1))
-                        target_flat = target.view(-1)
-                        loss = criterion(logits[mask_flat], target_flat[mask_flat])
-                    else:
-                        loss = torch.tensor(0.0, device=device)
+                if mlm:
+                    loss = criterion(output[mask], target[mask])
                 elif args.dataset == 'glue_stsb':
                     loss = criterion(output.squeeze(-1), target.float())
                 else:
                     loss = criterion(output, target)
 
-            if (args.dataset == 'wikitext2' or args.dataset == 'wikitext103') and args.model_task == 'mlm':
-                total_loss += loss.item() * mask.sum().item()
+            if mlm:
+                total_loss += loss.item() * masked_count
                 preds = output.argmax(dim=-1)
                 total_correct += (preds[mask] == target[mask]).sum().item()
-                total_samples += mask.sum().item()
+                total_samples += masked_count
             elif args.dataset == 'glue_stsb':
                 total_loss += loss.item() * data.size(0)
                 total_samples += data.size(0)
@@ -757,7 +762,7 @@ def validate_one_epoch(model, val_loader, criterion, device, epoch_num, logger, 
                 total_samples += data.size(0)
             
             # Save predictions and targets for metrics calculation
-            if (args.dataset == 'wikitext2' or args.dataset == 'wikitext103') and args.model_task == 'mlm':
+            if mlm:
                 masked_preds = preds[mask].detach().cpu().numpy()
                 masked_targets = target[mask].detach().cpu().numpy()
                 all_predictions.extend(masked_preds)
@@ -774,6 +779,9 @@ def validate_one_epoch(model, val_loader, criterion, device, epoch_num, logger, 
             current_acc = total_correct / max(1, total_samples)
             progress_bar.set_postfix(loss=f"{current_loss:.4f}", acc=f"{current_acc:.4f}")
 
+    if mlm and total_samples == 0:
+        raise ValueError(f"Nessun byte mascherato nella validazione all’epoca {epoch_num + 1}. "
+                         "Verifica --mlm_mask_prob e la quantità di testo.")
     avg_loss = total_loss / max(1, total_samples)
     avg_acc = total_correct / max(1, total_samples)
 
@@ -880,20 +888,11 @@ def save_attention_maps(model, val_loader, device, epoch_num, args, data_module)
             processed_input_path = os.path.join(attn_maps_save_dir, f"epoch_{epoch_num+1}_processed_input.pt")
             torch.save(single_data_item.cpu(), processed_input_path)
             
-            # For CIFAR-10, try to save original image
+            # Use the same validation image that produced the saved attention weights.
             if args.dataset == 'cifar10':
-                try:
-                    # Get a raw sample from the dataset
-                    from torchvision.datasets import CIFAR10
-                    from torchvision import transforms
-                    
-                    raw_dataset = CIFAR10(root=args.data_dir, train=False, download=False, transform=transforms.ToTensor())
-                    original_img_tensor, _ = raw_dataset[0]  # Get the first test image
-                    
-                    original_image_path = os.path.join(attn_maps_save_dir, f"epoch_{epoch_num+1}_original_image_tensor.pt")
-                    torch.save(original_img_tensor, original_image_path)
-                except Exception as e:
-                    print(f"Error saving original image: {e}")
+                validation_image = batch_dict['original_images'][0].cpu()
+                original_image_path = os.path.join(attn_maps_save_dir, f"epoch_{epoch_num+1}_original_image_tensor.pt")
+                torch.save(unnormalize_cifar10_image(validation_image), original_image_path)
                 
             print(f"Attention maps for epoch {epoch_num+1} saved to: {attn_maps_save_dir}")
         else:

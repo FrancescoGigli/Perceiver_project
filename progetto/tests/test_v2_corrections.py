@@ -481,15 +481,17 @@ def test_io_summary_computes_the_glue_average_and_the_pretraining_delta(capsys):
         "io_glue_qnli": {"val_accuracy": 0.70}, "io_glue_rte": {"val_accuracy": 0.50},
         "io_glue_sst2_scratch": {"val_accuracy": 0.65},
         "io_glue_rte_scratch": {"val_accuracy": 0.55},
+        "io_glue_multitask": {"val_accuracy": 0.63},
     }
     print_io_section(results, band=0.0278)
     out = capsys.readouterr().out
 
     assert "media su 8/8 task: 60.00" in out
     assert "ATTENZIONE: media parziale" not in out
-    assert "+15.00%" in out          # sst2: 0.80 col pre-training contro 0.65 da zero
-    assert "-5.00%" in out           # rte: 0.50 contro 0.55, il pre-training non aiuta
-    assert "+2.00%" in out           # io01_cifar vs e01_baseline
+    assert "+15.00 pp" in out        # sst2: 0.80 col pre-training contro 0.65 da zero
+    assert "-5.00 pp" in out         # rte: 0.50 contro 0.55, il pre-training non aiuta
+    assert "+2.00 pp" in out         # io01_cifar vs e01_baseline
+    assert "delta +3.00 punti" in out  # punti della media GLUE
     assert "NON concludente" in out  # 2 punti stanno dentro la banda di rumore (2.78)
 
 

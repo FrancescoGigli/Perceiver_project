@@ -12,6 +12,7 @@
 # si controlla con Popen.poll() (istantaneo), niente scansione dei processi.
 
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -31,6 +32,7 @@ VIZ = PROJECT / "perceiver_visualizations_v2"
 
 sys.path.insert(0, str(PROJECT))
 import experiments as exp  # noqa: E402  -> EXPERIMENTS, command_for
+from src.utils.run_metrics import reported_score
 
 # Oltre questa eta', una cartella con residui ma senza risultato non e' piu'
 # "interrotta" (qualcosa che hai fermato poco fa) ma un vecchio residuo = "da fare".
@@ -57,7 +59,15 @@ GROUP_PAPER = {
     "io_image": "IO — CIFAR (decoder a query)",
     "io_mlm": "IO — MLM byte-level",
     "io_glue": "IO — Tab.1 GLUE",
+    "io_multitask": "IO — Tab.2 GLUE",
 }
+
+
+def paper_group(experiment):
+    # Il registro raccoglie le due ricette nello stesso gruppo di avvio io_glue.
+    if experiment.get("modality") == "io_multitask":
+        return "io_multitask"
+    return experiment["group"]
 
 # Valore riportato dal paper per la riga che ogni run replica. Le fonti sono le
 # tabelle gia' trascritte nel cap. 13 della lezione (sito/lezione/index.html):
@@ -88,6 +98,7 @@ PAPER_ACC = {
     "e14_T8_at_start":         "73.7%",   # Tab.6, at-start T=8 (unico at-start riportato)
     "e16_no_weight_sharing":   "72.9%",   # Tab.7, val senza weight sharing (326M param)
     "mn01_baseline":           "85.7%",   # Tab.4, ModelNet40
+    "io_glue_multitask":       "81.8",    # IO Tab.2, media GLUE in punti
 }
 
 # Un id sbagliato qui sparirebbe in silenzio: la colonna mostrerebbe "—" e
@@ -118,10 +129,17 @@ def setup_nostro(e):
             return default
         return cmd[len(cmd) - 1 - cmd[::-1].index(flag) + 1]
 
-    ds = val("--dataset") or ("cifar10" if e.get("modality") == "baseline" else "?")
+    default_dataset = {"baseline": "cifar10", "io_multitask": "GLUE, 8 task"}
+    ds = val("--dataset") or default_dataset.get(e.get("modality"), "?")
     pezzi = [DATASET_LABEL.get(ds, ds)]
     if e.get("modality") == "baseline":
         pezzi.append("CNN di riferimento, non Perceiver")
+    if e.get("modality") == "io_multitask":
+        pezzi.append("Perceiver IO, 1 query per task")
+        for flag, label in (("--batch_size", "batch"), ("--text_seq_len", "byte"),
+                            ("--max_steps_per_epoch", "max passi/epoca")):
+            if val(flag):
+                pezzi.append(f"{label} {val(flag)}")
     if val("--model_type") == "perceiver_io":
         q = val("--num_output_queries")
         pezzi.append(f"IO, {q} query" if q else "IO, 1 query per posizione")
@@ -178,13 +196,14 @@ SETUP_PAPER = {
     "modelnet": "ModelNet40 2048 punti (Tab. 4) | 85.7%",
     "io_image": "il paper Perceiver IO non valuta su CIFAR-10: nessun termine di paragone diretto",
     "io_mlm":   "il paper IO da' BPC 1.74 su language modeling byte-level (201M par), non l'accuratezza sui byte mascherati",
-    "io_glue":  "GLUE byte-level, media sugli 8 task 81.0 (BERT 81.1) | il paper non da' il dettaglio per singolo task",
-    "baseline": "in Tab. 1 il paper confronta con ResNet-50 (73.5%) e ViT-B/16 (76.7%) su ImageNet",
+    "io_glue":  "Tab. 1, GLUE byte-level: media sugli 8 fine-tuning separati 81.0 (BERT 81.1)",
+    "io_multitask": "Tab. 2, media GLUE: 81.8 multitask, 81.0 con otto modelli separati | CoLA in Matthews",
+    "baseline": "Tab. 1, ImageNet: ResNet-50 77.6%, ResNet-50 con Fourier 73.5%, ViT-B/16 76.7%",
 }
 
 # Stessa ragione dell'assert sopra: un gruppo non mappato mostrerebbe una riga
 # vuota, che si legge come "il paper non lo copre" ed e' un'altra cosa.
-_GRP_SCOPERTI = sorted({e["group"] for e in exp.EXPERIMENTS} - set(SETUP_PAPER))
+_GRP_SCOPERTI = sorted({paper_group(e) for e in exp.EXPERIMENTS} - set(SETUP_PAPER))
 assert not _GRP_SCOPERTI, f"SETUP_PAPER non copre i gruppi: {_GRP_SCOPERTI}"
 
 
@@ -208,12 +227,10 @@ def run_status(experiment):
         data = json.loads(path.read_text(encoding="utf-8"))
     except (ValueError, OSError):
         return ("illeggibile", None)
-    acc = data.get("test_accuracy")
-    if acc is None:
-        acc = data.get("val_accuracy")
-    if acc is None or acc != acc:
+    score = reported_score(experiment, data)
+    if score.value is None or not math.isfinite(score.value):
         return ("DIVERGITA", None)
-    return ("ok", acc)
+    return ("ok", score)
 
 
 def _gpu_str():
@@ -253,8 +270,8 @@ class App:
         self.run_lbl = ttk.Label(top, text="", font=("Consolas", 10, "bold"))
         self.run_lbl.pack(side="right")
 
-        cols = ("id", "paper", "config", "mod", "stato", "paper acc", "acc")
-        widths = (170, 150, 430, 90, 110, 80, 70)
+        cols = ("id", "paper", "config", "mod", "stato", "rif. paper", "risultato")
+        widths = (155, 130, 280, 85, 95, 80, 315)
         mid = ttk.Frame(root, padding=(8, 0))
         mid.pack(fill="both", expand=True)
         self.tree = ttk.Treeview(mid, columns=cols, show="headings", height=16)
@@ -263,7 +280,7 @@ class App:
             self.tree.column(c, width=w, anchor="w")
         for e in exp.EXPERIMENTS:
             self.tree.insert("", "end", iid=e["id"], values=(
-                e["id"], GROUP_PAPER.get(e["group"], e["group"]),
+                e["id"], GROUP_PAPER.get(paper_group(e), e["group"]),
                 " ".join(e["overrides"]) or "baseline",
                 e.get("modality", "image"), "…",
                 PAPER_ACC.get(e["id"], "—"), "—"))
@@ -325,7 +342,7 @@ class App:
         e = next((x for x in exp.EXPERIMENTS if x["id"] in self.tree.selection()), None)
         self.cmd_lbl.config(text=(" ".join(exp.command_for(e)) if e else ""))
         nostro = setup_nostro(e) if e else ""
-        paper = SETUP_PAPER.get(e["group"], "") if e else ""
+        paper = SETUP_PAPER.get(paper_group(e), "") if e else ""
         self.setup_nostro.config(text=f"NOSTRO  {nostro}" if e else "")
         self.setup_paper.config(text=f"PAPER   {paper}" if e else "")
 
@@ -452,10 +469,10 @@ class App:
                   "DIVERGITA": "bad", "illeggibile": "bad"}
         n_ok = 0
         for e in exp.EXPERIMENTS:
-            stato, acc = run_status(e)
+            stato, score = run_status(e)
             n_ok += stato == "ok"
             self.tree.set(e["id"], "stato", stato)
-            self.tree.set(e["id"], "acc", f"{acc*100:.2f}%" if acc is not None else "—")
+            self.tree.set(e["id"], "risultato", score.describe() if score is not None else "—")
             self.tree.item(e["id"], tags=(tagmap.get(stato, ""),))
         self.done = n_ok
         active = self._active()

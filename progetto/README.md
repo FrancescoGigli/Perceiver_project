@@ -155,10 +155,15 @@ riportati qui a mano: usa gli strumenti di sola lettura, che restano allineati
 alle run effettivamente eseguite.
 
 ```bash
-python check.py            # tabella di stato: fatte / da fare / divergite + test acc
+python check.py            # stato delle run, metrica, split e punteggio
 python analyze_v2.py       # analisi comparativa di ogni run rispetto al baseline
 python check.py --csv results_reference.csv   # esporta tutti i numeri in un CSV
 ```
+
+Anche `check.py --watch io_glue_stsb` riporta Pearson sul dev set (0,6082 nella run
+originale). Le accuracy sono percentuali, mentre la media GLUE è espressa in
+punti. Per ModelNet40 il test ha svolto anche la funzione di selezione dell’epoca.
+L’export di `check.py --csv` conserva i campi grezzi dei log.
 
 [results_reference.csv](results_reference.csv) è l'export delle 42 run
 originali (test/val accuracy, epoca selezionata, parametri, seed): è la fonte dei
