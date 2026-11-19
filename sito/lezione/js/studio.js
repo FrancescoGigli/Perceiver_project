@@ -752,7 +752,7 @@
         righe.join("") + "</tbody></table>";
       nota.innerHTML = "Tre seed: media " + fmt(media, 2) + "%, deviazione standard " + fmt(sd, 2) + " punti, banda " + fmt(banda, 2) + ". " +
         "Con queste scelte escono dalla banda <strong>" + fuori + " run su 21</strong> (le 3 repliche non si contano). " +
-        "Con la regola del progetto (e01, soglia 2,78) sono 12. Alza la soglia: restano solo gli effetti grandi, cioè niente posizione (−39,27), latenti con σ = 1 (−19,55) e 16 bande (−9,05).";
+        "Con la regola del progetto (e01, soglia 2,78) sono 12. Alza la soglia: restano solo gli effetti grandi, cioè input di soli colori con Q, K e V ridotti a 3 canali (−39,27), latenti con σ = 1 (−19,55) e 16 bande (−9,05).";
     }
     box.querySelector('[data-f="rif"]').addEventListener("change", calcola);
     sl.addEventListener("input", calcola);

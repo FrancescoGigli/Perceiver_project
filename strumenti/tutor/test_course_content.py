@@ -51,7 +51,8 @@ class CourseContentTests(unittest.TestCase):
         self.assertEqual(quiz["expected"], "No: 71,79% e 71,69% contro 71,63%, dentro la banda. Il decoder a query serve quando l'output è strutturato, non per una sola etichetta.")
         text = " ".join(step["text"] for step in get_chapter(self.course, 46)["steps"])
         self.assertIn("È stato rimosso, non aggiornato", text)
-        self.assertIn("due degli otto valori non sono apprendimento", text)
+        self.assertIn("0 per il modello singolo e 0,0364 per il multitask", text)
+        self.assertIn("62,49 (task separati) e 65,87 (multitask)", text)
 
     def test_all_original_open_questions_and_reference_answers_without_fake_choices(self):
         originals = re.findall(r'<details class="qa-item"><summary>(.*?)</summary><p class="qa-a">(.*?)</p></details>', self.lesson, flags=re.S)

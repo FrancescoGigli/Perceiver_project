@@ -3,7 +3,7 @@
   "title": "Il tuo progetto, capitolo per capitolo",
   "source": {
     "path": "sito/lezione/index.html",
-    "sha256": "27266a3897e28ec567ec6ec906618b65059f3e8776f5eda582ed6045a2ffee94",
+    "sha256": "f5b1be15b2a6e943409963f3b6d0b0e868eaf4624fbfe969933b882bb903ebe3",
     "code_sha256": {
       "progetto/baseline_cnn.py": "e5525ee8b3ae98a21bd276e5405ef1d3ca9220f94ae1f30df8a677201cf02092",
       "progetto/experiments.py": "73378a230af0d57b374bff1a8329c6eba6e2022366f2ac3613ffafff6d920e0a",
@@ -12541,7 +12541,7 @@
         {
           "id": "c16-s24",
           "title": "Tipi di query",
-          "text": "GLUE multitask: 8 query, una per task, un solo modello. Media 74,05: +2,92. Il guadagno viene tutto dai task piccoli: STS-B +16,9, RTE +7,6, MRPC +6,1. I task grandi perdono: SST-2 −3,6, QQP −2,0, MNLI −1,9. Attenzione: qui CoLA è misurata con l'accuratezza. Il paper usa il coefficiente di Matthews (una correlazione che vale 0 se il modello risponde sempre uguale). Il nostro 69,13 coincide con la quota di frasi accettabili (721 su 1.043): è il risultato di chi risponde sempre «accettabile». Le nostre medie non si confrontano 1:1 con 81,0.",
+          "text": "GLUE multitask: 8 query, una per task, un solo modello. Media 74,05: +2,92. Il guadagno viene tutto dai task piccoli: STS-B +16,9, RTE +7,6, MRPC +6,1. I task grandi perdono: SST-2 −3,6, QQP −2,0, MNLI −1,9. Attenzione: qui CoLA è misurata con l'accuratezza. Il paper usa il coefficiente di Matthews (una correlazione che vale 0 se il modello risponde sempre uguale). Su CoLA entrambi indovinano 721 frasi su 1.043. Il modello singolo risponde sempre «accettabile» (Matthews 0). Il multitask identifica quattro frasi inaccettabili e sbaglia quattro frasi accettabili (Matthews 0,0364). Le nostre medie non si confrontano 1:1 con 81,0.",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 2434,
@@ -33755,7 +33755,7 @@
         {
           "id": "c45-s28",
           "title": "Tab. 2 — permutazione dei pixel e positional encoding",
-          "text": "Cosa isola: il limite inferiore. Senza posizione il modello vede un sacchetto di colori: è la prova che la PE serve davvero.",
+          "text": "Come leggere il confronto. Due pixel con lo stesso RGB diventano indistinguibili. Nel codice anche la larghezza di Q, K e V della cross-attention dipende dai canali di ingresso. Con min(input_dim, latent_dim) passa da 261 a 3.",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 7076,
@@ -33831,7 +33831,7 @@
         {
           "id": "c45-s30",
           "title": "Tab. 2 — permutazione dei pixel e positional encoding",
-          "text": "L'effetto più grande del progetto. Permutare i pixel (e02) costa 2,68 punti, dentro la banda; togliere le coordinate ne costa 39,27. Il contrasto è la vera evidenza: la posizione entra solo dall'encoding, mai dalla griglia. Anche le mappe d'attenzione lo mostrano: senza PE l'attenzione segue i confini di colore e resta quasi uniforme (9,83 bit contro i 5,84 di e01, su un massimo di 10).",
+          "text": "L'effetto più grande del progetto. Permutare i pixel insieme alle coordinate (e02) costa 2,68 punti, dentro la banda. I 39,27 punti persi da e29 comprendono sia la rimozione delle coordinate sia la riduzione della larghezza dell’attenzione. La distribuzione dei pesi è più uniforme in e29 (9,83 bit contro i 5,84 di e01, su un massimo di 10). Quando disegni una mappa di e02 o e04 con visualize_v2_attention.py, i pesi sono ancora nell’ordine permutato. Lo script li ridispone direttamente sulla griglia: per ritrovare i pixel originali occorre prima invertire la permutazione. Questo errore riguarda la figura, mentre la predizione del modello è già stata calcolata.",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 7078,
@@ -36023,7 +36023,7 @@
         {
           "id": "c45-s136",
           "title": "Le research question, con il verdetto",
-          "text": "La positional encoding è indispensabile? e01 71,63% vs e29 32,36% (nessuna PE) −39,27 SÌ — l'effetto più grande del progetto, mentre permutare i pixel non costa nulla Tab. 2: la posizione entra dalla PE",
+          "text": "La positional encoding è indispensabile? e01 71,63% vs e29 32,36% (nessuna PE) −39,27 Calo maggiore osservato. In e29 si restringono anche le proiezioni Q, K e V. Tab. 2: la posizione entra dalla PE",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 7402,
@@ -36799,8 +36799,8 @@
           "question": "Quali risultati sul Perceiver reggono oltre la banda di rumore?",
           "options": [],
           "correct": [],
-          "expected": "Reggono: senza PE 32,36% (−39,27); latenti con σ = 0,1 e σ = 1 (−5,94, −19,55); letture in testa a T = 4 (−4,44); senza latent transformer con 8 e 12 letture (−4,39, −4,58). Fuori banda ma non puliti: e09 ed e10 (letture e profondità cambiano insieme), e23 ed e24 (training crollato: all'epoca 42 e23 era sopra e01). Al limite: e12 ed e14.",
-          "explanation": "Reggono: senza PE 32,36% (−39,27); latenti con σ = 0,1 e σ = 1 (−5,94, −19,55); letture in testa a T = 4 (−4,44); senza latent transformer con 8 e 12 letture (−4,39, −4,58). Fuori banda ma non puliti: e09 ed e10 (letture e profondità cambiano insieme), e23 ed e24 (training crollato: all'epoca 42 e23 era sopra e01). Al limite: e12 ed e14.",
+          "expected": "Reggono: senza PE e con Q, K e V ridotti a tre canali, 32,36% (−39,27); latenti con σ = 0,1 e σ = 1 (−5,94, −19,55); letture in testa a T = 4 (−4,44); senza latent transformer con 8 e 12 letture (−4,39, −4,58). Fuori banda ma non puliti: e09 ed e10 (letture e profondità cambiano insieme), e23 ed e24 (training crollato: all'epoca 42 e23 era sopra e01). Al limite: e12 ed e14.",
+          "explanation": "Reggono: senza PE e con Q, K e V ridotti a tre canali, 32,36% (−39,27); latenti con σ = 0,1 e σ = 1 (−5,94, −19,55); letture in testa a T = 4 (−4,44); senza latent transformer con 8 e 12 letture (−4,39, −4,58). Fuori banda ma non puliti: e09 ed e10 (letture e profondità cambiano insieme), e23 ed e24 (training crollato: all'epoca 42 e23 era sopra e01). Al limite: e12 ed e14.",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 7567,
@@ -37060,7 +37060,7 @@
         {
           "id": "c46-s4",
           "title": "Perceiver IO: gli esperimenti uno per uno",
-          "text": "GLUE: media 71,13 sugli 8 task, 74,05 in multitask. Ma CoLA è in accuratezza: con la metrica del paper (Matthews, 0 per chi risponde sempre uguale) le medie sono 62,49 e 65,41. Il paper fa 81,0 e 81,8, con 10 volte i parametri.",
+          "text": "Su GLUE la media è 71,13 sugli otto modelli separati e 74,05 in multitask. Sostituendo l’accuratezza di CoLA con il coefficiente di Matthews, le medie diventano 62,49 e 65,87. Il paper fa 81,0 e 81,8, con 10 volte i parametri.",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 7594,
@@ -37210,7 +37210,7 @@
         {
           "id": "c46-s14",
           "title": "Esperimento 2 — pre-training MLM byte-level (testo)",
-          "text": "Setup: N=128 latenti, D=512, 1 cross-attend stage, 4 blocchi transformer, cross-attention single-head e self-attention a 8 teste, sequenze da 512 byte (vocabolario 256 + 1 simbolo di mascheramento, nessun tokenizer), Fourier PE 1D a 6 bande con frequenza massima 64 (13 canali: ogni byte entra con 257 + 13 = 270 numeri), 15% dei byte mascherati, scelti uno per uno (il paper maschera parole intere), LAMB lr 1e-3, batch 32, 10 epoche, 18.872.740 parametri, una output query per posizione.",
+          "text": "Setup: N=128 latenti, D=512, 1 cross-attend stage, 4 blocchi transformer, cross-attention single-head e self-attention a 8 teste, sequenze da 512 byte (vocabolario 256 + 1 simbolo di mascheramento, nessun tokenizer), Fourier PE 1D a 6 bande con frequenza massima 64 (13 canali: ogni byte entra con 257 + 13 = 270 numeri), 15% dei byte mascherati, scelti uno per uno (il paper maschera parole intere), LAMB lr 1e-3, batch 32, 10 epoche, 18.872.740 parametri, una output query per posizione. La loss usa solo i byte nascosti. Se provi un mini-batch senza alcun byte mascherato, train_one_epoch crea uno zero scollegato dai pesi e backward() fallisce. Con 32 sequenze da 512 byte al 15% questo caso è trascurabile, ma si può riprodurre con un mini-batch corto.",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 7635,
@@ -37718,7 +37718,7 @@
         {
           "id": "c46-s47",
           "title": "Esperimento 3 — fine-tuning sugli 8 task GLUE (testo)",
-          "text": "La media GLUE, e come va letta Con 8 task su 8 la media è 71,13, contro 81,0 del Perceiver IO byte-level e 81,1 di BERT nella Tab. 1 del paper. Prima di confrontarla servono tre avvertenze. Primo: due degli otto valori non sono apprendimento — CoLA è esattamente la classe maggioritaria e MRPC la supera di 9 esempi su 408 — quindi la media è sostenuta da sei task, non da otto. Secondo: qui CoLA è misurata in accuratezza, mentre GLUE e il paper usano il coefficiente di Matthews, che per un predittore costante vale esattamente 0; è proprio la metrica pensata per smascherare questo caso. Con CoLA a 0 le nostre medie diventano 62,49 (task separati) e 65,41 (multitask). Terzo, la differenza di scala che non si colma: il nostro modello ha 18.872.740 parametri pre-addestrati su WikiText-103 per 10 epoche, quello del paper ne ha 201 milioni pre-addestrati su Wikipedia + C4 per 500.000 step. Una versione precedente di questa pagina mostrava otto valori di prima generazione (QQP 75,65%, MNLI 46,47%, …) prodotti da un codice in cui la rappresentazione dell'input per GLUE non coincideva con quella del pre-training: il primo cross-attention del checkpoint non si trasferiva e il fine-tuning ripartiva da pesi casuali proprio nel modulo che legge il testo. Quelli sono stati rimossi; questi vengono dal codice corretto.",
+          "text": "La media GLUE, e come va letta Con 8 task su 8 la media è 71,13, contro 81,0 del Perceiver IO byte-level e 81,1 di BERT nella Tab. 1 del paper. Nel fine-tuning separato, su CoLA il modello risponde sempre «accettabile». Su MRPC indovina 288 esempi su 408, nove in più rispetto a chi risponde sempre con la classe maggioritaria. Il paper usa per CoLA il coefficiente di Matthews, che tiene conto anche di come si distribuiscono gli errori tra le due classi. Ricalcolandolo sui checkpoint selezionati, vale 0 per il modello singolo e 0,0364 per il multitask. Sostituendo la sola metrica di CoLA, le medie diventano 62,49 (task separati) e 65,87 (multitask). Anche la scala cambia. Il nostro modello ha 18.872.740 parametri pre-addestrati su WikiText-103 per 10 epoche, quello del paper ne ha 201 milioni pre-addestrati su Wikipedia + C4 per 500.000 step. Una versione precedente di questa pagina mostrava otto valori di prima generazione (QQP 75,65%, MNLI 46,47%, …) prodotti da un codice in cui la rappresentazione dell'input per GLUE non coincideva con quella del pre-training: il primo cross-attention del checkpoint non si trasferiva e il fine-tuning ripartiva da pesi casuali proprio nel modulo che legge il testo. Quelli sono stati rimossi; questi vengono dal codice corretto.",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 7709,
@@ -37898,7 +37898,7 @@
         {
           "id": "c46-s59",
           "title": "Esperimento 4 — un modello per otto task (Tab. 2 del paper)",
-          "text": "Il paper misura 81,8 in multitask contro 81,0 single-task, cioè +0,80. Noi misuriamo 74,05 contro 71,13, cioè +2,92. Il valore assoluto resta sotto (con CoLA in Matthews le medie sarebbero 62,49 e 65,41) e non c'è modo di colmarlo: 18,9M parametri pre-addestrati su WikiText-103 per 10 epoche contro 201M su Wikipedia + C4 per 500.000 step. Il segno dell'effetto è lo stesso: un decoder generico con una query per task, in media, non perde niente rispetto a otto modelli dedicati.",
+          "text": "Il paper misura 81,8 in multitask contro 81,0 single-task, cioè +0,80. Noi misuriamo 74,05 contro 71,13, cioè +2,92. Il valore assoluto resta sotto (con CoLA in Matthews le medie sono 62,49 e 65,87) e non c'è modo di colmarlo: 18,9M parametri pre-addestrati su WikiText-103 per 10 epoche contro 201M su Wikipedia + C4 per 500.000 step. Il segno dell'effetto è lo stesso: un decoder generico con una query per task, in media, non perde niente rispetto a otto modelli dedicati.",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 7736,
@@ -37928,7 +37928,7 @@
         {
           "id": "c46-s61",
           "title": "Esperimento 4 — un modello per otto task (Tab. 2 del paper)",
-          "text": "Dove il guadagno è vero e dove no Il +2,92 di media nasce quasi tutto da STS-B (+16,91) e RTE (+7,58), cioè due dei task più piccoli: 5.749 e 2.490 esempi di training. Forse sfruttano ciò che il modello impara sugli altri task, ma non l'abbiamo dimostrato. Il paper, con la Tab. 2, mostra un'altra cosa: una query per task basta, senza token [CLS]. E nel paper STS-B in multitask perde 6,86 punti. Lo fanno pur vedendo appena 1,35 passate sui propri dati contro le 30 epoche dei modelli separati: il tetto di 4.000 step accorcia l'epoca ma non riequilibra i task, e QQP più MNLI sono l'80% dei batch. Sui task grandi succede il contrario, in piccolo: SST-2 −3,56, QQP −2,01, MNLI −1,88: forse per la capacità condivisa, forse perché vedono 1,35 passate invece di 3–10 epoche. CoLA fa 69,13% in entrambi i regimi, cifra per cifra: sono 721 corrette su 1043, la classe maggioritaria esatta. Lo stesso identico numero con due addestramenti completamente diversi non è una coincidenza — quel task, a questa scala, non viene imparato in nessuno dei due modi.",
+          "text": "Dove il guadagno è vero e dove no Il +2,92 di media nasce quasi tutto da STS-B (+16,91) e RTE (+7,58), cioè due dei task più piccoli: 5.749 e 2.490 esempi di training. Forse sfruttano ciò che il modello impara sugli altri task, ma non l'abbiamo dimostrato. Il paper, con la Tab. 2, mostra un'altra cosa: una query per task basta, senza token [CLS]. E nel paper STS-B in multitask perde 6,86 punti. Lo fanno pur vedendo appena 1,35 passate sui propri dati contro le 30 epoche dei modelli separati: il tetto di 4.000 step accorcia l'epoca ma non riequilibra i task, e QQP più MNLI sono l'80% dei batch. Sui task grandi succede il contrario, in piccolo: SST-2 −3,56, QQP −2,01, MNLI −1,88: forse per la capacità condivisa, forse perché vedono 1,35 passate invece di 3–10 epoche. CoLA fa 69,13% in entrambi i regimi. Fra le 1.043 frasi, 721 sono accettabili. Il modello singolo le dichiara tutte accettabili. Il multitask assegna la classe «inaccettabile» a otto frasi, con quattro risposte giuste e quattro sbagliate. Ecco perché l’accuratezza resta identica e Matthews sale da 0 a 0,0364.",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 7740,
@@ -37988,7 +37988,7 @@
         {
           "id": "c46-s65",
           "title": "Esperimento 4 — un modello per otto task (Tab. 2 del paper)",
-          "text": "Perdono un po' i task grandi: SST-2 −3,56, QQP −2,01, MNLI −1,88. CoLA resta ferma (classe maggioritaria).",
+          "text": "Perdono un po' i task grandi: SST-2 −3,56, QQP −2,01, MNLI −1,88. Su CoLA l’accuratezza resta al 69,13% in entrambi i regimi.",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 7752,
@@ -38508,7 +38508,7 @@
         {
           "id": "c46-s99",
           "title": "Le tre cose da dire, se ti chiedono «e allora cosa avete dimostrato?»",
-          "text": "Misurato oltre il rumore — (a) la positional encoding è indispensabile: senza, il modello crolla da 71,63% a 32,36%, l'effetto più grande del progetto; permutare i pixel invece non costa nulla di misurabile, come atteso per costruzione; (b) la generalità: lo stesso codice su dati 3D fa 87,36% su ModelNet40, sopra l'85,7 del paper anche all'ultima epoca (86,43%), con una configurazione diversa (6 bande, batch 32, lr a gradini) e senza una banda di rumore; (c) senza latent transformer si resta sotto e01 anche con più letture e più parametri (e06 −4,39, e07 −4,58), ma fra e05, e06 ed e07 non c'è una tendenza misurabile; (d) la scala dei latenti: 0,02 → 71,63%, 0,1 → 65,69%, 1,0 → 52,08%, per instabilità del training (nel paper 1,0 costa solo un punto circa); (e) a T = 4 alternare batte mettere tutto in testa: 71,63% contro 67,19%, −4,44 da e01 e −3,29 dalla media dei seed. È l'unico confronto di disposizione fuori banda, al limite, e va nella direzione del paper; (f) su ModelNet40 l'augmentation rotazionale costa 13,29 punti — il Perceiver non ha bias induttivo rotazionale e deve imparare da zero un'invarianza che quel task non richiede; (g) il pre-training trasferisce: SST-2 passa da 59,75% a 80,73% partendo dal checkpoint MLM, che a sua volta indovina l'86,68% dei byte mascherati, 44 punti sopra una tabella dei byte vicini.",
+          "text": "Misurato oltre il rumore — (a) la configurazione con soli canali RGB scende da 71,63% a 32,36%. Oltre alle coordinate cambiano i canali di Q, K e V nella cross-attention, da 261 a 3; permutare i pixel invece non costa nulla di misurabile, come atteso per costruzione; (b) la generalità: lo stesso codice su dati 3D fa 87,36% su ModelNet40, sopra l'85,7 del paper anche all'ultima epoca (86,43%), con una configurazione diversa (6 bande, batch 32, lr a gradini) e senza una banda di rumore; (c) senza latent transformer si resta sotto e01 anche con più letture e più parametri (e06 −4,39, e07 −4,58), ma fra e05, e06 ed e07 non c'è una tendenza misurabile; (d) la scala dei latenti: 0,02 → 71,63%, 0,1 → 65,69%, 1,0 → 52,08%, per instabilità del training (nel paper 1,0 costa solo un punto circa); (e) a T = 4 alternare batte mettere tutto in testa: 71,63% contro 67,19%, −4,44 da e01 e −3,29 dalla media dei seed. È l'unico confronto di disposizione fuori banda, al limite, e va nella direzione del paper; (f) su ModelNet40 l'augmentation rotazionale costa 13,29 punti — il Perceiver non ha bias induttivo rotazionale e deve imparare da zero un'invarianza che quel task non richiede; (g) il pre-training trasferisce: SST-2 passa da 59,75% a 80,73% partendo dal checkpoint MLM, che a sua volta indovina l'86,68% dei byte mascherati, 44 punti sopra una tabella dei byte vicini.",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 7916,
@@ -38538,7 +38538,7 @@
         {
           "id": "c46-s101",
           "title": "Le tre cose da dire, se ti chiedono «e allora cosa avete dimostrato?»",
-          "text": "Misurato, e non a nostro favore — una ResNet-18 con gli stessi dati, split, augmentation ed epoche fa 93,61% contro 71,63%; la ricetta però è diversa (SGD con weight decay e cosine), quindi i 22 punti misurano prior e ricetta insieme. La media GLUE è 71,13 contro 81,0 del paper (62,49 con CoLA in Matthews); CoLA è la classe maggioritaria e MRPC la supera di 9 esempi su 408. Il multitask batte gli otto modelli separati (74,05 contro 71,13) ma solo grazie ai task piccoli. Su ModelNet40 l'epoca è scelta sul test set, e e01 è il più fortunato dei tre seed: dalla loro media le run fuori banda sono 10, non 12. Dirlo prima che lo chieda il docente è parte del lavoro.",
+          "text": "Misurato, e non a nostro favore — una ResNet-18 con gli stessi dati, split, augmentation ed epoche fa 93,61% contro 71,63%; la ricetta però è diversa (SGD con weight decay e cosine), quindi i 22 punti misurano prior e ricetta insieme. La media GLUE è 71,13 contro 81,0 del paper (62,49 con CoLA in Matthews); nel modello singolo CoLA dà sempre la classe maggioritaria e MRPC supera la sua maggioranza di 9 risposte su 408. Il multitask batte gli otto modelli separati (74,05 contro 71,13) ma solo grazie ai task piccoli. Su ModelNet40 l'epoca è scelta sul test set, e e01 è il più fortunato dei tre seed: dalla loro media le run fuori banda sono 10, non 12. Dirlo prima che lo chieda il docente è parte del lavoro.",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 7918,
@@ -38583,7 +38583,7 @@
         {
           "id": "c46-s104",
           "title": "Le tre cose da dire, se ti chiedono «e allora cosa avete dimostrato?»",
-          "text": "Su CoLA 69,13% è la classe maggioritaria esatta: non è apprendimento. Su MRPC il modello supera la costante di 9 esempi su 408.",
+          "text": "Su CoLA il modello singolo risponde sempre «accettabile» e raggiunge il 69,13%. Su MRPC il modello supera la costante di 9 esempi su 408.",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 7930,
@@ -38696,8 +38696,8 @@
           "question": "Quali risultati GLUE sono degeneri?",
           "options": [],
           "correct": [],
-          "expected": "CoLA 69,13%: esattamente la classe maggioritaria (721 su 1.043). MRPC 70,59%: supera la costante di soli 9 esempi su 408.",
-          "explanation": "CoLA 69,13%: esattamente la classe maggioritaria (721 su 1.043). MRPC 70,59%: supera la costante di soli 9 esempi su 408.",
+          "expected": "Nel modello singolo CoLA predice sempre la maggioranza e indovina 721 frasi su 1.043 (69,13%). MRPC raggiunge il 70,59%, nove risposte corrette in più della costante su 408 esempi.",
+          "explanation": "Nel modello singolo CoLA predice sempre la maggioranza e indovina 721 frasi su 1.043 (69,13%). MRPC raggiunge il 70,59%, nove risposte corrette in più della costante su 408 esempi.",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 7939,
@@ -39189,7 +39189,7 @@
         {
           "id": "c47-s20",
           "title": "Il mio progetto Perceiver IO ✓ — già conforme ai requisiti",
-          "text": "Risultati concreti da mostrare → pronti: ModelNet40 87,36%, che supera il paper (85,7%) anche all'ultima epoca (86,43%); CIFAR-10 baseline 71,63% (il valore più alto, 72,91% di e08, sta dentro la banda e viene da una rete 4 volte meno profonda: non è un miglioramento); invarianza alla permutazione (71,63% → 68,95%, calo dentro il rumore, attesa per costruzione); senza weight sharing, 31,5M parametri non comprano nulla di misurabile; l'inizializzazione dei latenti a 1.0 fa collassare il modello a 52,08%; senza positional encoding crolla a 32,36%; pre-training MLM byte-level 86,68%, 44 punti sopra una tabella dei byte vicini; GLUE 71,13 di media, multitask 74,05 (con CoLA in accuratezza; in Matthews 62,49 e 65,41).",
+          "text": "Risultati concreti da mostrare → pronti: ModelNet40 87,36%, che supera il paper (85,7%) anche all'ultima epoca (86,43%); CIFAR-10 baseline 71,63% (il valore più alto, 72,91% di e08, sta dentro la banda e viene da una rete 4 volte meno profonda: non è un miglioramento); invarianza alla permutazione (71,63% → 68,95%, calo dentro il rumore, attesa per costruzione); senza weight sharing, 31,5M parametri non comprano nulla di misurabile; l'inizializzazione dei latenti a 1.0 fa collassare il modello a 52,08%; senza positional encoding crolla a 32,36%; pre-training MLM byte-level 86,68%, 44 punti sopra una tabella dei byte vicini; GLUE 71,13 di media, multitask 74,05 (con CoLA in accuratezza; in Matthews 62,49 e 65,87).",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 8014,
@@ -40629,7 +40629,7 @@
         {
           "id": "c47-s113",
           "title": "Piano di ripasso (ultimi ~5–7 giorni)",
-          "text": "Numeri a memoria: banda di rumore 2,78 (è la chiave di lettura di tutto il resto), CIFAR-10 baseline 71,63% (il 72,91% di e08 è dentro la banda), permutazione 71,63% → 68,95%, ModelNet40 87,36% (86,43% all'ultima epoca) con rotazione a 74,07%, init dei latenti 0.02 → 71,63% contro 1.0 → 52,08%, senza positional encoding 32,36%, ResNet-18 93,61%, MLM byte-level 86,68% (tabella dei vicini 42,96%), GLUE 71,13 di media, multitask 74,05 (62,49 e 65,41 con CoLA in Matthews). Contesto hardware (1 RTX 3080 contro le TPU dei paper) e metodo (LAMB, bfloat16, nessun early stopping, selezione sulla validation). Prima prova a voce cronometrata.",
+          "text": "Numeri a memoria: banda di rumore 2,78 (è la chiave di lettura di tutto il resto), CIFAR-10 baseline 71,63% (il 72,91% di e08 è dentro la banda), permutazione 71,63% → 68,95%, ModelNet40 87,36% (86,43% all'ultima epoca) con rotazione a 74,07%, init dei latenti 0.02 → 71,63% contro 1.0 → 52,08%, senza positional encoding 32,36%, ResNet-18 93,61%, MLM byte-level 86,68% (tabella dei vicini 42,96%), GLUE 71,13 di media, multitask 74,05 (62,49 e 65,87 con CoLA in Matthews). Contesto hardware (1 RTX 3080 contro le TPU dei paper) e metodo (LAMB, bfloat16, nessun early stopping, selezione sulla validation). Prima prova a voce cronometrata.",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 8233,
@@ -40992,8 +40992,8 @@
           "question": "Cosa succede senza positional encoding?",
           "options": [],
           "correct": [],
-          "expected": "Il modello perde ogni struttura spaziale: con solo RGB, due pixel dello stesso colore in punti diversi dell'immagine diventano indistinguibili, e l'insieme si riduce a un istogramma di colori. L'ho misurato con e29_no_pe: 32,36% contro 71,63%, cioè −39,27 punti, l'effetto più grande del progetto. Permutare i pixel invece costa −2,68, dentro la banda: la posizione entra solo dalla codifica, mai dall'ordine.",
-          "explanation": "Il modello perde ogni struttura spaziale: con solo RGB, due pixel dello stesso colore in punti diversi dell'immagine diventano indistinguibili, e l'insieme si riduce a un istogramma di colori. L'ho misurato con e29_no_pe: 32,36% contro 71,63%, cioè −39,27 punti, l'effetto più grande del progetto. Permutare i pixel invece costa −2,68, dentro la banda: la posizione entra solo dalla codifica, mai dall'ordine.",
+          "expected": "Con il solo RGB, due pixel dello stesso colore in punti diversi dell’immagine diventano indistinguibili. In e29_no_pe l’accuratezza scende dal 71,63% al 32,36%. I 39,27 punti comprendono anche la riduzione da 261 a 3 canali per Q, K e V nella cross-attention. Con la sola permutazione dei pixel insieme alle coordinate, il calo è di 2,68 punti, dentro la banda.",
+          "explanation": "Con il solo RGB, due pixel dello stesso colore in punti diversi dell’immagine diventano indistinguibili. In e29_no_pe l’accuratezza scende dal 71,63% al 32,36%. I 39,27 punti comprendono anche la riduzione da 261 a 3 canali per Q, K e V nella cross-attention. Con la sola permutazione dei pixel insieme alle coordinate, il calo è di 2,68 punti, dentro la banda.",
           "source": {
             "path": "sito/lezione/index.html",
             "line": 8301,

@@ -7,11 +7,6 @@ Implementazione in PyTorch, da zero, di [Perceiver](https://arxiv.org/abs/2103.0
 (ICML 2021) e [Perceiver IO](https://arxiv.org/abs/2107.14795) (ICLR 2022), con
 replica sperimentale su tre modalità: immagini, point cloud 3D e testo a byte.
 
-**Per preparare l’esame**, parti dal [percorso guidato al codice](preparazione_esame/guida/README.md).
-Comprende la [dispensa stampabile](preparazione_esame/guida/Guida-Perceiver.pdf), un
-[laboratorio animato su latenti e attenzione](https://francescogigli.github.io/Perceiver_project/preparazione_esame/guida/laboratorio.html)
-e una revisione dei risultati con domande d’orale e verifiche ripetibili.
-
 ## Il repo contiene due cose
 
 | | |
@@ -131,7 +126,7 @@ lo stesso totale, recuperando quattro negativi e perdendo quattro positivi.
 Il coefficiente di Matthews vale rispettivamente 0 e 0,0364. Sostituendo la
 sola voce CoLA con Matthews, le medie sugli otto task diventano **62,49**
 (separati) e **65,87** (multitask). Su MRPC il singolo supera la maggioranza
-di 9 esempi su 408. [Conteggi e verifica sui checkpoint](preparazione_esame/guida/02-esperimenti.md)
+di 9 esempi su 408. [Risultati GLUE nella lezione originale, capitolo 46](https://francescogigli.github.io/Perceiver_project/sito/lezione/#cap-46)
 
 Stato: **42 run su 42**. Il registro è completo.
 

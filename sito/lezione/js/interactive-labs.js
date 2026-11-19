@@ -2282,7 +2282,7 @@ const LAB_SOURCE_REFS = {
         + "<tr><td>Controlli senza pre-training</td><td>quanto vale il transfer</td><td>SST-2 +20,98 &middot; RTE +3,97</td><td>59,75% &rarr; 80,73% &middot; 52,71% &rarr; 56,68%</td></tr>"
         + "<tr><td>Multitask (Tab. 2 del paper IO)</td><td>un modello, una query per task</td><td><strong>74,05</strong></td><td>+2,92 sugli otto separati (paper +0,8)</td></tr>"
         + "</tbody></table></div>"
-        + "<div class='exp-takeaway'><strong>Come si leggono:</strong> l'86,68% va confrontato con una tabella dei byte vicini (42,96%, <code>baseline_mlm.py</code>), non con il caso uniforme dello 0,39%: la rete fa 44 punti in più, ed è il contesto lungo. Su GLUE due numeri su otto non sono apprendimento (CoLA e MRPC sono la classe maggioritaria), quindi la media poggia su sei task; il multitask guadagna tutto sui task piccoli."
+        + "<div class='exp-takeaway'><strong>Come si leggono:</strong> sui byte mascherati la rete ottiene l’86,68% e la tabella dei vicini il 42,96% (<code>baseline_mlm.py</code>). Su GLUE il modello singolo predice sempre la maggioranza per CoLA e la supera di nove risposte su 408 per MRPC. Su CoLA l’accuratezza resta al 69,13% anche in multitask, ma il coefficiente di Matthews passa da 0 a 0,0364. Con questa metrica le medie sugli otto task sono 62,49 e 65,87."
         + "<p class='exp-warn'>Le otto righe GLUE di prima generazione (QQP 75,65%, &hellip;, MNLI 46,47%) venivano da un codice in cui l'input di GLUE non coincideva con quello del pre-training: <strong>sono state rimosse</strong>, e questi numeri vengono dal codice corretto.</p>"
         + "</div>"
     };
