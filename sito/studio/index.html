@@ -15,10 +15,14 @@
   <link rel="stylesheet" href="course.css?v=course-1">
   <script src="course.js?v=course-1" defer></script>
   <script src="studio.js?v=tutor-video-2" defer></script>
-  <link rel="stylesheet" href="ripasso.css?v=codice-1">
-  <script src="ripasso-tappe.js" defer></script>
-  <script src="ripasso-codice.js?v=codice-1" defer></script>
-  <script src="ripasso.js?v=codice-1" defer></script>
+  <link rel="stylesheet" href="ripasso.css?v=basi-1">
+  <link rel="stylesheet" href="ripasso-animazioni.css?v=basi-1">
+  <script src="ripasso-tappe.js?v=basi-1" defer></script>
+  <script src="ripasso-basi.js?v=basi-1" defer></script>
+  <script src="ripasso-scene.js?v=basi-1" defer></script>
+  <script src="ripasso-animazioni.js?v=basi-1" defer></script>
+  <script src="ripasso-codice.js?v=basi-1" defer></script>
+  <script src="ripasso.js?v=basi-1" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#lezione">Vai alla lezione</a>
@@ -49,9 +53,20 @@
             <div class="ripasso-index">
               <label for="ripasso-select">Scegli una tappa</label>
               <select id="ripasso-select" aria-label="Scegli una tappa"></select>
+              <a id="ripasso-dall-inizio" href="?ripasso=token">Riparti dalle basi</a>
             </div>
             <p id="ripasso-position"></p>
             <h1 id="ripasso-title" tabindex="-1"></h1>
+            <p id="ripasso-intro"></p>
+            <section id="ripasso-animazione" aria-label="Animazione del calcolo"></section>
+            <div class="ripasso-dopo-scena">
+              <details id="ripasso-check">
+                <summary><span>Prova a spiegarlo</span><strong id="ripasso-question"></strong></summary>
+                <p id="ripasso-answer"></p>
+              </details>
+              <button id="ripasso-continua" type="button" hidden></button>
+              <a class="ripasso-jump ripasso-al-codice" href="#ripasso-code-heading">Segui il passaggio nel codice Python ↓</a>
+            </div>
             <div class="ripasso-study-layout">
               <section id="ripasso-implementation" aria-labelledby="ripasso-code-heading" hidden>
                 <div class="ripasso-code-heading">
@@ -98,13 +113,19 @@
                   <h2>Il concetto della tappa</h2>
                   <ol id="ripasso-flow"></ol>
                   <p id="ripasso-explanation"></p>
-                  <details id="ripasso-check">
-                    <summary><span>Domanda per l’orale</span><strong id="ripasso-question"></strong></summary>
-                    <p id="ripasso-answer"></p>
-                  </details>
                 </div>
               </div>
             </div>
+            <section id="ripasso-conclusione" aria-labelledby="ripasso-conclusione-titolo" hidden>
+              <h2 id="ripasso-conclusione-titolo" tabindex="-1">Racconta il progetto dall’inizio alla fine</h2>
+              <p>Prova a rispondere a voce a queste tre domande, poi confronta il tuo racconto con un possibile filo del discorso.</p>
+              <ol>
+                <li>Come può una parola raccogliere informazioni dalle altre parole di una frase?</li>
+                <li>Perché il Perceiver usa i latenti per leggere una foto? Che cosa cambia con il decoder di Perceiver IO?</li>
+                <li>Come hai scelto i pesi del modello e cosa puoi concludere dai risultati su CIFAR-10?</li>
+              </ol>
+              <details><summary>Confronta la tua risposta</summary><p>Nel Transformer ogni posizione produce una domanda, una chiave e un valore. La domanda si confronta con le chiavi e i pesi ottenuti stabiliscono quanto raccogliere da ogni valore. Per 1.024 pixel, far leggere ogni pixel a tutti gli altri richiederebbe oltre un milione di confronti per testa. In e01 sono invece 96 latenti a interrogare i pixel. Poi i latenti elaborano tra loro la risposta e il classificatore ne usa la media per scegliere una classe. Con Perceiver IO posso chiedere un’uscita per ogni posizione, per esempio il byte che manca in una frase.</p><p>Su CIFAR-10 scelgo il checkpoint usando la validazione. Per e01 è quello dell’epoca 92 e raggiunge il 71,63% sul test. Confronto poi gli scarti con i 2,78 punti di escursione osservati su tre seed. Per e29 il calo coinvolge sia la posizione sia la larghezza della lettura: per distinguere i due effetti serve un esperimento controllato.</p></details>
+            </section>
             <nav class="ripasso-paging" aria-label="Tappe del ripasso">
               <button type="button" id="ripasso-prev">← Tappa precedente</button>
               <button type="button" id="ripasso-next">Tappa successiva →</button>

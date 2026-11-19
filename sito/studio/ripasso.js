@@ -3,7 +3,9 @@
 (() => {
   const byId = id => document.getElementById(id);
   const panel = byId("ripasso");
-  const stages = window.perceiverRipasso;
+  const basics = window.perceiverBasi || [];
+  const project = window.perceiverRipasso || [];
+  const stages = [...basics, ...project];
   if (!panel || !stages?.length) return;
 
   const storageKey = "perceiver-ripasso-tappa-v1";
@@ -138,7 +140,15 @@
     const stage = stages[index];
     select.value = stage.slug;
     title.textContent = stage.title;
-    byId("ripasso-position").textContent = `Tappa ${index + 1} di ${stages.length}`;
+    byId("ripasso-intro").textContent = stage.intro;
+    const isBasic = index < basics.length;
+    byId("ripasso-position").textContent = `Tappa ${index + 1} di ${stages.length} · ${isBasic ? "Le basi del Transformer" : "Il progetto Perceiver"}`;
+    byId("ripasso-code-heading").textContent = isBasic ? "Il collegamento con il codice del progetto" : "Implementazione in Python";
+    byId("ripasso-dall-inizio").hidden = index === 0;
+    byId("ripasso-conclusione").hidden = index !== stages.length - 1;
+    byId("ripasso-continua").textContent = index === stages.length - 1 ?
+      "Prova l’esposizione finale" : "Continua · " + stages[index + 1].title;
+    window.perceiverAnimazione.mostra(stage.slug, stage.frames || window.perceiverSceneProgetto[stage.slug]);
     byId("ripasso-prev").disabled = index === 0;
     byId("ripasso-next").disabled = index === stages.length - 1;
     byId("ripasso-flow").replaceChildren(...stage.flow.map(text => {
@@ -152,7 +162,7 @@
     figure.src = stage.figure;
     byId("ripasso-enlarge").href = stage.figure;
     byId("ripasso-caption").textContent = stage.caption;
-    byId("ripasso-motion").hidden = stage.slug !== "cross-attention";
+    byId("ripasso-motion").hidden = !["pesi", "teste", "cross-attention"].includes(stage.slug);
     byId("ripasso-question").textContent = stage.question;
     byId("ripasso-answer").textContent = stage.answer;
     byId("ripasso-check").open = false;
@@ -193,6 +203,7 @@
   }
 
   function closeStage(view) {
+    window.perceiverAnimazione.ferma();
     panel.open = false;
     if (new URL(location.href).searchParams.has("ripasso")) updateAddress(null, view);
   }
@@ -217,8 +228,25 @@
     remember();
   }
 
-  select.replaceChildren(...stages.map(stage => new Option(stage.title, stage.slug)));
+  for (const [label, items] of [["Le basi del Transformer", basics], ["Il progetto Perceiver", project]]) {
+    const group = document.createElement("optgroup");
+    group.label = label;
+    group.append(...items.map(stage => new Option(stage.title, stage.slug)));
+    select.append(group);
+  }
   title.tabIndex = -1;
+  byId("ripasso-animazione").addEventListener("ripasso:fotogramma", event => {
+    byId("ripasso-continua").hidden = event.detail.index !== event.detail.total - 1;
+  });
+  byId("ripasso-continua").addEventListener("click", () => {
+    if (index < stages.length - 1) openStage(index + 1, 1, true);
+    else byId("ripasso-conclusione-titolo").focus();
+  });
+  byId("ripasso-dall-inizio").addEventListener("click", event => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    openStage(0, 1, true);
+  });
   select.addEventListener("change", () => openStage(select.selectedIndex, 1, true));
   byId("ripasso-prev").addEventListener("click", () => openStage(index - 1, 1, true));
   byId("ripasso-next").addEventListener("click", () => openStage(index + 1, 1, true));
@@ -228,6 +256,7 @@
     link.addEventListener("click", event => {
       if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
       event.preventDefault();
+      window.perceiverAnimazione.ferma();
       const target = byId(link.hash.slice(1));
       target.focus({preventScroll: true});
       target.scrollIntoView({block: "start"});
@@ -289,4 +318,7 @@
     if (event.persisted) restoreAddress();
   });
   restoreAddress();
+  if (panel.open && stepNumber > 1 && !location.hash) {
+    requestAnimationFrame(() => byId("ripasso-code-heading").scrollIntoView({block: "start"}));
+  }
 })();

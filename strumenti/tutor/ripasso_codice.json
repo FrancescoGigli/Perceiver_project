@@ -1,5 +1,213 @@
 [
   {
+    "slug": "token",
+    "orale": "Prima scelgo l’unità da leggere. Nell’esempio posso usare una parola. Nel progetto di testo uso un byte e assegno una riga a ciascun byte, nell’ordine in cui compare.",
+    "steps": [
+      {
+        "label": "Codificare una frase",
+        "path": "progetto/src/data/wikitext103.py",
+        "scope": "WikiText103PerceiverDataModule._load_bytes",
+        "first": "byte_data = text.encode(\"utf-8\")",
+        "last": "return torch.tensor(list(byte_data), dtype=torch.long)",
+        "input": "Una stringa di testo, per esempio «gatto».",
+        "output": "Cinque interi, 103, 97, 116, 116 e 111.",
+        "explain": "encode traduce il testo in byte UTF-8. list li elenca in ordine e torch.tensor li raccoglie in una struttura numerica. La doppia t diventa due volte 116. Un carattere accentato può occupare più byte."
+      },
+      {
+        "label": "Prelevare un pezzo in ordine",
+        "path": "progetto/src/data/wikitext103.py",
+        "scope": "WikiText103ByteDataset.__getitem__",
+        "first": "start = idx * self.seq_len",
+        "last": "chunk = self.byte_tensor[start:end]",
+        "input": "Una lunga fila di byte e l’indice del pezzo richiesto.",
+        "output": "Una finestra di byte consecutivi.",
+        "explain": "start ed end sono i confini della finestra. Le parentesi quadre prendono gli elementi da start fino a quello prima di end. La prima finestra della run WikiText contiene 512 byte; la frase corta serve a capire la stessa operazione."
+      }
+    ]
+  },
+  {
+    "slug": "embedding",
+    "orale": "Un identificatore è soltanto il nome numerico di un’unità. Per elaborarla mi serve un vettore. Il Transformer può imparare una tabella di vettori; il percorso sui byte del progetto parte invece da un vettore one-hot.",
+    "steps": [
+      {
+        "label": "Segnare una casella",
+        "path": "progetto/src/data/wikitext103.py",
+        "scope": "WikiText103PerceiverDataModule.preprocess_batch",
+        "first": "input_ids, labels, mask = batch",
+        "last": "one_hot = F.one_hot(input_ids, num_classes=self.vocab_size + 1).float()",
+        "input": "Un identificatore, per esempio il byte 97 della «a».",
+        "output": "Un vettore di 257 valori, con 1 nella casella 97 e 0 nelle altre.",
+        "explain": "one_hot costruisce un indicatore per ciascun byte. Il posto aggiuntivo serve al simbolo che nasconde un byte. Qui la rappresentazione di partenza è fissata; l’esempio animato di embedding illustra anche l’alternativa di imparare i valori di una tabella."
+      },
+      {
+        "label": "Trasformare il vettore con pesi appresi",
+        "path": "progetto/src/perceiver/attention.py",
+        "scope": "CrossAttention.__init__",
+        "first": "self.kv_proj = nn.Linear(input_dim, inner_dim * 2, bias=False)",
+        "last": "self.kv_proj = nn.Linear(input_dim, inner_dim * 2, bias=False)",
+        "input": "Il numero di canali che descrivono ogni elemento.",
+        "output": "Una trasformazione con pesi che il modello può imparare.",
+        "explain": "nn.Linear prepara una combinazione pesata dei canali. Durante la lettura, questa trasformazione agirà sul vettore di ingresso normalizzato per produrre due descrizioni, la chiave e il valore. Le vedrai nella tappa sull’attenzione."
+      }
+    ]
+  },
+  {
+    "slug": "posizione",
+    "orale": "Se cambio l’ordine delle parole, può cambiare il significato. Per conservarne l’ordine, nel progetto ogni byte porta con sé sia la propria identità sia le caratteristiche del posto in cui si trova.",
+    "steps": [
+      {
+        "label": "Numerare i posti",
+        "path": "progetto/src/data/wikitext103.py",
+        "scope": "WikiText103PerceiverDataModule._setup_pos_encoding",
+        "first": "positions = torch.arange(self.seq_len).float() / max(1, (self.seq_len - 1))",
+        "last": "coords = positions.unsqueeze(-1)",
+        "input": "Una sequenza lunga L posizioni.",
+        "output": "Una coordinata per posto. Per tre posti si ottengono 0, 0,5 e 1.",
+        "explain": "arange crea gli indici da 0 fino a L meno uno. La divisione li riporta tra 0 e 1; unsqueeze aggiunge una colonna per la coordinata. Anche due byte uguali possono così ricevere posizioni diverse."
+      },
+      {
+        "label": "Unire identità e posizione",
+        "path": "progetto/src/data/wikitext103.py",
+        "scope": "WikiText103PerceiverDataModule.preprocess_batch",
+        "first": "pos_enc = self.pos_encodings.unsqueeze(0).expand(one_hot.size(0), -1, -1)",
+        "last": "inputs = torch.cat([one_hot, pos_enc.to(one_hot.device)], dim=-1)",
+        "input": "Gli indicatori dei byte e le caratteristiche di posizione calcolate da quelle coordinate.",
+        "output": "Un vettore per byte con entrambi i gruppi di informazioni.",
+        "explain": "expand usa la stessa griglia per ogni esempio del gruppo. cat affianca i due gruppi sull’ultimo asse. Nel Transformer originale la posizione si somma agli embedding; qui il codice la affianca."
+      }
+    ]
+  },
+  {
+    "slug": "pesi",
+    "orale": "Per aggiornare una posizione, il modello confronta una domanda con più chiavi. La softmax trasforma i confronti in pesi che sommano a uno e quei pesi stabiliscono quanto prendere da ogni valore.",
+    "steps": [
+      {
+        "label": "Confrontare domanda e chiave",
+        "path": "progetto/src/perceiver/attention.py",
+        "scope": "SelfAttention.forward",
+        "first": "dots = torch.einsum(\"b h i d, b h j d -> b h i j\", q, k) * self.scale",
+        "last": "dots = torch.einsum(\"b h i d, b h j d -> b h i j\", q, k) * self.scale",
+        "input": "La domanda della posizione i e la chiave della posizione j.",
+        "output": "Un numero per ogni coppia di posizioni.",
+        "explain": "Due vettori si confrontano moltiplicando i valori corrispondenti e sommando i prodotti. Nell’espressione einsum scompare la lettera d, che rappresenta proprio le componenti su cui si somma. scale regola l’ampiezza dei punteggi."
+      },
+      {
+        "label": "Pesare il contenuto",
+        "path": "progetto/src/perceiver/attention.py",
+        "scope": "SelfAttention.forward",
+        "first": "attn = dots.softmax(dim=-1)",
+        "last": "out = torch.einsum(\"b h i j, b h j d -> b h i d\", attn, v)",
+        "input": "I punteggi e i vettori contenuto, chiamati valori.",
+        "output": "Un nuovo vettore per ogni domanda.",
+        "explain": "La prima riga applica softmax lungo le posizioni che si possono leggere. Per ogni domanda tutti i pesi della riga sommano a uno. La seconda riga moltiplica ogni valore per il suo peso e somma lungo j."
+      }
+    ]
+  },
+  {
+    "slug": "teste",
+    "orale": "Una testa è una lettura dell’insieme con i propri confronti e pesi. Nel progetto organizzo più letture in parallelo, poi ne riunisco i risultati in un unico vettore per posizione.",
+    "steps": [
+      {
+        "label": "Distinguere le teste",
+        "path": "progetto/src/perceiver/attention.py",
+        "scope": "SelfAttention.forward",
+        "first": "q, k, v = self.qkv_proj(self.norm_attn(x)).chunk(3, dim=-1)",
+        "last": "v = rearrange(v, \"b n (h d) -> b h n d\", h=self.num_heads)",
+        "input": "Una sequenza di vettori.",
+        "output": "Domande, chiavi e valori separati per testa.",
+        "explain": "chunk(3) separa Q, K e V. rearrange rende visibile un asse h per le teste. Nella parte latente di e01, gli stessi 384 canali si organizzano in otto gruppi da 48. Ciascuno calcola i propri confronti."
+      },
+      {
+        "label": "Riunire le letture",
+        "path": "progetto/src/perceiver/attention.py",
+        "scope": "SelfAttention.forward",
+        "first": "out = self.to_out(rearrange(out, \"b h n d -> b n (h d)\"))",
+        "last": "out = self.to_out(rearrange(out, \"b h n d -> b n (h d)\"))",
+        "input": "Una risposta per testa e posizione.",
+        "output": "Una risposta combinata per posizione.",
+        "explain": "Le parentesi (h d) rimettono i gruppi di canali uno accanto all’altro. to_out impara come combinare l’informazione proveniente dalle teste."
+      }
+    ]
+  },
+  {
+    "slug": "blocco",
+    "orale": "L’attenzione scambia informazioni tra posizioni. Una piccola rete elabora poi ogni posizione separatamente. Le somme residue mantengono un percorso diretto attraverso il blocco.",
+    "steps": [
+      {
+        "label": "Elaborare ogni vettore",
+        "path": "progetto/src/perceiver/attention.py",
+        "scope": "FeedForward.__init__",
+        "first": "self.net = nn.Sequential(",
+        "last": ")",
+        "input": "Un vettore in una singola posizione.",
+        "output": "Un aggiornamento con lo stesso numero di canali del vettore iniziale.",
+        "explain": "Il primo Linear cambia dimensione, GELU applica una trasformazione non lineare e il secondo Linear torna alla dimensione iniziale. La stessa rete viene usata in ogni posizione. Dropout può spegnere temporaneamente alcune componenti durante l’addestramento."
+      },
+      {
+        "label": "Aggiungere due aggiornamenti",
+        "path": "progetto/src/perceiver/attention.py",
+        "scope": "SelfAttention.forward",
+        "first": "x = x + out",
+        "last": "x = x + self.ff(self.norm_ff(x))",
+        "input": "Lo stato x e il contributo dell’attenzione out.",
+        "output": "Uno stato aggiornato pronto per il blocco seguente.",
+        "explain": "Il primo più somma la lettura allo stato iniziale. Nella seconda riga norm_ff regola la scala dei canali, ff elabora il vettore e il secondo più aggiunge il risultato. Questa implementazione normalizza prima della piccola rete."
+      }
+    ]
+  },
+  {
+    "slug": "maschera",
+    "orale": "Un decoder che genera una frase deve evitare di leggere il futuro. Nel progetto Perceiver IO, invece, una query di uscita chiede ai latenti cosa mettere in una posizione e il training può nascondere byte da ricostruire.",
+    "steps": [
+      {
+        "label": "Leggere la memoria nel decoder IO",
+        "path": "progetto/src/perceiver_io/perceiver_io.py",
+        "scope": "PerceiverIO.forward",
+        "first": "decoded_queries = self.decoder(",
+        "last": ")",
+        "input": "Le richieste di uscita e i latenti già elaborati.",
+        "output": "Una risposta per ogni richiesta di uscita.",
+        "explain": "Le query arrivano dall’uscita, chiavi e valori dai latenti. input_mask=None significa che qui non si nascondono latenti alla lettura. Il decoder IO del progetto produce le risposte in parallelo. La maschera causale della traduzione animata appartiene a un altro tipo di decoder."
+      },
+      {
+        "label": "Nascondere il contenuto di un byte",
+        "path": "progetto/src/data/wikitext103.py",
+        "scope": "WikiText103ByteDataset.__getitem__",
+        "first": "labels = chunk.clone()",
+        "last": "input_ids[mask] = self.mask_token_id",
+        "input": "Una finestra di testo con i byte veri.",
+        "output": "Un ingresso con alcuni byte nascosti e una copia del testo vero.",
+        "explain": "La copia labels conserva le risposte. La maschera seleziona quali byte sostituire all’ingresso. In questo esercizio il modello può usare il contesto a destra e a sinistra del byte nascosto."
+      }
+    ]
+  },
+  {
+    "slug": "costo",
+    "orale": "Nella self-attention completa ogni posizione confronta la propria domanda con tutte le posizioni. Per leggere una foto con il Perceiver, le domande vengono invece da un piccolo gruppo di vettori di lavoro, i latenti.",
+    "steps": [
+      {
+        "label": "Contare i confronti della self-attention",
+        "path": "progetto/src/perceiver/attention.py",
+        "scope": "SelfAttention.forward",
+        "first": "dots = torch.einsum(\"b h i d, b h j d -> b h i j\", q, k) * self.scale",
+        "last": "dots = torch.einsum(\"b h i d, b h j d -> b h i j\", q, k) * self.scale",
+        "input": "Una domanda e una chiave per ciascuna delle M posizioni.",
+        "output": "Una matrice di M × M punteggi per esempio e per testa.",
+        "explain": "Gli indici i e j possono entrambi attraversare tutte le M posizioni. Se le posizioni passano da tre a sei, nella matrice piena i confronti passano da nove a trentasei. Questo conteggio riguarda i punteggi di attenzione."
+      },
+      {
+        "label": "Far partire meno domande",
+        "path": "progetto/src/perceiver/attention.py",
+        "scope": "CrossAttention.forward",
+        "first": "q = self.q_proj(self.norm_attn(x_latent))",
+        "last": "k, v = self.kv_proj(self.norm_input(x_input)).chunk(2, dim=-1)",
+        "input": "Nel caso della foto, 96 latenti e 1.024 pixel.",
+        "output": "96 domande e 1.024 chiavi. Una lettura calcola 98.304 punteggi per testa.",
+        "explain": "Nel codice cambiano le sorgenti: la domanda arriva dal latente e la chiave dal pixel. Dopo questa lettura i blocchi di self-attention lavorano tra 96 latenti. È il collegamento con la foto che seguirai nella tappa successiva."
+      }
+    ]
+  },
+  {
     "slug": "pixel",
     "orale": "Per dare la foto al modello uso ToTensor e Normalize sui tre canali RGB. In _to_patches porto i colori sull’ultimo asse con permute e uso reshape per ottenere una riga per pixel. Perciò una foto da 32 × 32 diventa una tabella di 1.024 righe da tre valori. L’etichetta rimane a parte.",
     "steps": [

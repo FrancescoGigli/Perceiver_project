@@ -1,6 +1,7 @@
 window.perceiverRipasso = [
   {
     slug: "pixel",
+    intro: "Passiamo dalla frase a una foto vera. Qui l’elemento più piccolo da leggere è un pixel. Seguiremo un pixel del gatto per vedere quali numeri entrano davvero nel modello.",
     title: "Dal gatto ai pixel",
     chapter: 4,
     stepId: "c4-s26",
@@ -14,6 +15,7 @@ window.perceiverRipasso = [
   },
   {
     slug: "coordinate",
+    intro: "Due pixel dello stesso colore possono appartenere all’orecchio o allo sfondo. Accanto al colore aggiungiamo numeri che descrivono la posizione. Segui sempre il pixel evidenziato nella foto.",
     title: "Dare una posizione al colore",
     chapter: 5,
     stepId: "c5-s32",
@@ -27,6 +29,7 @@ window.perceiverRipasso = [
   },
   {
     slug: "cross-attention",
+    intro: "Nella frase erano le parole a interrogarsi tra loro. Nella foto è un latente a interrogare i pixel. Guarda come una domanda diventa una somma pesata di ciò che i pixel contengono.",
     title: "Leggere i pixel con Q, K e V",
     chapter: 7,
     stepId: "c7-s3",
@@ -40,6 +43,7 @@ window.perceiverRipasso = [
   },
   {
     slug: "latenti",
+    intro: "Dopo la prima lettura ogni latente conserva una parte delle informazioni raccolte. Ora i latenti possono scambiarsele e poi tornare a guardare la stessa foto con una domanda aggiornata.",
     title: "Far dialogare i latenti",
     chapter: 8,
     stepId: "c8-s6",
@@ -53,6 +57,7 @@ window.perceiverRipasso = [
   },
   {
     slug: "classe",
+    intro: "Abbiamo ancora 96 vettori per una sola foto. Come ricaviamo una sola risposta? Li riassumiamo e assegniamo un punteggio a ognuna delle dieci classi possibili.",
     title: "Tornare alla domanda «è un gatto?»",
     chapter: 10,
     stepId: "c10-s16",
@@ -66,6 +71,7 @@ window.perceiverRipasso = [
   },
   {
     slug: "punti",
+    intro: "Una sedia in 3D può essere descritta con tanti punti sulla sua superficie. Ogni punto ha tre coordinate. Segui come si prepara questo nuovo tipo di ingresso prima di chiedere al modello quale oggetto vede.",
     title: "Riconoscere una sedia in 3D",
     chapter: 45,
     stepId: "c45-s143",
@@ -79,6 +85,7 @@ window.perceiverRipasso = [
   },
   {
     slug: "decoder",
+    intro: "Per capire Perceiver IO, cambia la domanda. Invece di scegliere un nome per l’intera foto, vogliamo riempire un vuoto dentro «gatto». Il modello deve dare una risposta proprio nella posizione nascosta.",
     title: "Chiedere un byte al decoder",
     chapter: 16,
     stepId: "c16-s30",
@@ -92,6 +99,7 @@ window.perceiverRipasso = [
   },
   {
     slug: "glue",
+    intro: "Ora il compito è dare un voto alla somiglianza fra due frasi. Prima costruiamo una previsione per una singola coppia. Poi controlliamo se, su molte coppie, i voti del modello seguono quelli delle persone.",
     title: "Misurare quanto si somigliano due frasi",
     chapter: 46,
     stepId: "c46-s53",
@@ -105,6 +113,7 @@ window.perceiverRipasso = [
   },
   {
     slug: "checkpoint",
+    intro: "Durante l’addestramento i pesi cambiano. Un’epoca è un giro sul gruppo di esempi usato per imparare. Dopo ogni giro proviamo il modello su altri esempi per decidere quali pesi conservare.",
     title: "Scegliere i pesi da valutare",
     chapter: 45,
     stepId: "c45-s12",
@@ -118,6 +127,7 @@ window.perceiverRipasso = [
   },
   {
     slug: "risultati",
+    intro: "Due addestramenti con la stessa ricetta possono ottenere risultati diversi. Prima di attribuire un cambiamento a una modifica del modello, guardiamo di quanto oscillano tre ripetizioni della ricetta di partenza.",
     title: "Difendere un confronto all’esame",
     chapter: 44,
     stepId: "c44-s30",

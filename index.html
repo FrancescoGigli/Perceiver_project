@@ -185,8 +185,8 @@
     <main>
       <p class="eyebrow">Deep Learning · Università di Firenze</p>
       <h1>Perceiver</h1>
-      <p class="intro">Replica from-scratch in PyTorch di <strong>Perceiver</strong> (ICML 2021) e <strong>Perceiver IO</strong> (ICLR 2022): una sola architettura che elabora immagini, point cloud 3D e testo a byte senza componenti specifiche per dominio. Al posto della self-attention quadratica sull'input, l'input viene compresso in un numero fisso di latenti — ed è da lì che discende tutto il resto.</p>
-      <p class="intro">Il punto di partenza è la <strong>lezione interattiva</strong>: 52 capitoli in ordine, ogni termine tecnico è cliccabile e spiegato sul posto, con il link al capitolo che lo approfondisce e il ritorno esattamente dove eri. Slide e dispensa sono lo stesso materiale in forma stampabile.</p>
+      <p class="intro">Come fa un modello a usare le altre parole di una frase per capire quella che sta leggendo? Parti da «Il gatto dorme» e segui i disegni, un passaggio alla volta. Poi ritrova la stessa idea nel progetto in PyTorch, dove <strong>Perceiver</strong> legge una foto e <strong>Perceiver IO</strong> prova a ricostruire un pezzo di testo nascosto.</p>
+      <p class="intro">Il percorso animato parte dai token, i pezzetti in cui dividiamo una frase, e arriva al codice e ai risultati dell’esame. La <strong>lezione interattiva</strong> raccoglie gli approfondimenti in 52 capitoli. Slide e dispensa sono disponibili anche in forma stampabile.</p>
       <p class="intro">Gli esperimenti replicati stanno nei capitoli 44-46 della lezione: <strong>42 run completate su 42</strong>, e ogni confronto su CIFAR-10 viene messo davanti alla banda di rumore fra tre seed (2,78 punti) prima di essere chiamato effetto; su ModelNet40 e GLUE una banda non c'è. Il codice sta nel <a href="https://github.com/FrancescoGigli/Perceiver_project">repository</a>.</p>
 
       <section class="resources" aria-label="Materiali pubblicati">
@@ -195,13 +195,13 @@
           <summary>
             <h2>Studio guidato</h2>
             <nav class="actions" aria-label="Azioni studio guidato">
-              <a class="button primary" href="sito/studio/?ripasso=inizia" onclick="event.stopPropagation()">Ripasso illustrato</a>
+              <a class="button primary" href="sito/studio/?ripasso=token" onclick="event.stopPropagation()">Inizia dalle basi del Transformer</a>
               <a class="button" href="sito/studio/" onclick="event.stopPropagation()">Video e tutor</a>
               <a class="button" href="sito/studio/media/qkv.mp4" download onclick="event.stopPropagation()">Scarica video</a>
             </nav>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
           </summary>
-          <div class="detail-body"><p>Nel ripasso illustrato segui una foto di CIFAR-10 dai pixel alla classe prevista, poi studi come Perceiver IO legge il testo e come interpretare gli esperimenti. In ogni tappa puoi seguire il flusso un’operazione alla volta, leggere le righe Python che la eseguono e provare a spiegarle all’orale. Puoi aprirla dal PC o dal cellulare. La lezione su Q, K e V ha anche voce italiana, animazioni e sottotitoli. Il tutor conversazionale usa il modello sul PC e richiede il suo collegamento protetto.</p></div>
+          <div class="detail-body"><p>Segui le animazioni, prova a rispondere alle domande e apri le righe Python per vedere come funziona il progetto. Se hai già iniziato, <a href="sito/studio/?ripasso=inizia">riprendi dall’ultima tappa studiata</a>. La lezione su Q, K e V ha anche voce italiana e sottotitoli. Il tutor conversazionale usa il modello sul PC e richiede il suo collegamento protetto.</p></div>
         </details>
 
         <!-- Lezione interattiva -->
