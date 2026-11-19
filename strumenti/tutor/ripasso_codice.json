@@ -1,0 +1,441 @@
+[
+  {
+    "slug": "pixel",
+    "orale": "Per dare la foto al modello uso ToTensor e Normalize sui tre canali RGB. In _to_patches porto i colori sull’ultimo asse con permute e uso reshape per ottenere una riga per pixel. Perciò una foto da 32 × 32 diventa una tabella di 1.024 righe da tre valori. L’etichetta rimane a parte.",
+    "steps": [
+      {
+        "label": "Normalizzare i colori",
+        "path": "progetto/src/data/transforms.py",
+        "scope": "get_cifar10_test_transforms",
+        "first": "return transforms.Compose([",
+        "last": "])",
+        "input": "Foto RGB di test da 32 × 32 pixel, con valori interi da 0 a 255.",
+        "output": "Quando il dataset applica la trasformazione, un tensore [3, 32, 32] di valori normalizzati.",
+        "explain": "Compose costruisce una successione di operazioni. ToTensor porta i tre canali sul primo asse e divide i colori per 255. Normalize sottrae la media del canale e divide per la sua deviazione standard. Per il rosso del pixel evidenziato, (78/255 − 0,4914) / 0,2023 vale circa −0,917."
+      },
+      {
+        "label": "Raccogliere i colori dello stesso pixel",
+        "path": "progetto/src/data/cifar10.py",
+        "scope": "CIFAR10PerceiverDataModule._to_patches",
+        "first": "batch_size, channels = x.size(0), x.size(1)",
+        "last": "return patches.reshape(batch_size, self.num_patches, self.token_dim)",
+        "input": "Un batch di B immagini normalizzate, [B, 3, 32, 32].",
+        "output": "[B, 1024, 3]. Nel gatto, la riga di indice 336 contiene i colori del pixel alla riga 10 e colonna 16.",
+        "explain": "view distingue gli assi delle patch dalle posizioni interne. In e01 una patch misura un pixel. permute porta i colori sull’ultimo asse e reshape raccoglie righe e colonne in un indice unico. Con gli indici da zero, 10 × 32 + 16 = 336."
+      },
+      {
+        "label": "Separare ingresso e risposta attesa",
+        "path": "progetto/src/data/cifar10.py",
+        "scope": "CIFAR10PerceiverDataModule.preprocess_batch",
+        "first": "images, labels = batch",
+        "last": "}",
+        "input": "La coppia di tensori fornita dal loader, immagini e classi vere.",
+        "output": "Un dizionario con la tabella per il modello, le etichette e le immagini normalizzate nella forma originale.",
+        "explain": "L’assegnazione con la virgola separa i due elementi del batch. La chiamata a _to_patches calcola la tabella appena vista. Le chiavi inputs e labels permettono di passare alla rete i pixel e di usare la classe vera nel calcolo della perdita."
+      }
+    ]
+  },
+  {
+    "slug": "coordinate",
+    "orale": "Costruisco la griglia con meshgrid. Per ogni asse tengo la coordinata e calcolo seno e coseno a 64 frequenze. Con torch.cat affianco i 258 valori di posizione ai tre colori. Così anche due pixel dello stesso colore hanno una descrizione diversa se occupano posti diversi.",
+    "steps": [
+      {
+        "label": "Preparare le frequenze una volta",
+        "path": "progetto/src/utils/positional_encoding.py",
+        "scope": "FourierPositionalEncoding.__init__",
+        "first": "bands = torch.linspace(1.0, self.max_freq, num_bands)",
+        "last": "self.register_buffer(\"bands\", bands)",
+        "input": "La configurazione e01 richiede 64 frequenze, con massimo 16.",
+        "output": "Un vettore fisso di 64 frequenze equidistanti fra 1 e 16, estremi inclusi.",
+        "explain": "linspace costruisce la griglia di frequenze. register_buffer la associa al modulo, per esempio per trasferirla con esso sulla GPU. I suoi valori restano fissi durante l’addestramento."
+      },
+      {
+        "label": "Assegnare una coppia a ogni pixel",
+        "path": "progetto/src/perceiver/input_pe.py",
+        "scope": "pixel_coords",
+        "first": "axis = torch.linspace(-1.0, 1.0, grid_size)",
+        "last": "return torch.stack([rows, cols], dim=-1).reshape(-1, 2)",
+        "input": "Il lato della griglia, 32 in e01.",
+        "output": "1.024 coppie (riga, colonna) nell’ordine dei pixel. Per (10, 16) le coordinate sono circa (−0,355, 0,032).",
+        "explain": "meshgrid forma tutte le coppie fra i due assi. Con indexing uguale a ij il primo indice sceglie la riga. stack mette le due coordinate una accanto all’altra. In reshape il −1 lascia a PyTorch il conto delle righe."
+      },
+      {
+        "label": "Costruire le caratteristiche di Fourier",
+        "path": "progetto/src/utils/positional_encoding.py",
+        "scope": "FourierPositionalEncoding.forward",
+        "first": "scaled = x.unsqueeze(-1) * self.bands * math.pi",
+        "last": "return enc.reshape(orig_shape[:-1] + (self.out_dim,))",
+        "input": "Due coordinate per pixel e il vettore delle 64 frequenze.",
+        "output": "Una tabella fissa [1024, 258] che il modello conserva per la griglia.",
+        "explain": "unsqueeze crea un asse per le frequenze, così il prodotto combina ogni coordinata con ogni banda. scaled[..., k] seleziona la banda k per tutti i pixel e gli assi. parts parte dalle coordinate e aggiunge seno e coseno di ogni angolo. cat affianca 2 + 64 × 2 × 2 = 258 valori."
+      },
+      {
+        "label": "Affiancare posizione e colore",
+        "path": "progetto/src/perceiver/input_pe.py",
+        "scope": "InputPositionalEncoding.forward",
+        "first": "if self.pe is not None:",
+        "last": "return x",
+        "input": "I colori [B, 1024, 3] e la tabella delle posizioni [1024, 258].",
+        "output": "I token completi [B, 1024, 261].",
+        "explain": "expand rende disponibile la stessa griglia per ciascuna immagine del batch. cat con dim = −1 affianca i canali. Nella run permutata e02, index_select cambia poi l’ordine delle righe sull’asse 1. Colore e posizione di uno stesso pixel si spostano insieme."
+      }
+    ]
+  },
+  {
+    "slug": "cross-attention",
+    "orale": "Ogni latente pone una domanda sull’immagine. Nel codice q_proj produce la domanda dal latente e kv_proj ricava chiavi e valori dai pixel. Il primo einsum confronta domanda e chiavi. La softmax trasforma i punteggi in pesi sui pixel e il secondo einsum usa quei pesi per sommare i valori. Aggiungo il risultato al latente.",
+    "steps": [
+      {
+        "label": "Dare a ogni foto i latenti iniziali",
+        "path": "progetto/src/perceiver/perceiver.py",
+        "scope": "Perceiver.forward",
+        "first": "data = self.input_pe(data)",
+        "last": "latents = repeat(self.latents, \"n d -> b n d\", b=data.shape[0])",
+        "input": "I pixel del batch e i 96 vettori iniziali da 384 componenti, appresi durante il training.",
+        "output": "Token [B, 1024, 261] e latenti iniziali [B, 96, 384].",
+        "explain": "La prima riga applica le coordinate viste nella tappa precedente. Nella notazione di repeat, n indica i latenti, d i canali e b le immagini. Si riusa la stessa matrice iniziale per ogni foto. Dopo la lettura ciascuna foto avrà il proprio stato."
+      },
+      {
+        "label": "Formare domande, chiavi e valori",
+        "path": "progetto/src/perceiver/attention.py",
+        "scope": "CrossAttention.forward",
+        "first": "q = self.q_proj(self.norm_attn(x_latent))",
+        "last": "v = rearrange(v, \"b n (h d) -> b h n d\", h=self.num_heads)",
+        "input": "I latenti e i token dei pixel, ciascuno con i propri canali.",
+        "output": "Per immagine, una testa con 96 query da 261 canali e 1.024 coppie chiave-valore da 261 canali.",
+        "explain": "Si leggono le parentesi dall’interno. Prima si normalizza, poi si applica una proiezione appresa. chunk(2, dim=−1) divide l’ultima dimensione in due metà, K e V. rearrange rende esplicito l’asse h delle teste. In questa lettura h vale uno."
+      },
+      {
+        "label": "Distribuire il peso sui pixel",
+        "path": "progetto/src/perceiver/attention.py",
+        "scope": "CrossAttention.forward",
+        "first": "dots = torch.einsum(\"b h i d, b h j d -> b h i j\", q, k) * self.scale",
+        "last": "attn = dots.softmax(dim=-1)",
+        "input": "Le query dei latenti e le chiavi dei pixel.",
+        "output": "Pesi [B, 1, 96, 1024]. I 1.024 pesi di ogni riga sommano a uno.",
+        "explain": "In einsum, i indica il latente, j il pixel e d il canale. Il prodotto somma su d per ottenere un punteggio per ogni coppia (i, j). self.scale vale 1/√261. In e01 si salta il ramo della maschera. softmax sull’ultimo asse normalizza i pesi tra i pixel per ogni singolo latente."
+      },
+      {
+        "label": "Aggiornare la memoria",
+        "path": "progetto/src/perceiver/attention.py",
+        "scope": "CrossAttention.forward",
+        "first": "out = torch.einsum(\"b h i j, b h j d -> b h i d\", attn, v)",
+        "last": "x_latent = x_latent + self.ff(self.norm_ff(x_latent))",
+        "input": "I pesi di lettura, i valori V dei pixel e lo stato dei latenti.",
+        "output": "96 latenti aggiornati da 384 numeri per immagine.",
+        "explain": "Qui einsum somma su j, quindi aggrega i valori dei pixel secondo i loro pesi. to_out riporta il risultato a 384 canali. Il primo + aggiunge la lettura allo stato precedente. Il secondo + aggiunge il contributo di un MLP, una piccola rete applicata separatamente a ogni vettore normalizzato."
+      }
+    ]
+  },
+  {
+    "slug": "latenti",
+    "orale": "Nel ciclo dell’encoder ogni stadio rilegge l’immagine e poi fa dialogare i 96 latenti. Nella self-attention ricavo Q, K e V dagli stessi latenti con qkv_proj. In e01 il ciclo applica i quattro blocchi a ogni stadio. La ModuleList condivisa spiega perché ho sedici applicazioni ma solo quattro gruppi di pesi per quei blocchi.",
+    "steps": [
+      {
+        "label": "Preparare i quattro blocchi condivisi",
+        "path": "progetto/src/perceiver/encoder.py",
+        "scope": "PerceiverEncoder.__init__",
+        "first": "elif weight_sharing:",
+        "last": "self.num_distinct_latent_blocks = num_transformer_blocks",
+        "input": "Condivisione attiva, quattro blocchi latenti per stadio e quattro stadi.",
+        "output": "Quattro blocchi con pesi propri, accessibili in tutti gli stadi.",
+        "explain": "La prima lista crea quattro moduli distinti chiamando make_block quattro volte. La lista successiva inserisce più riferimenti alla stessa ModuleList, chiamata shared. Aggiornare il peso di un blocco ne cambia quindi il comportamento in tutti gli stadi che lo riusano."
+      },
+      {
+        "label": "Alternare lettura e calcolo latente",
+        "path": "progetto/src/perceiver/encoder.py",
+        "scope": "PerceiverEncoder.forward",
+        "first": "if self.arrangement == \"interleaved\":",
+        "last": "latents = self._apply_latent_stage(stage, latents)",
+        "input": "I token dell’immagine e i latenti nello stato corrente.",
+        "output": "Dopo ciascun giro, uno stato [B, 96, 384] pronto per la lettura successiva.",
+        "explain": "range percorre in e01 gli stadi 0, 1, 2 e 3. Ogni giro legge gli stessi pixel con _apply_cross e poi passa i latenti aggiornati ai quattro blocchi di _apply_latent_stage. Per capire quale informazione circola dentro uno di quei blocchi, segui i prossimi due estratti."
+      },
+      {
+        "label": "Confrontare i latenti fra loro",
+        "path": "progetto/src/perceiver/attention.py",
+        "scope": "SelfAttention.forward",
+        "first": "q, k, v = self.qkv_proj(self.norm_attn(x)).chunk(3, dim=-1)",
+        "last": "dots = torch.einsum(\"b h i d, b h j d -> b h i j\", q, k) * self.scale",
+        "input": "Lo stesso insieme di 96 latenti alimenta Q, K e V.",
+        "output": "Per immagine, otto matrici di punteggi da 96 × 96.",
+        "explain": "chunk(3) separa domande, chiavi e valori ricavati da x. rearrange distribuisce i 384 canali in otto teste da 48. Qui i e j indicano entrambi latenti. In una singola testa ogni latente si confronta con sé stesso e con gli altri 95."
+      },
+      {
+        "label": "Trasmettere informazione al blocco successivo",
+        "path": "progetto/src/perceiver/attention.py",
+        "scope": "SelfAttention.forward",
+        "first": "attn = dots.softmax(dim=-1)",
+        "last": "x = x + self.ff(self.norm_ff(x))",
+        "input": "I punteggi tra latenti, i loro valori V e lo stato prima del blocco.",
+        "output": "Una nuova matrice [B, 96, 384] che conserva il numero di latenti e canali.",
+        "explain": "Per ogni testa la softmax assegna un peso a ciascun latente letto. La somma pesata usa questi pesi per trasferire informazione fra latenti. rearrange riunisce le teste. Le due somme residue aggiornano lo stato prima con l’attenzione e poi con l’MLP."
+      }
+    ]
+  },
+  {
+    "slug": "classe",
+    "orale": "In processed.mean(dim=1) l’asse 1 è quello dei 96 latenti. Ne faccio la media e conservo 384 caratteristiche per immagine. La testa nn.Linear le trasforma in dieci punteggi. Per classificare la foto prendo l’indice del punteggio massimo e lo confronto con la classe vera.",
+    "steps": [
+      {
+        "label": "Definire la testa per dieci classi",
+        "path": "progetto/src/perceiver/perceiver.py",
+        "scope": "Perceiver.__init__",
+        "first": "self.classifier = nn.Linear(latent_dim, num_classes)",
+        "last": "self.classifier = nn.Linear(latent_dim, num_classes)",
+        "input": "All’inizializzazione si fissano 384 componenti in ingresso e 10 classi in uscita.",
+        "output": "Un modulo con 3.840 pesi e 10 termini di bias da apprendere.",
+        "explain": "nn.Linear prepara una trasformazione affine. Per ogni classe si apprende una combinazione dei 384 canali più un valore di base, il bias. La riga costruisce il classificatore che il forward chiamerà dopo il pooling."
+      },
+      {
+        "label": "Ridurre i latenti a dieci logit",
+        "path": "progetto/src/perceiver/perceiver.py",
+        "scope": "Perceiver.forward",
+        "first": "return self.classifier(processed.mean(dim=1))",
+        "last": "return self.classifier(processed.mean(dim=1))",
+        "input": "I latenti finali in processed, con forma [B, 96, 384].",
+        "output": "Un tensore [B, 10] di logit, ossia punteggi grezzi di classe.",
+        "explain": "Si calcola prima mean(dim=1). L’asse 1 contiene i 96 latenti, quindi si ottengono 384 medie per immagine. Il classificatore trasforma quelle medie in dieci punteggi. Sul primo gatto del test il checkpoint e01 assegna circa 10,57 a gatto e 6,95 a cane."
+      },
+      {
+        "label": "Contare le decisioni corrette",
+        "path": "progetto/train.py",
+        "scope": "validate_one_epoch",
+        "first": "_, predicted = torch.max(output.data, 1)",
+        "last": "total_samples += data.size(0)",
+        "input": "I dieci logit per foto, le etichette vere e i conteggi accumulati.",
+        "output": "Il numero di risposte corrette e di immagini valutate fin qui.",
+        "explain": "torch.max sull’asse 1 restituisce valore e indice del massimo. Il trattino basso scarta il valore. predicted conserva l’indice della classe. Il confronto con target produce un vero o falso per foto e sum conta i veri. Sul test completo, 7.163 corrette diviso 10.000 dà il 71,63%."
+      }
+    ]
+  },
+  {
+    "slug": "punti",
+    "orale": "Per riconoscere una sedia uso SamplePoints sulla sua superficie. Ricentro i 2.048 punti rispetto al baricentro e li divido per il raggio massimo. Con torch.cat aggiungo a x, y e z le caratteristiche di Fourier. Il risultato è una tabella di 2.048 righe da 42 canali che il Perceiver può leggere.",
+    "steps": [
+      {
+        "label": "Campiona la superficie",
+        "path": "progetto/src/data/modelnet40.py",
+        "scope": "ModelNet40PerceiverDataModule.__init__",
+        "first": "self.test_transform = T.Compose([",
+        "last": "])",
+        "input": "Una mesh, descritta da vertici e facce.",
+        "output": "Una nuvola di 2.048 punti nella run mn01.",
+        "explain": "T.Compose raccoglie le trasformazioni nell’ordine della lista. SamplePoints estrae punti sulla superficie e NormalizeScale ne normalizza la scala. Questo è il ramo di valutazione. Anche qui i punti vengono ricampionati quando il loader riapre l’oggetto."
+      },
+      {
+        "label": "Trova il centro e il raggio",
+        "path": "progetto/src/data/transforms.py",
+        "scope": "normalize_point_cloud",
+        "first": "centroid = torch.mean(points, axis=0)",
+        "last": "return points",
+        "input": "Una tabella di coordinate x, y e z.",
+        "output": "Punti centrati, con raggio massimo 1 per una nuvola non degenere.",
+        "explain": "Con axis=0 la media scorre i punti e restituisce tre coordinate. La sottrazione applica lo stesso centro a ogni riga. La radice della somma dei quadrati dà la distanza dal centro. Dividere per la distanza massima porta il punto più lontano a raggio 1."
+      },
+      {
+        "label": "Aggiungi i canali di posizione",
+        "path": "progetto/src/data/modelnet40.py",
+        "scope": "ModelNet40PerceiverWrapper.__getitem__",
+        "first": "with torch.no_grad():",
+        "last": "data.pos_with_encoding = torch.cat([points, pos_enc], dim=-1)",
+        "input": "2.048 righe con le tre coordinate normalizzate.",
+        "output": "2.048 righe da 42 canali per oggetto.",
+        "explain": "self.pos_encoding calcola 39 valori per punto, 13 per asse con sei bande. Il blocco with torch.no_grad() costruisce queste caratteristiche senza tracciare i gradienti. torch.cat con dim=-1 affianca i 39 valori alle tre coordinate sulla stessa riga."
+      },
+      {
+        "label": "Ricomponi gli oggetti del batch",
+        "path": "progetto/src/data/modelnet40.py",
+        "scope": "ModelNet40PerceiverDataModule.preprocess_batch",
+        "first": "num_points_per_sample = total_points // batch_size",
+        "last": "labels = batch.y",
+        "input": "I punti di più oggetti concatenati dal loader.",
+        "output": "Un tensore [B, 2048, 42] e un’etichetta per oggetto.",
+        "explain": "L’operatore // divide il numero totale di punti per il numero B di oggetti. Tutte le mesh sono state campionate con lo stesso numero di punti. view ripristina gli assi oggetto, punto e caratteristica conservando il loro ordine. batch.y contiene la classe vera."
+      }
+    ]
+  },
+  {
+    "slug": "decoder",
+    "orale": "Con clone tengo una copia dei byte veri prima di nasconderne alcuni. Nel decoder ogni posizione usa una query per leggere i latenti e mlm_head produce 256 punteggi per posizione. Le espressioni output[mask] e target[mask] fanno sì che soltanto i byte nascosti contribuiscano alla perdita.",
+    "steps": [
+      {
+        "label": "Conserva il byte prima di nasconderlo",
+        "path": "progetto/src/data/wikitext103.py",
+        "scope": "WikiText103ByteDataset.__getitem__",
+        "first": "labels = chunk.clone()",
+        "last": "return input_ids, labels, mask",
+        "input": "Una finestra di 512 byte originali.",
+        "output": "Input mascherato, byte originali e maschera booleana.",
+        "explain": "clone crea due copie indipendenti. Il confronto con mask_prob produce un vero o falso per posizione. Dove mask vale vero, input_ids[mask] riceve il simbolo 256. Per una «a» nascosta labels conserva il byte 97."
+      },
+      {
+        "label": "Interroga i latenti",
+        "path": "progetto/src/perceiver_io/perceiver_io.py",
+        "scope": "PerceiverIO.forward",
+        "first": "output_queries_batch = repeat(self.output_queries, \"n d -> b n d\", b=batch_size)",
+        "last": ")",
+        "input": "512 query apprese e 128 latenti elaborati per esempio.",
+        "output": "512 risposte del decoder, ciascuna da 512 canali.",
+        "explain": "Nella stringa di repeat, b è l’asse degli esempi, n conta le query e d i loro canali. Ogni esempio riceve le stesse query apprese. Nel decoder il primo argomento fornisce Q, mentre processed_latents fornisce K e V. Ogni query legge una combinazione dei latenti."
+      },
+      {
+        "label": "Assegna i logit a ogni posizione",
+        "path": "progetto/src/perceiver_io/perceiver_io.py",
+        "scope": "PerceiverIO.forward",
+        "first": "if self.task == \"mlm\":",
+        "last": "return self.mlm_head(decoded_queries)",
+        "input": "Un vettore decodificato per ciascuna posizione.",
+        "output": "Logit di forma [B, 512, 256].",
+        "explain": "Il ramo if seleziona la testa MLM. La stessa testa trasforma ciascun vettore in 256 logit, uno per ogni possibile byte. Sono punteggi grezzi dai quali si può ottenere una distribuzione di probabilità."
+      },
+      {
+        "label": "Calcola la perdita sui bersagli",
+        "path": "progetto/train.py",
+        "scope": "train_one_epoch",
+        "first": "output = model(data)",
+        "last": "loss = criterion(output[mask], target[mask])",
+        "input": "Logit, byte veri e una maschera con almeno una posizione selezionata.",
+        "output": "Una cross-entropy media sui byte nascosti del batch.",
+        "explain": "Le parentesi quadre con una maschera booleana selezionano le stesse posizioni in output e target. Per ogni byte selezionato restano tutti i 256 logit e un solo indice corretto. Un batch con zero byte nascosti viene saltato prima del forward."
+      }
+    ]
+  },
+  {
+    "slug": "glue",
+    "orale": "Per STS-B concateno i byte delle due frasi con un separatore. Prendo la risposta della query zero con decoded_queries[:, 0] e ricavo un solo punteggio. In training uso MSELoss per confrontarlo con il voto umano. In validazione corrcoef misura quanto previsioni e voti variano insieme sull’intero dev set.",
+    "steps": [
+      {
+        "label": "Prepara la coppia di frasi",
+        "path": "progetto/src/data/glue_tasks.py",
+        "scope": "GLUEDataset.__getitem__",
+        "first": "bytes_list = b1 + [SEPARATOR_BYTE] + b2",
+        "last": "bytes_list = bytes_list + [0] * (self.seq_len - len(bytes_list))",
+        "input": "Due liste b1 e b2 di byte UTF-8, già accorciate se necessario.",
+        "output": "Una sequenza di 512 byte con una separazione esplicita.",
+        "explain": "Con le liste, + concatena. [SEPARATOR_BYTE] inserisce un solo byte 255 fra le due frasi. Se rimangono posti, [0] moltiplicato per il numero mancante produce gli zeri di riempimento."
+      },
+      {
+        "label": "Leggi una risposta per coppia",
+        "path": "progetto/src/perceiver_io/perceiver_io.py",
+        "scope": "PerceiverIO.forward",
+        "first": "pooled_query = decoded_queries[:, 0]",
+        "last": "return logits",
+        "input": "Una query di uscita decodificata per ogni coppia.",
+        "output": "Un punteggio reale per coppia, di forma [B, 1].",
+        "explain": "Il primo indice, :, conserva tutti gli esempi. Il secondo, 0, prende la prima e unica query. Il ramo si chiama classification anche per STS-B, ma la sua testa ha una sola uscita e quel numero rappresenta il grado di similarità."
+      },
+      {
+        "label": "Confronta con il voto umano",
+        "path": "progetto/train.py",
+        "scope": "train_one_epoch",
+        "first": "# STS-B regression: squeeze output to match target shape",
+        "last": "loss = criterion(output.squeeze(-1), target.float())",
+        "input": "Punteggi [B, 1] e voti umani [B].",
+        "output": "Un errore quadratico medio per il batch.",
+        "explain": "squeeze(-1) toglie l’ultima dimensione di lunghezza uno e allinea ogni punteggio al suo voto. float converte i target in numeri reali. Qui criterion è MSELoss. Una previsione 3 per un voto 5 contribuisce con (3 − 5)² = 4 prima della media."
+      },
+      {
+        "label": "Misura la correlazione sul dev",
+        "path": "progetto/train.py",
+        "scope": "validate_one_epoch",
+        "first": "if preds.std() > 0 and targs.std() > 0:",
+        "last": "avg_acc = 0.0   # predizioni costanti: correlazione non definita",
+        "input": "Predizioni e voti per tutte le coppie del dev set.",
+        "output": "Pearson r = 0,6082 per il checkpoint del modello separato.",
+        "explain": "std misura la dispersione. Se entrambe le serie variano, corrcoef crea una matrice 2 × 2 e [0, 1] estrae la loro correlazione. Una serie costante rende Pearson indefinito e il codice registra 0 per convenzione. Il grafico mostra r moltiplicato per 100."
+      }
+    ]
+  },
+  {
+    "slug": "checkpoint",
+    "orale": "Su CIFAR-10 backward calcola i gradienti sui dati di training. A fine epoca confronto l’accuratezza di validazione con il massimo precedente e salvo lo state_dict solo se migliora. In e01 ricarico così i pesi dell’epoca 92 e ottengo il 71,63% sul test.",
+    "steps": [
+      {
+        "label": "Separa le immagini di validazione",
+        "path": "progetto/src/data/cifar10.py",
+        "scope": "CIFAR10PerceiverDataModule.setup",
+        "first": "generator = torch.Generator().manual_seed(self.split_seed)",
+        "last": "self.train_indices = permutation[self.val_split :]",
+        "input": "Gli indici delle 50.000 immagini del training ufficiale.",
+        "output": "5.000 indici per la validazione e 45.000 per il training.",
+        "explain": "randperm mescola gli indici senza ripetizioni. Il seed controlla l’ordine. In [: self.val_split] manca l’estremo iniziale, quindi si prendono gli indici dall’inizio fino al limite escluso, i primi 5.000 per e01. In [self.val_split :] manca l’estremo finale e si prendono tutti quelli rimanenti."
+      },
+      {
+        "label": "Aggiorna i pesi sul training",
+        "path": "progetto/train.py",
+        "scope": "train_one_epoch",
+        "first": "scaler.scale(loss).backward()",
+        "last": "scaler.step(optimizer)",
+        "input": "La loss calcolata sul batch di training.",
+        "output": "Gradienti e un aggiornamento dei parametri.",
+        "explain": "backward risale il grafo e calcola un gradiente per ciascun parametro coinvolto. Con grad_clip positivo il codice limita la norma complessiva dei gradienti prima del passo dell’ottimizzatore. Nella ricetta e01 lo scaler è disattivato e l’ottimizzatore è LAMB."
+      },
+      {
+        "label": "Salva il massimo di validazione",
+        "path": "progetto/train.py",
+        "scope": "main",
+        "first": "if avg_val_acc > best_val_accuracy:",
+        "last": "torch.save(model.state_dict(), best_model_path)",
+        "input": "Accuratezza di validazione appena misurata e massimo precedente.",
+        "output": "I pesi dell’epoca migliore in best_model.pt.",
+        "explain": "Il segno > richiede un miglioramento stretto. Un pareggio conserva il checkpoint precedente. epoch + 1 traduce l’indice Python, che parte da zero, nel numero dell’epoca. state_dict raccoglie pesi e buffer da salvare. Per e01 il massimo è 72,92% all’epoca 92."
+      },
+      {
+        "label": "Valuta il checkpoint sul test",
+        "path": "progetto/train.py",
+        "scope": "main",
+        "first": "model = load_best_model(model, device, best_model_path)",
+        "last": "print(f\"TEST accuracy: {test_accuracy * 100:.2f}%\")",
+        "input": "Checkpoint scelto e 10.000 immagini del test ufficiale.",
+        "output": "7.163 immagini classificate correttamente su 10.000 per e01.",
+        "explain": "load_best_model ripristina i pesi selezionati. Il test_loader passa immagini tenute da parte. torch.no_grad evita di costruire il grafo dei gradienti. Nell’assegnazione _, test_accuracy la funzione restituisce due valori e si conserva l’accuratezza."
+      }
+    ]
+  },
+  {
+    "slug": "risultati",
+    "orale": "Per stimare quanto cambiano i risultati fra tre seed uso max(accs) meno min(accs). Ottengo 2,78 punti percentuali. Il guadagno di e08 è più piccolo di questa escursione. Il calo di e29 è molto più grande, ma togliere le coordinate riduce anche inner_dim da 261 a 3. Il confronto da solo non permette di separare i due effetti.",
+    "steps": [
+      {
+        "label": "Individua le repliche",
+        "path": "progetto/analyze_v2.py",
+        "first": "NOISE_BAND_IDS = [\"e01_baseline\", \"e31_baseline_seed1\", \"e32_baseline_seed2\"]",
+        "last": "BASELINE_ID = \"e01_baseline\"",
+        "input": "Tre run di riferimento con seed 42, 1 e 2.",
+        "output": "Gli identificativi della banda e della run usata nei confronti.",
+        "explain": "Le parentesi quadre racchiudono una lista di tre nomi. BASELINE_ID sceglie e01 per calcolare gli scarti. Le tre accuratezze di test sono 71,63%, 68,85% e 70,97%. Il seed influenza anche la selezione delle 5.000 immagini di validazione."
+      },
+      {
+        "label": "Calcola l’escursione",
+        "path": "progetto/analyze_v2.py",
+        "scope": "noise_band",
+        "first": "if len(accs) < 2:",
+        "last": "return max(accs) - min(accs), used",
+        "input": "La lista delle accuratezze disponibili e quella delle run utilizzate.",
+        "output": "0,0278 in frazione, ossia 2,78 punti percentuali.",
+        "explain": "len conta le misure. Se sono meno di due, None indica che la banda è ignota. Altrimenti il return restituisce due valori, l’escursione e la lista delle run. Il calcolo è 0,7163 − 0,6885. È una misura descrittiva su tre seed."
+      },
+      {
+        "label": "Confronta uno scarto con la banda",
+        "path": "progetto/analyze_v2.py",
+        "scope": "build_rows",
+        "first": "if band is None:",
+        "last": "verdetto = \"NON concludente\"",
+        "input": "Lo scarto delta della run da e01 e la banda CIFAR-10.",
+        "output": "Un giudizio basato sull’ampiezza dello scarto.",
+        "explain": "delta è l’accuratezza della run meno quella di e01. abs ne prende il valore assoluto, quindi conta anche un calo. La condizione > è stretta. Lo scarto +1,28 punti di e08 resta entro 2,78, mentre −39,27 di e29 supera la soglia empirica."
+      },
+      {
+        "label": "Controlla che cosa cambia in e29",
+        "path": "progetto/src/perceiver/attention.py",
+        "scope": "CrossAttention.__init__",
+        "first": "inner_dim = min(input_dim, latent_dim)",
+        "last": "inner_dim = min(input_dim, latent_dim)",
+        "input": "Larghezza dell’ingresso e 384 canali latenti.",
+        "output": "261 canali per Q, K e V in e01 e appena 3 in e29.",
+        "explain": "min sceglie il più piccolo dei due numeri. In e01 il pixel con le coordinate ha 261 canali, in e29 il pixel RGB ne ha tre. Il grande scarto include quindi anche questo restringimento. Un controllo a pari larghezza potrebbe tenere i 258 canali aggiuntivi uguali per tutti i pixel."
+      }
+    ]
+  }
+]

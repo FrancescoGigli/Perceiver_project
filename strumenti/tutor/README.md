@@ -280,3 +280,11 @@ Il manifest del corso è derivato dalla lezione e dai file Python verificati.
 Dopo modifiche autorizzate alle fonti aggiornarlo con
 `py -3.10 -X utf8 strumenti/tutor/course_content.py`; `--check` controlla
 che il manifest salvato sia attuale, senza modificarlo o generare media.
+
+Per il ripasso illustrato, `ripasso_codice.json` associa una spiegazione e un
+flusso di dati a brevi porzioni dei sorgenti. Dalla radice, esegui
+`python strumenti/tutor/ripasso_codice.py` per aggiornare gli estratti e i
+numeri di riga pubblicati in Studio. Con `--check` puoi verificare che
+corrispondano ancora al codice. Il comando
+`node --test strumenti/tutor/test_ripasso.cjs` controlla anche la copertura
+delle tappe, le figure e i rimandi agli appunti.
